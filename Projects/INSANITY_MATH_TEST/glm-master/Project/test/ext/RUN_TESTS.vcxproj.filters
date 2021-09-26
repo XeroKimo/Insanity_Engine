@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Kimor\source\repos\0 - Ongoing\Insanity_Engine\Projects\INSANITY_MATH_TEST\glm-master\Project\CMakeFiles\63739b598b54a35a3e394af22c75d59d\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B9C01530-CC1B-377E-AF00-BC87C12AC3CA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
