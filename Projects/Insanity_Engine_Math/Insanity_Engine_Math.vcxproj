@@ -15,6 +15,7 @@
     <ClInclude Include="Insanity_Math.h" />
     <ClInclude Include="MathConcepts.h" />
     <ClInclude Include="Matrix.h" />
+    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Scalar.h" />
     <ClInclude Include="Trignometry.h" />
     <ClInclude Include="Vector.h" />

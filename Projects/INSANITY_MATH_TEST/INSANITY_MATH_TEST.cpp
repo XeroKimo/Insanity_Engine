@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "glm-master/glm/gtc/matrix_transform.hpp"
+#include "glm-master/glm/ext/quaternion_float.hpp"
 #include <sstream>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -290,7 +291,7 @@ namespace INSANITYMATHTEST
             };
             Matrix<float, 3, 2> f2
             {
-                1, 2, 
+                1, 2,
                 3, 4,
                 5, 6
             };
@@ -463,5 +464,71 @@ namespace INSANITYMATHTEST
             Assert::AreEqual(r.Data(), d.Data() / 180.f * Math::Constants::pi<float>);
         }
 
+
+        TEST_METHOD(EulerQuaternion)
+        {
+            Quaternion<float> one{ Degrees<float>(90), Degrees<float>(0), Degrees<float>(0) };
+
+            Assert::IsTrue(one.ToEulerDegrees().x() >= 89.9f || one.ToEulerDegrees().x() <= 90.1f);
+
+            Quaternion<float> two{ Degrees<float>(0), Degrees<float>(90), Degrees<float>(0) };
+
+            Assert::IsTrue(two.ToEulerDegrees().y() >= 89.9f || two.ToEulerDegrees().y() <= 90.1f);
+
+            Quaternion<float> three{ Degrees<float>(0), Degrees<float>(0), Degrees<float>(90) };
+
+            Assert::IsTrue(three.ToEulerDegrees().z() >= 89.9f || three.ToEulerDegrees().z() <= 90.1f);
+
+            Quaternion<float> four = one * two;
+
+            Assert::IsTrue(
+                (four.ToEulerDegrees().y() >= 89.9f || four.ToEulerDegrees().y() <= 90.1f) &&
+                (four.ToEulerDegrees().x() >= 89.9f || four.ToEulerDegrees().x() <= 90.1f));
+
+            one = Quaternion(Degrees<float>(-90), Degrees<float>(0), Degrees<float>(0));
+
+            Assert::IsTrue(one.ToEulerDegrees().x() <= -89.9f || one.ToEulerDegrees().x() >= -90.1f);
+
+            two = Quaternion(Degrees<float>(0), Degrees<float>(-90), Degrees<float>(0));
+
+            Assert::IsTrue(two.ToEulerDegrees().y() <= -89.9f || two.ToEulerDegrees().y() >= -90.1f);
+
+            three = Quaternion(Degrees<float>(0), Degrees<float>(0), Degrees<float>(-90));
+
+            Assert::IsTrue(three.ToEulerDegrees().z() <= -89.9f || three.ToEulerDegrees().z() >= -90.1f);
+
+            four = one * two;
+
+            Assert::IsTrue(
+                (four.ToEulerDegrees().y() <= -89.9f || four.ToEulerDegrees().y() >= -90.1f) &&
+                (four.ToEulerDegrees().x() <= -89.9f || four.ToEulerDegrees().x() >= -90.1f));
+
+            four = two * one;
+
+            Assert::IsTrue(
+                (four.ToEulerDegrees().y() <= -89.9f || four.ToEulerDegrees().y() >= -90.1f) &&
+                (four.ToEulerDegrees().x() <= -89.9f || four.ToEulerDegrees().x() >= -90.1f));
+        }
+
+        TEST_METHOD(AxisQuaternion)
+        {
+            Quaternion<float> one{ { 1, 0, 0 }, Degrees<float>(90) };
+            Assert::IsTrue(one.ToEulerDegrees().x() >= 89.9f || one.ToEulerDegrees().x() <= 90.1f);
+
+            Quaternion<float> two{ { 0, 1, 0 }, Degrees<float>(90) };
+            Assert::IsTrue(two.ToEulerDegrees().y() >= 89.9f || two.ToEulerDegrees().y() <= 90.1f);
+
+            Quaternion<float> three{ { 0, 0, 1 }, Degrees<float>(90) };
+            Assert::IsTrue(three.ToEulerDegrees().z() >= 89.9f || three.ToEulerDegrees().z() <= 90.1f);
+
+            one = Quaternion<float>{ { 1, 0, 0 }, Degrees<float>(45) };
+            Assert::IsTrue(one.ToEulerDegrees().x() >= 44.9f || one.ToEulerDegrees().x() <= 46.1f);
+
+            two = Quaternion<float>{ { 0, 1, 0 }, Degrees<float>(45) };
+            Assert::IsTrue(two.ToEulerDegrees().y() >= 44.9f || two.ToEulerDegrees().y() <= 46.1f);
+
+            three = Quaternion<float>{ { 0, 0, 1 }, Degrees<float>(45) };
+            Assert::IsTrue(three.ToEulerDegrees().z() >= 44.9f || three.ToEulerDegrees().z() <= 46.1f);
+        }
     };
 }

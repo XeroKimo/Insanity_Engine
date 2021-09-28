@@ -1,0 +1,229 @@
+#pragma once
+#include "MathConcepts.h"
+#include "Matrix.h"
+#include "Trignometry.h"
+#include <array>
+#include <algorithm>
+
+namespace InsanityEngine::Math::Types
+{
+    template<Concepts::FloatingPoint T>
+    struct Quaternion
+    {
+    public:
+        using value_type = T;
+        using data_type = Vector<T, 4>;
+        using axis_type = Vector<T, 3>;
+
+    private:
+        data_type data;
+
+    public:
+        constexpr Quaternion() :
+            data({ 0, 0, 0, 1 })
+        {
+
+        }
+        constexpr Quaternion(value_type x, value_type y, value_type z, value_type w) :
+            data({ x, y, z, w })
+        {
+
+        }
+        constexpr Quaternion(Degrees<value_type> x, Degrees<value_type> y, Degrees<value_type> z) :
+            Quaternion(x.ToRadians(), y.ToRadians(), z.ToRadians())
+        {
+        }
+        
+        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToQuaternion/index.htm
+        constexpr Quaternion(Radians<value_type> x, Radians<value_type> y, Radians<value_type> z)
+        {
+            T cx = cos(x.Data() / 2);
+            T cy = cos(y.Data() / 2);
+            T cz = cos(z.Data() / 2);
+            T sx = sin(x.Data() / 2);
+            T sy = sin(y.Data() / 2);
+            T sz = sin(z.Data() / 2);
+
+            this->w() = (cx * cy * cz) - (sx * sy * sz);
+            this->x() = (sx * sy * cz) + (cx * cy * sz);
+            this->y() = (sx * cy * cz) + (cx * sy * sz);
+            this->z() = (cx * sy * cz) - (sx * cy * sz);
+        }
+
+        constexpr Quaternion(axis_type axis, Degrees<value_type> angle) :
+            Quaternion(axis, angle.ToRadians())
+        {
+
+        }
+        constexpr Quaternion(axis_type axis, Radians<value_type> angle)
+        {
+            value_type sinAngle = sin(angle.Data());
+            w() = cos(angle.Data());
+            x() = axis.x() * sinAngle;
+            y() = axis.y() * sinAngle;
+            z() = axis.z() * sinAngle;
+        }
+
+    public:
+        constexpr Quaternion& operator+=(const Quaternion& rh)
+        {
+            std::transform(data.begin(), data.end(), rh.data.begin(), data.begin(), std::plus{});
+            return *this;
+        }
+        constexpr Quaternion& operator-=(const Quaternion& rh)
+        {
+            std::transform(data.begin(), data.end(), rh.data.begin(), data.begin(), std::minus{});
+            return *this;
+        }
+        constexpr Quaternion& operator*=(const Quaternion& rh)
+        {
+            data = ToMatrix() * rh.data;
+            return *this;
+        }
+        //constexpr Quaternion& operator/=(const Quaternion& rh)
+        //{
+        //    //std::transform(data.begin(), data.end(), rh.data.begin(), data.begin(), std::minus{});
+        //    return *this;
+        //}
+
+        friend constexpr Quaternion operator+(Quaternion lh, const Quaternion& rh)
+        {
+            return (lh += rh);
+        }
+        friend constexpr Quaternion operator-(Quaternion lh, const Quaternion& rh)
+        {
+            return (lh -= rh);
+        }
+        friend constexpr Quaternion operator*(Quaternion lh, const Quaternion& rh)
+        {
+            return (lh *= rh);
+        }
+        //friend constexpr Quaternion operator/(Quaternion lh, const Quaternion& rh)
+        //{
+        //    return (lh /= rh);
+        //}
+
+        constexpr value_type& operator[](size_t index) { return data[index]; }
+        constexpr const value_type& operator[](size_t index) const { return data[index]; }
+
+    public:
+        constexpr value_type& x() { return data[0]; }
+        constexpr value_type& y() { return data[1]; }
+        constexpr value_type& z() { return data[2]; }
+        constexpr value_type& w() { return data[3]; }
+
+        constexpr const value_type& x() const { return data[0]; }
+        constexpr const value_type& y() const { return data[1]; }
+        constexpr const value_type& z() const { return data[2]; }
+        constexpr const value_type& w() const { return data[3]; }
+
+        constexpr auto begin() { return data.begin(); }
+        constexpr auto rbegin() { return data.rbegin(); }
+        constexpr auto end() { return data.end(); }
+        constexpr auto rend() { return data.rend(); }
+
+        constexpr auto begin() const { return data.begin(); }
+        constexpr auto rbegin() const { return data.rbegin(); }
+        constexpr auto end() const { return data.end(); }
+        constexpr auto rend() const { return data.rend(); }
+
+    public:
+        void Normalize()
+        {
+            data.Normalize();
+        }
+
+        void Rotate(axis_type axis, Degrees<value_type> angle)
+        {
+            Rotate(axis, angle.ToRadians());
+        }
+
+        void Rotate(axis_type axis, Radians<value_type> angle)
+        {
+            *this *= Quaternion{ axis, angle };
+        }
+
+        Vector<value_type, 3> ToEulerDegrees()
+        {
+            auto radians = ToEulerRadians();
+
+            return 
+            {
+                 Math::Functions::Trignometry::ToDegrees(radians.x()),
+                 Math::Functions::Trignometry::ToDegrees(radians.y()),
+                 Math::Functions::Trignometry::ToDegrees(radians.z())
+            };
+        }
+
+        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
+        Vector<value_type, 3> ToEulerRadians()
+        {
+            value_type yTest = x() * y() + z() * w();
+            if(yTest >= 0.5f)
+            {
+                return 
+                {
+                    -2 * atan2(x(), w()),
+                    Constants::pi<value_type> / 2,
+                    0 
+                };
+            }
+            else if(yTest <= -0.5f)
+            {
+                return
+                {
+                   -2 * atan2(x(), w()),
+                   -Constants::pi<value_type> / 2,
+                   0
+                };
+            }
+            else
+            {
+                return
+                {
+                    atan2(2 * y() * w() - 2 * x() * z(), 1 - 2 * y() * y() - 2 * z() * z()),
+                    asin(yTest * 2),
+                    atan2(2 * x() * w() - 2 * y() * z(), 1 - 2 * x() * x() - 2 * z() * z())
+                };
+            }
+        }
+
+        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
+        //Shifted to left by 1 so as the vector representation of the quaternion is shifted by 1
+        //Mine: x, y, z, w
+        //Normal representation: w, x, y, z
+        Matrix4x4f ToMatrix()
+        {
+            return
+            {
+                  z(), -y(), x(),  w(),
+                  w(),  x(), y(), -z(),
+                 -x(),  w(), z(),  y(),
+                 -y(), -z(), w(), -x()
+            };
+        }
+
+
+        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
+        Matrix4x4f ToRotationMatrix()
+        {
+            Matrix4x4f lh =
+            {
+                 w(),  z(), -y(), x(),
+                -z(),  w(),  x(), y(),
+                 y(), -x(),  w(), z(),
+                -x(), -y(), -z(), w()
+            };
+            Matrix4x4f rh =
+            {
+                 w(),  z(), -y(), -x(),
+                -z(),  w(),  x(), -y(),
+                 y(), -x(),  w(), -z(),
+                 x(),  y(),  z(),  w()
+            };
+
+            return lh * rh;
+        }
+    };
+
+}
