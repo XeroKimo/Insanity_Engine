@@ -530,5 +530,18 @@ namespace INSANITYMATHTEST
             three = Quaternion<float>{ { 0, 0, 1 }, Degrees<float>(45) };
             Assert::IsTrue(three.ToEulerDegrees().z() >= 44.9f || three.ToEulerDegrees().z() <= 46.1f);
         }
+
+        TEST_METHOD(Quaternions)
+        {
+            Quaternion<float> one;
+
+            one *= one;
+
+            Assert::IsTrue(one == Quaternion<float>());
+
+            Assert::IsTrue(Quaternion<float>(Degrees<float>(45.f), Degrees<float>(), Degrees<float>()) == Quaternion<float>({ 1, 0, 0 }, Degrees<float>(45.f)));
+            Assert::IsTrue(Quaternion<float>(Degrees<float>(), Degrees<float>(45.f), Degrees<float>()) == Quaternion<float>({ 0, 1, 0 }, Degrees<float>(45.f)));
+            Assert::IsTrue(Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(45.f)) == Quaternion<float>({ 0, 0, 1 }, Degrees<float>(45.f)));
+        }
     };
 }

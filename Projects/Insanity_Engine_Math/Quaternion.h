@@ -33,7 +33,7 @@ namespace InsanityEngine::Math::Types
             Quaternion(x.ToRadians(), y.ToRadians(), z.ToRadians())
         {
         }
-        
+
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToQuaternion/index.htm
         constexpr Quaternion(Radians<value_type> x, Radians<value_type> y, Radians<value_type> z)
         {
@@ -45,9 +45,9 @@ namespace InsanityEngine::Math::Types
             T sz = sin(z.Data() / 2);
 
             this->w() = (cx * cy * cz) - (sx * sy * sz);
-            this->x() = (sx * sy * cz) + (cx * cy * sz);
-            this->y() = (sx * cy * cz) + (cx * sy * sz);
-            this->z() = (cx * sy * cz) - (sx * cy * sz);
+            this->x() = (cx * sy * sz) + (sx * cy * cz);
+            this->y() = (cx * sy * cz) + (sx * cy * sz);
+            this->z() = (cx * cy * sz) - (sx * sy * cz);
         }
 
         constexpr Quaternion(axis_type axis, Degrees<value_type> angle) :
@@ -57,6 +57,7 @@ namespace InsanityEngine::Math::Types
         }
         constexpr Quaternion(axis_type axis, Radians<value_type> angle)
         {
+            angle /= Radians<value_type>(static_cast<value_type>(2));
             value_type sinAngle = sin(angle.Data());
             w() = cos(angle.Data());
             x() = axis.x() * sinAngle;
@@ -77,7 +78,8 @@ namespace InsanityEngine::Math::Types
         }
         constexpr Quaternion& operator*=(const Quaternion& rh)
         {
-            data = ToMatrix() * rh.data;
+            data = rh.ToMatrix() * data;
+
             return *this;
         }
         //constexpr Quaternion& operator/=(const Quaternion& rh)
@@ -102,6 +104,9 @@ namespace InsanityEngine::Math::Types
         //{
         //    return (lh /= rh);
         //}
+
+        friend constexpr bool operator==(const Quaternion& lh, const Quaternion& rh) = default;
+        friend constexpr bool operator!=(const Quaternion& lh, const Quaternion& rh) = default;
 
         constexpr value_type& operator[](size_t index) { return data[index]; }
         constexpr const value_type& operator[](size_t index) const { return data[index]; }
@@ -133,21 +138,11 @@ namespace InsanityEngine::Math::Types
             data.Normalize();
         }
 
-        void Rotate(axis_type axis, Degrees<value_type> angle)
-        {
-            Rotate(axis, angle.ToRadians());
-        }
-
-        void Rotate(axis_type axis, Radians<value_type> angle)
-        {
-            *this *= Quaternion{ axis, angle };
-        }
-
-        Vector<value_type, 3> ToEulerDegrees()
+        Vector<value_type, 3> ToEulerDegrees() const
         {
             auto radians = ToEulerRadians();
 
-            return 
+            return
             {
                  Math::Functions::Trignometry::ToDegrees(radians.x()),
                  Math::Functions::Trignometry::ToDegrees(radians.y()),
@@ -156,16 +151,16 @@ namespace InsanityEngine::Math::Types
         }
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
-        Vector<value_type, 3> ToEulerRadians()
+        Vector<value_type, 3> ToEulerRadians() const
         {
             value_type yTest = x() * y() + z() * w();
             if(yTest >= 0.5f)
             {
-                return 
+                return
                 {
                     -2 * atan2(x(), w()),
                     Constants::pi<value_type> / 2,
-                    0 
+                    0
                 };
             }
             else if(yTest <= -0.5f)
@@ -189,23 +184,20 @@ namespace InsanityEngine::Math::Types
         }
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        //Shifted to left by 1 so as the vector representation of the quaternion is shifted by 1
-        //Mine: x, y, z, w
-        //Normal representation: w, x, y, z
-        Matrix4x4f ToMatrix()
+        Matrix4x4f ToMatrix() const
         {
             return
             {
-                  z(), -y(), x(),  w(),
-                  w(),  x(), y(), -z(),
-                 -x(),  w(), z(),  y(),
-                 -y(), -z(), w(), -x()
+                 w(),  z(), -y(), x(),
+                -z(),  w(),  x(), y(),
+                 y(), -x(),  w(), z(),
+                -x(), -y(), -z(), w()
             };
         }
 
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        Matrix4x4f ToRotationMatrix()
+        Matrix4x4f ToRotationMatrix() const
         {
             Matrix4x4f lh =
             {

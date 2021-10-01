@@ -145,9 +145,9 @@ void InitializeMesh(InsanityEngine::DX11::Device& device, InsanityEngine::Applic
 {
     auto vertices = std::to_array(
         {
-            StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 2), Vector3f(), Vector2f(0, 0) },
-            StaticMesh::VertexData{ Vector3f(0, 0.5f, 2), Vector3f(), Vector2f(0.5f, 1) },
-            StaticMesh::VertexData{ Vector3f(0.5f, -0.5f, 2), Vector3f(), Vector2f(1, 0) }
+            StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
+            StaticMesh::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
+            StaticMesh::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
         }
     );
     ComPtr<ID3D11Buffer> vertexBuffer;
@@ -166,7 +166,7 @@ void InitializeMesh(InsanityEngine::DX11::Device& device, InsanityEngine::Applic
 
     meshObject = DX11::StaticMesh::MeshObject(mesh.value());
 
-    meshObject->position.x() = 2;
+    meshObject->position.z() = 2;
     Matrix4x4f objectMatrix = meshObject->GetObjectMatrix();
 
     Helpers::CreateConstantBuffer(device.GetDevice(), &meshObjectBuffer, objectMatrix, true);
@@ -180,7 +180,7 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     camera = Engine::Camera(ComPtr<ID3D11Device5>(device.GetDevice()), ComPtr<ID3D11RenderTargetView>(window.GetBackBuffer()), true);
 
     Vector2f windowSize = window.GetWindowSize();
-    camera->position.x() = 3;
+    //camera->position.x() = 3;
     Matrix4x4f viewProjection = Math::Functions::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
 
     Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, viewProjection, true);
@@ -211,8 +211,20 @@ void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::A
     InitializeCamera(device, window);
 }
 
+void TriangleRenderUpdate(float dt)
+{
+    //meshObject->quat *= Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(90.f * dt));
+    meshObject->quat *= Quaternion<float>(Vector3f(0, 0, 1), Degrees<float>(90.f * dt));
+}
+
 void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)
 {
+    D3D11_MAPPED_SUBRESOURCE subresource;
+    device.GetDeviceContext()->Map(meshObjectBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+    Matrix4x4f f = meshObject->GetObjectMatrix();
+    std::memcpy(subresource.pData, &f, sizeof(f));
+    device.GetDeviceContext()->Unmap(meshObjectBuffer.Get(), 0);
+
 
     auto renderTargets = std::to_array<ID3D11RenderTargetView*>(
         {

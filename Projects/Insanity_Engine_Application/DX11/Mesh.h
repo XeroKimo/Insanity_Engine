@@ -48,6 +48,7 @@ namespace InsanityEngine::DX11::StaticMesh
     public:
         Mesh mesh;
         Vector3f position;
+        Quaternion<float> quat;
 
     public:
         MeshObject(Mesh mesh);

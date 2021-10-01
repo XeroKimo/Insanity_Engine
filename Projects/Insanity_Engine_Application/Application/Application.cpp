@@ -30,6 +30,7 @@ namespace InsanityEngine::Application
             }
             else
             {
+                TriangleRenderUpdate(1.f / 144.f);
                 TriangleRender(m_device, m_window);
                 m_window.Present();
             }
