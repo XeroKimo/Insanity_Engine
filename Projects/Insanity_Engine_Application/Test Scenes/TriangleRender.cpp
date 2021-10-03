@@ -10,7 +10,6 @@
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "../Engine/Camera.h"
 
-#include "DirectXTex/DirectXTex.h"
 #include <optional>
 
 
@@ -37,27 +36,11 @@ ComPtr<ID3D11SamplerState> samplerState;
 
 void LoadImageFromFile(InsanityEngine::DX11::Device& device)
 {
-    DirectX::TexMetadata metaData;
-    DirectX::ScratchImage scratchImage;
-    HRESULT hr = DirectX::LoadFromWICFile(L"Resources/Korone_NotLikeThis.png", DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &metaData, scratchImage);
-    if(FAILED(hr))
-    {
-            throw HRESULTException("Failed to load image", hr);
-    }
-
-    const DirectX::Image* image = scratchImage.GetImage(0, 0, 0);
-    DirectX::ScratchImage scratchImage2;
-    hr = DirectX::FlipRotate(*image, DirectX::TEX_FR_FLAGS::TEX_FR_FLIP_VERTICAL, scratchImage2);
+    HRESULT hr = DX11::Helpers::CreateTextureFromFile(device.GetDevice(), &textureView, L"Resources/Korone_NotLikeThis.png", DirectX::WIC_FLAGS_NONE);
 
     if(FAILED(hr))
     {
-        throw HRESULTException("Failed to flip image", hr);
-    }
-
-    hr = DirectX::CreateShaderResourceView(device.GetDevice(), scratchImage2.GetImage(0, 0, 0), 1, metaData, &textureView);
-    if(FAILED(hr))
-    {
-        throw HRESULTException("Failed to create shader resource", hr);
+        throw HRESULTException("Failed to create texture", hr);
     }
 
     D3D11_SAMPLER_DESC samplerDesc;
@@ -226,7 +209,7 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     device.GetDeviceContext()->Unmap(meshObjectBuffer.Get(), 0);
 
 
-    auto renderTargets = std::to_array<ID3D11RenderTargetView*>(
+    auto renderTargets = std::to_array(
         {
             static_cast<ID3D11RenderTargetView*>(window.GetBackBuffer())
         });

@@ -1,7 +1,9 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Insanity_Math.h"
+#include "DirectXTex/DirectXTex.h"
 #include <span>
+#include <string_view>
 
 namespace InsanityEngine::DX11::Helpers
 {
@@ -57,5 +59,6 @@ namespace InsanityEngine::DX11::Helpers
     {
         return CreateConstantBuffer(device, buffer, sizeof(T), &startingData, isDynamic);
     }
-    
+
+    extern HRESULT CreateTextureFromFile(ID3D11Device* device, ID3D11ShaderResourceView** shaderResourceView, std::wstring_view file, DirectX::WIC_FLAGS flags);
 }

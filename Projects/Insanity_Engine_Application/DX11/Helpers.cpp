@@ -47,4 +47,23 @@ namespace InsanityEngine::DX11::Helpers
 
         return device->CreateBuffer(&bufferDesc, &data, buffer);
     }
+
+    HRESULT CreateTextureFromFile(ID3D11Device* device, ID3D11ShaderResourceView** shaderResourceView, std::wstring_view file, DirectX::WIC_FLAGS flags)
+    {
+        DirectX::TexMetadata metaData;
+        DirectX::ScratchImage scratchImage;
+        HRESULT hr = DirectX::LoadFromWICFile(file.data(), flags, &metaData, scratchImage);
+       
+        if(FAILED(hr))
+            return hr;
+
+        const DirectX::Image* image = scratchImage.GetImage(0, 0, 0);
+        DirectX::ScratchImage flippedImage;
+        hr = DirectX::FlipRotate(*image, DirectX::TEX_FR_FLAGS::TEX_FR_FLIP_VERTICAL, flippedImage);
+
+        if(FAILED(hr))
+            return hr;
+
+        return DirectX::CreateShaderResourceView(device, flippedImage.GetImage(0, 0, 0), 1, metaData, shaderResourceView);
+    }
 }
