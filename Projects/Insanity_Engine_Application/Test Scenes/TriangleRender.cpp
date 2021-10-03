@@ -10,6 +10,7 @@
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "../Engine/Camera.h"
 
+#include "SDL.h"
 #include <optional>
 
 
@@ -194,10 +195,76 @@ void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::A
     InitializeCamera(device, window);
 }
 
+static bool aPressed = false;
+static bool wPressed = false;
+static bool sPressed = false;
+static bool dPressed = false;
+
+void TriangleRenderInput(SDL_Event event)
+{
+    switch(event.type)
+    {
+    case SDL_EventType::SDL_KEYDOWN:
+        switch(event.key.keysym.sym)
+        {
+        case SDL_KeyCode::SDLK_a:
+            aPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_w:
+            wPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_s:
+            sPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_d:
+            dPressed = true;
+            break;
+        }
+        
+        break;
+    case SDL_EventType::SDL_KEYUP:
+        switch(event.key.keysym.sym)
+        {
+        case SDL_KeyCode::SDLK_a:
+            aPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_w:
+            wPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_s:
+            sPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_d:
+            dPressed = false;
+            break;
+        }
+        break;
+    }
+}
+
 void TriangleRenderUpdate(float dt)
 {
     //meshObject->quat *= Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(90.f * dt));
-    meshObject->quat *= Quaternion<float>(Vector3f(0, 0, 1), Degrees<float>(90.f * dt));
+
+    Vector2f axis;
+    if(aPressed)
+    {
+        axis.y() -= 1;
+    }
+    if(sPressed)
+    {
+        axis.x() -= 1;
+    }
+    if(wPressed)
+    {
+        axis.x() += 1;
+    }
+    if(dPressed)
+    {
+        axis.y() += 1;
+    }
+
+    meshObject->quat *= Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt));
 }
 
 void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)

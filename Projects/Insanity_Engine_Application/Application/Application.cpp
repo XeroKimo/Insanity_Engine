@@ -31,6 +31,8 @@ namespace InsanityEngine::Application
         {
             if(SDL_PollEvent(&event))
             {
+                TriangleRenderInput(event);
+
                 if(event.type == SDL_EventType::SDL_QUIT)
                     m_running = false;
 
