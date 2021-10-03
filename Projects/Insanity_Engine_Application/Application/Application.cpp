@@ -5,6 +5,8 @@
 #include "../DX11/Device.h"
 #include "../Test Scenes/TriangleRender.h"
 
+#include <chrono>
+
 using namespace InsanityEngine;
 using namespace InsanityEngine::Math::Types;
 
@@ -21,6 +23,10 @@ namespace InsanityEngine::Application
         MSG msg; 
         
         TriangleRenderSetup(m_device, m_window);
+
+        std::chrono::time_point previous = std::chrono::steady_clock::now();
+        std::chrono::time_point now = previous;
+        
         while(m_running)
         {
             if(m_window.PollEvent(msg))
@@ -30,7 +36,11 @@ namespace InsanityEngine::Application
             }
             else
             {
-                TriangleRenderUpdate(1.f / 144.f);
+                previous = now;
+                now = std::chrono::steady_clock::now();
+                std::chrono::duration<float> delta = now - previous;
+
+                TriangleRenderUpdate(std::chrono::duration<float>(delta).count());
                 TriangleRender(m_device, m_window);
                 m_window.Present();
             }
