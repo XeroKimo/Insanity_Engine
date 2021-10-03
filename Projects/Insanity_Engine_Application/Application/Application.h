@@ -34,5 +34,5 @@ namespace InsanityEngine::Application
         Window& GetWindow() const { return m_window; }
     };
 
-    extern void RunApplication();
+    extern int RunApplication();
 }

@@ -1,39 +1,28 @@
 #include "Window.h"
 #include "../DX11/Device.h"
 #include "Debug Classes/Exceptions/HRESULTException.h"
+#include "SDL_config_windows.h"
+#include "SDL.h"
+#include "SDL_syswm.h"
 
 using namespace InsanityEngine::Math::Types;
 using namespace InsanityEngine::Debug::Exceptions;
 
 namespace InsanityEngine::Application
 {
-    Window::Window(std::wstring_view windowName, Vector2f windowSize, DX11::Device& device) :
+    Window::Window(std::string_view windowName, Vector2f windowSize, DX11::Device& device) :
         m_device(&device)
     {
         InitializeWindow(windowName, windowSize);
         InitializeSwapChain();
         InitializeBackBuffer();
-
-
     }
 
     Window::~Window()
     {
         m_swapChain->SetFullscreenState(false, nullptr);
-    }
 
-
-    bool Window::PollEvent(MSG& msg)
-    {
-        if(PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-
-            return true;
-        }
-
-        return false;
+        SDL_DestroyWindow(m_handle);
     }
 
     void Window::Present()
@@ -43,56 +32,15 @@ namespace InsanityEngine::Application
 
     Vector2f Window::GetWindowSize() const
     {
-        RECT rect;
-        GetClientRect(m_hwnd, &rect);
-        return Vector2f(rect.right, rect.bottom);
+        int width;
+        int height;
+        SDL_GetWindowSize(m_handle, &width, &height);
+        return Vector2f(width, height);
     }
 
-    void Window::InitializeWindow(std::wstring_view windowName, Math::Types::Vector2f windowSize)
+    void Window::InitializeWindow(std::string_view windowName, Math::Types::Vector2f windowSize)
     {
-        WNDCLASSW windowClass{};
-        windowClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-        windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-        windowClass.hInstance = NULL;
-        windowClass.lpfnWndProc = WndProc;
-        windowClass.lpszClassName = windowName.data();
-        windowClass.style = CS_HREDRAW | CS_VREDRAW;
-
-        if(!RegisterClass(&windowClass))
-        {
-            MessageBox(NULL, L"Could not register class", L"Error", MB_OK);
-            throw std::exception("Could not register class");
-        }
-
-        RECT rect = {};
-        rect.bottom = static_cast<LONG>(windowSize.y());
-        rect.right = static_cast<LONG>(windowSize.x());
-
-        AdjustWindowRect(&rect, windowStyle, false);
-
-        m_hwnd = CreateWindowExW(0,
-            windowName.data(),
-            windowName.data(),
-            windowStyle,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            rect.right - rect.left,
-            rect.bottom - rect.top,
-            NULL,
-            NULL,
-            NULL,
-            NULL);
-
-
-        if(!m_hwnd)
-        {
-            MessageBox(NULL, L"Could not create window", L"Error", MB_OK);
-            throw std::exception("Could not create window");
-        }
-
-        SetWindowLongPtrW(m_hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-
-        ShowWindow(m_hwnd, SW_RESTORE);
+        m_handle = SDL_CreateWindow(windowName.data(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN);
     }
 
     void Window::InitializeSwapChain()
@@ -124,13 +72,17 @@ namespace InsanityEngine::Application
         ComPtr<IDXGISwapChain1> tempSwapChain;
         ComPtr<ID3D11Device> device;
 
-        if(HRESULT hr =
-            factory->CreateSwapChainForHwnd(m_device->GetDevice(),
-                m_hwnd,
-                &swapChainDesc,
-                &fullscreenDesc,
-                nullptr,
-                tempSwapChain.GetAddressOf());
+        SDL_SysWMinfo info;
+        SDL_VERSION(&info.version);
+        SDL_GetWindowWMInfo(m_handle, &info);
+
+        if(HRESULT hr = factory->CreateSwapChainForHwnd(
+            m_device->GetDevice(),
+            info.info.win.window,
+            &swapChainDesc,
+            &fullscreenDesc,
+            nullptr,
+            tempSwapChain.GetAddressOf());
             FAILED(hr))
         {
             throw HRESULTException("Failed to create swap chain. HRESULT: ", hr);
@@ -160,29 +112,5 @@ namespace InsanityEngine::Application
 
         if(FAILED(hr))
             throw HRESULTException("Failed to create back buffer. HRESULT: ", hr);
-    }
-    LRESULT Window::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-    {
-        Window* window = reinterpret_cast<Window*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-
-        switch(uMsg)
-        {
-        case WM_KEYDOWN:
-            //BlocksEngine::Debug::LogInfo("WndProc: Key pressed: {}", wParam);
-            return 0;
-        case WM_SIZE:
-            //if(window)
-            //{
-            //    window->ResizeBuffers({ LOWORD(lParam), HIWORD(lParam) });
-            //}
-            return 0;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-        default:
-            return DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-
-        return 0;
     }
 }
