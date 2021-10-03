@@ -7,6 +7,8 @@
 
 struct IDXGISwapChain4;
 struct ID3D11RenderTargetView1;
+struct SDL_Window;
+
 
 namespace InsanityEngine::DX11
 {
@@ -30,14 +32,12 @@ namespace InsanityEngine::Application
         ComPtr<IDXGISwapChain4> m_swapChain;
         ComPtr<ID3D11RenderTargetView1> m_backBuffer;
 
-        HWND m_hwnd = 0;
-
+        SDL_Window* m_handle;
     public:
-        Window(std::wstring_view windowName, Math::Types::Vector2f windowSize, DX11::Device& device);
+        Window(std::string_view windowName, Math::Types::Vector2f windowSize, DX11::Device& device);
         ~Window();
 
     public:
-        bool PollEvent(MSG& msg);
         void Present();
 
     public:
@@ -46,12 +46,9 @@ namespace InsanityEngine::Application
 
 
     private:
-        void InitializeWindow(std::wstring_view windowName, Math::Types::Vector2f windowSize);
+        void InitializeWindow(std::string_view windowName, Math::Types::Vector2f windowSize);
         void InitializeSwapChain();
         void InitializeBackBuffer();
-
-    private:
-        static LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     };
 
 

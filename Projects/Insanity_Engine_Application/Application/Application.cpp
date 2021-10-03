@@ -5,6 +5,7 @@
 #include "../DX11/Device.h"
 #include "../Test Scenes/TriangleRender.h"
 
+#include "SDL.h"
 #include <chrono>
 
 using namespace InsanityEngine;
@@ -20,19 +21,20 @@ namespace InsanityEngine::Application
 
     int Application::Run()
     {
-        MSG msg; 
         
         TriangleRenderSetup(m_device, m_window);
 
         std::chrono::time_point previous = std::chrono::steady_clock::now();
         std::chrono::time_point now = previous;
-        
+        SDL_Event event;
         while(m_running)
         {
-            if(m_window.PollEvent(msg))
+            if(SDL_PollEvent(&event))
             {
-                if(msg.message == WM_QUIT)
-                    Quit();
+                if(event.type == SDL_EventType::SDL_QUIT)
+                    m_running = false;
+
+               
             }
             else
             {
@@ -57,15 +59,27 @@ namespace InsanityEngine::Application
     }
 
 
-    void RunApplication()
-    { 
-        DX11::Device device;
-        Window window{ L"Insanity Engine", { 1280.f, 720.f }, device };
+    int RunApplication()
+    {
+        int retVal = 0;
+        SDL_Init(SDL_INIT_VIDEO);
+
+        try
+        {
+            DX11::Device device;
+            Window window{ "Insanity Engine", { 1280.f, 720.f }, device };
 
 
-        Application app(device, window);
-        app.Run();
+            Application app(device, window);
+            app.Run();
+        }
+        catch(std::exception e)
+        {
+            retVal = 1;
+        }
 
+        SDL_Quit();
 
+        return retVal;
     }
 }
