@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Insanity_Engine_Library", "
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "Projects\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj", "{371B9FA9-4C90-4AC6-A123-ACED756D6C77}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2", "Projects\SDL2-2.0.16\Project\SDL2.vcxproj", "{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -164,6 +166,28 @@ Global
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Debug|ARM64.ActiveCfg = Debug|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Debug|x64.ActiveCfg = Debug|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Debug|x64.Build.0 = Debug|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Debug|x86.ActiveCfg = Debug|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.MinSizeRel|ARM64.ActiveCfg = MinSizeRel|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.MinSizeRel|x86.ActiveCfg = MinSizeRel|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|ARM64.ActiveCfg = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|ARM64.Build.0 = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|x64.ActiveCfg = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|x64.Build.0 = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|x86.ActiveCfg = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Profile|x86.Build.0 = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Release|ARM64.ActiveCfg = Release|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Release|x64.ActiveCfg = Release|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Release|x64.Build.0 = Release|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.Release|x86.ActiveCfg = Release|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.RelWithDebInfo|ARM64.ActiveCfg = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+		{97701317-01E3-3C9B-ABA8-553D0F3E4EAA}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
