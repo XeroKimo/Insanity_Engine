@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "Extensions/MatrixExtension.h"
+#include <assert.h>
 
 namespace InsanityEngine::DX11::StaticMesh
 {
@@ -42,8 +43,31 @@ namespace InsanityEngine::DX11::StaticMesh
         return inputLayout;
     }
 
-    MeshObject::MeshObject(Mesh mesh) :
-        mesh(mesh)
+    Texture::Texture(ComPtr<ID3D11ShaderResourceView> shaderResourceView, ComPtr<ID3D11SamplerState> samplerState) :
+        m_shaderResourceView(shaderResourceView),
+        m_samplerState(samplerState)
+    {
+    }
+
+    void Texture::SetSamplerState(ComPtr<ID3D11SamplerState> samplerState)
+    {
+        assert(samplerState != nullptr);
+
+        m_samplerState = samplerState;
+    }
+
+    Material::Material(ComPtr<ID3D11VertexShader> vertexShader, ComPtr<ID3D11PixelShader> pixelShader, Texture albedo, Vector4f color) :
+        m_vertexShader(vertexShader),
+        m_pixelShader(pixelShader),
+        albedo(albedo),
+        color(color)
+    {
+
+    }
+
+    MeshObject::MeshObject(Mesh mesh, Material material) :
+        mesh(mesh),
+        material(material)
     {
 
     }

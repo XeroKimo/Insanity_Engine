@@ -20,53 +20,175 @@ using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 using InsanityEngine::DX11::ComPtr;
 
-ComPtr<ID3D11VertexShader> vertexShader;
-ComPtr<ID3D11PixelShader> pixelShader;
-ComPtr<ID3D11InputLayout> inputLayout;
-std::optional<InsanityEngine::Engine::Camera> camera;
-ComPtr<ID3D11Buffer> cameraBuffer;
-ComPtr<ID3D11DepthStencilState> depthStencilState;
+static ComPtr<ID3D11VertexShader> vertexShader;
+static ComPtr<ID3D11PixelShader> pixelShader;
+static ComPtr<ID3D11InputLayout> inputLayout;
+static std::optional<InsanityEngine::Engine::Camera> camera;
+static ComPtr<ID3D11Buffer> cameraBuffer;
+static ComPtr<ID3D11DepthStencilState> depthStencilState;
 
-std::optional<InsanityEngine::DX11::StaticMesh::Mesh> mesh;
-std::optional<InsanityEngine::DX11::StaticMesh::MeshObject> meshObject;
-ComPtr<ID3D11Buffer> meshObjectBuffer;
+static std::optional<DX11::StaticMesh::Texture> texture;
+static std::optional<DX11::StaticMesh::Material> material;
 
-ComPtr<ID3D11Buffer> colorBufferTest;
-ComPtr<ID3D11ShaderResourceView> textureView;
-ComPtr<ID3D11SamplerState> samplerState;
+static std::optional<InsanityEngine::DX11::StaticMesh::Mesh> mesh;
+static std::optional<InsanityEngine::DX11::StaticMesh::MeshObject> meshObject;
+static ComPtr<ID3D11Buffer> meshObjectBuffer;
 
-void LoadImageFromFile(InsanityEngine::DX11::Device& device)
+static ComPtr<ID3D11Buffer> colorBufferTest;
+static ComPtr<ID3D11ShaderResourceView> textureView;
+static ComPtr<ID3D11SamplerState> samplerState;
+
+static bool aPressed = false;
+static bool wPressed = false;
+static bool sPressed = false;
+static bool dPressed = false;
+
+void InitializeShaders(InsanityEngine::DX11::Device& device);
+void InitializeMaterial(InsanityEngine::DX11::Device& device);
+void InitializeMesh(InsanityEngine::DX11::Device& device);
+void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window);
+
+void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat);
+void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
+void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
+
+void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
 {
-    HRESULT hr = DX11::Helpers::CreateTextureFromFile(device.GetDevice(), &textureView, L"Resources/Korone_NotLikeThis.png", DirectX::WIC_FLAGS_NONE);
+    InitializeShaders(device);
+    InitializeMaterial(device);
+    InitializeMesh(device);
+    InitializeCamera(device, window);
+}
 
-    if(FAILED(hr))
+void TriangleRenderInput(SDL_Event event)
+{
+    switch(event.type)
     {
-        throw HRESULTException("Failed to create texture", hr);
-    }
+    case SDL_EventType::SDL_KEYDOWN:
+        switch(event.key.keysym.sym)
+        {
+        case SDL_KeyCode::SDLK_a:
+            aPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_w:
+            wPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_s:
+            sPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_d:
+            dPressed = true;
+            break;
+        }
 
-    D3D11_SAMPLER_DESC samplerDesc;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.BorderColor[0] = 1.0f;
-    samplerDesc.BorderColor[1] = 1.0f;
-    samplerDesc.BorderColor[2] = 1.0f;
-    samplerDesc.BorderColor[3] = 1.0f;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.MaxAnisotropy = 1;
-    samplerDesc.MipLODBias = 0;
-    samplerDesc.MinLOD = -FLT_MAX;
-    samplerDesc.MaxLOD = FLT_MAX;
-
-    hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
-    if(FAILED(hr))
-    {
-        throw HRESULTException("Failed to create sampler state", hr);
+        break;
+    case SDL_EventType::SDL_KEYUP:
+        switch(event.key.keysym.sym)
+        {
+        case SDL_KeyCode::SDLK_a:
+            aPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_w:
+            wPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_s:
+            sPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_d:
+            dPressed = false;
+            break;
+        }
+        break;
     }
 }
 
-void InitializeShaders(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
+void TriangleRenderUpdate(float dt)
+{
+    //meshObject->quat *= Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(90.f * dt));
+
+    Vector2f axis;
+    if(aPressed)
+    {
+        axis.y() -= 1;
+    }
+    if(sPressed)
+    {
+        axis.x() -= 1;
+    }
+    if(wPressed)
+    {
+        axis.x() += 1;
+    }
+    if(dPressed)
+    {
+        axis.y() += 1;
+    }
+
+    meshObject->quat *= Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt));
+}
+
+void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)
+{
+    D3D11_MAPPED_SUBRESOURCE subresource;
+    device.GetDeviceContext()->Map(meshObjectBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+    Matrix4x4f f = meshObject->GetObjectMatrix();
+    std::memcpy(subresource.pData, &f, sizeof(f));
+    device.GetDeviceContext()->Unmap(meshObjectBuffer.Get(), 0);
+
+
+    std::array renderTargets
+    {
+        static_cast<ID3D11RenderTargetView*>(window.GetBackBuffer())
+    };
+
+    Vector2f resolution = window.GetWindowSize();
+
+    D3D11_VIEWPORT viewport = {};
+    viewport.Width = static_cast<float>(resolution.x());
+    viewport.Height = static_cast<float>(resolution.y());
+    viewport.MaxDepth = 1;
+    viewport.MinDepth = 0;
+
+    D3D11_RECT rect = {};
+    rect.right = static_cast<LONG>(resolution.x());
+    rect.bottom = static_cast<LONG>(resolution.y());
+
+    DX11::Helpers::ClearRenderTargetView(device.GetDeviceContext(), camera->GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
+    device.GetDeviceContext()->ClearDepthStencilView(camera->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+    device.GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->GetDepthStencilView());
+    device.GetDeviceContext()->OMSetDepthStencilState(depthStencilState.Get(), 0);
+    device.GetDeviceContext()->RSSetViewports(1, &viewport);
+    device.GetDeviceContext()->RSSetScissorRects(1, &rect);
+    device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
+
+    SetMaterial(device, meshObject->material);
+
+    auto vsConstantBuffers = std::to_array(
+        {
+            cameraBuffer.Get(),
+            meshObjectBuffer.Get()
+        });
+
+    device.GetDeviceContext()->VSSetConstantBuffers(1, 2, vsConstantBuffers.data());
+    device.GetDeviceContext()->PSSetConstantBuffers(1, 1, colorBufferTest.GetAddressOf());
+
+    SetMesh(device, meshObject.value());
+    DrawMesh(device, meshObject.value());
+}
+
+void ShutdownTriangleRender()
+{
+    //DirectX::SetWICFactory(nullptr);
+    vertexShader = nullptr;
+    pixelShader = nullptr;
+    inputLayout = nullptr;
+    cameraBuffer = nullptr;
+    depthStencilState = nullptr;
+    meshObjectBuffer = nullptr;
+    colorBufferTest = nullptr;
+}
+
+void InitializeShaders(InsanityEngine::DX11::Device& device)
 {
     ComPtr<ID3DBlob> data;
     ComPtr<ID3DBlob> error;
@@ -125,7 +247,41 @@ void InitializeShaders(InsanityEngine::DX11::Device& device, InsanityEngine::App
     }
 }
 
-void InitializeMesh(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
+void InitializeMaterial(InsanityEngine::DX11::Device& device)
+{
+    HRESULT hr = DX11::Helpers::CreateTextureFromFile(device.GetDevice(), &textureView, L"Resources/Korone_NotLikeThis.png", DirectX::WIC_FLAGS_NONE);
+
+    if(FAILED(hr))
+    {
+        throw HRESULTException("Failed to create texture", hr);
+    }
+
+    D3D11_SAMPLER_DESC samplerDesc;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.BorderColor[0] = 1.0f;
+    samplerDesc.BorderColor[1] = 1.0f;
+    samplerDesc.BorderColor[2] = 1.0f;
+    samplerDesc.BorderColor[3] = 1.0f;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.MaxAnisotropy = 1;
+    samplerDesc.MipLODBias = 0;
+    samplerDesc.MinLOD = -FLT_MAX;
+    samplerDesc.MaxLOD = FLT_MAX;
+
+    hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
+    if(FAILED(hr))
+    {
+        throw HRESULTException("Failed to create sampler state", hr);
+    }
+
+    texture = StaticMesh::Texture(textureView, samplerState);
+    material = StaticMesh::Material(vertexShader, pixelShader, texture.value());
+}
+
+void InitializeMesh(InsanityEngine::DX11::Device& device)
 {
     auto vertices = std::to_array(
         {
@@ -148,15 +304,14 @@ void InitializeMesh(InsanityEngine::DX11::Device& device, InsanityEngine::Applic
     mesh = StaticMesh::Mesh(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
 
 
-    meshObject = DX11::StaticMesh::MeshObject(mesh.value());
+    meshObject = DX11::StaticMesh::MeshObject(mesh.value(), material.value());
 
     meshObject->position.z() = 2;
     Matrix4x4f objectMatrix = meshObject->GetObjectMatrix();
 
     Helpers::CreateConstantBuffer(device.GetDevice(), &meshObjectBuffer, objectMatrix, true);
 
-    Vector4f triangleColor{ 1, 0, 1, 1 };
-    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, triangleColor, true);
+    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, meshObject->material.color, true);
 }
 
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
@@ -186,156 +341,34 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     device.GetDevice()->CreateDepthStencilState(&desc, &depthStencilState);
 }
 
-void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
+
+void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat)
 {
-    LoadImageFromFile(device);
-   
-    InitializeShaders(device, window);
-    InitializeMesh(device, window);
-    InitializeCamera(device, window);
+    device.GetDeviceContext()->VSSetShader(mat.GetVertexShader(), nullptr, 0);
+    device.GetDeviceContext()->PSSetShader(mat.GetPixelShader(), nullptr, 0);
+
+    std::array samplers{ mat.albedo.GetSamplerState() };
+    std::array textures{ mat.albedo.GetView() };
+    device.GetDeviceContext()->PSSetSamplers(0, 1, samplers.data());
+    device.GetDeviceContext()->PSSetShaderResources(0, 1, textures.data());
 }
 
-static bool aPressed = false;
-static bool wPressed = false;
-static bool sPressed = false;
-static bool dPressed = false;
-
-void TriangleRenderInput(SDL_Event event)
+void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
 {
-    switch(event.type)
+    std::array vertexBuffers
     {
-    case SDL_EventType::SDL_KEYDOWN:
-        switch(event.key.keysym.sym)
-        {
-        case SDL_KeyCode::SDLK_a:
-            aPressed = true;
-            break;
-        case SDL_KeyCode::SDLK_w:
-            wPressed = true;
-            break;
-        case SDL_KeyCode::SDLK_s:
-            sPressed = true;
-            break;
-        case SDL_KeyCode::SDLK_d:
-            dPressed = true;
-            break;
-        }
-        
-        break;
-    case SDL_EventType::SDL_KEYUP:
-        switch(event.key.keysym.sym)
-        {
-        case SDL_KeyCode::SDLK_a:
-            aPressed = false;
-            break;
-        case SDL_KeyCode::SDLK_w:
-            wPressed = false;
-            break;
-        case SDL_KeyCode::SDLK_s:
-            sPressed = false;
-            break;
-        case SDL_KeyCode::SDLK_d:
-            dPressed = false;
-            break;
-        }
-        break;
-    }
-}
-
-void TriangleRenderUpdate(float dt)
-{
-    //meshObject->quat *= Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(90.f * dt));
-
-    Vector2f axis;
-    if(aPressed)
-    {
-        axis.y() -= 1;
-    }
-    if(sPressed)
-    {
-        axis.x() -= 1;
-    }
-    if(wPressed)
-    {
-        axis.x() += 1;
-    }
-    if(dPressed)
-    {
-        axis.y() += 1;
-    }
-
-    meshObject->quat *= Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt));
-}
-
-void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)
-{
-    D3D11_MAPPED_SUBRESOURCE subresource;
-    device.GetDeviceContext()->Map(meshObjectBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
-    Matrix4x4f f = meshObject->GetObjectMatrix();
-    std::memcpy(subresource.pData, &f, sizeof(f));
-    device.GetDeviceContext()->Unmap(meshObjectBuffer.Get(), 0);
-
-
-    auto renderTargets = std::to_array(
-        {
-            static_cast<ID3D11RenderTargetView*>(window.GetBackBuffer())
-        });
-
-    Vector2f resolution = window.GetWindowSize();
-
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(resolution.x());
-    viewport.Height = static_cast<float>(resolution.y());
-    viewport.MaxDepth = 1;
-    viewport.MinDepth = 0;
-
-    D3D11_RECT rect = {};
-    rect.right = static_cast<LONG>(resolution.x());
-    rect.bottom = static_cast<LONG>(resolution.y());
-
-    DX11::Helpers::ClearRenderTargetView(device.GetDeviceContext(), camera->GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
-    device.GetDeviceContext()->ClearDepthStencilView(camera->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
-    device.GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->GetDepthStencilView());
-    device.GetDeviceContext()->OMSetDepthStencilState(depthStencilState.Get(), 0);
-    device.GetDeviceContext()->RSSetViewports(1, &viewport);
-    device.GetDeviceContext()->RSSetScissorRects(1, &rect);
-    device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
-    device.GetDeviceContext()->VSSetShader(vertexShader.Get(), nullptr, 0);
-
-    auto vsConstantBuffers = std::to_array(
-        {
-            cameraBuffer.Get(),
-            meshObjectBuffer.Get()
-        });
-    device.GetDeviceContext()->VSSetConstantBuffers(1, 2, vsConstantBuffers.data());
-    device.GetDeviceContext()->PSSetShader(pixelShader.Get(), nullptr, 0);
-    device.GetDeviceContext()->PSSetConstantBuffers(1, 1, colorBufferTest.GetAddressOf());
-    device.GetDeviceContext()->PSSetShaderResources(0, 1, textureView.GetAddressOf());
-    device.GetDeviceContext()->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-
-
-    auto vertexBuffers = std::to_array(
-        {
-            meshObject->mesh.GetVertexBuffer()
-        });
+        mesh.mesh.GetVertexBuffer()
+    };
 
     UINT stride = sizeof(StaticMesh::VertexData);
     UINT offset = 0;
 
     device.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     device.GetDeviceContext()->IASetVertexBuffers(0, static_cast<UINT>(vertexBuffers.size()), vertexBuffers.data(), &stride, &offset);
-    device.GetDeviceContext()->IASetIndexBuffer(meshObject->mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-    device.GetDeviceContext()->DrawIndexed(meshObject->mesh.GetIndexCount(), 0, 0);
+    device.GetDeviceContext()->IASetIndexBuffer(mesh.mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
-void ShutdownTriangleRender()
+void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
 {
-    //DirectX::SetWICFactory(nullptr);
-    vertexShader = nullptr;
-    pixelShader = nullptr;
-    inputLayout = nullptr;
-    cameraBuffer = nullptr;
-    depthStencilState = nullptr;
-    meshObjectBuffer = nullptr;
-    colorBufferTest = nullptr;
+    device.GetDeviceContext()->DrawIndexed(mesh.mesh.GetIndexCount(), 0, 0);
 }
