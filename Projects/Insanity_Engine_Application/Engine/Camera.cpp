@@ -64,7 +64,7 @@ namespace InsanityEngine::Engine
     Matrix4x4f Camera::GetViewMatrix() const
     {
         //return Math::Functions::Matrix::PositionMatrix(position);
-        return Math::Functions::Matrix::PositionMatrix({ -position.x(), -position.y(), position.z() });
+        return Math::Matrix::PositionMatrix({ -position.x(), -position.y(), position.z() });
     }
 
     void Camera::CreateRenderTargetView(ComPtr<ID3D11Texture2D> renderTargetTexture)

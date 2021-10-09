@@ -320,7 +320,7 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
 
     Vector2f windowSize = window.GetWindowSize();
     //camera->position.x() = 3;
-    Matrix4x4f viewProjection = Math::Functions::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
+    Matrix4x4f viewProjection = Math::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
 
     Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, viewProjection, true);
 

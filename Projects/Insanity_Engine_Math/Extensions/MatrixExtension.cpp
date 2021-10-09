@@ -1,8 +1,10 @@
 #include "MatrixExtension.h"
 
-namespace InsanityEngine::Math::Functions::Matrix
+using namespace InsanityEngine::Math::Types;
+
+namespace InsanityEngine::Math::Matrix
 {
-    Types::Matrix4x4f PositionMatrix(Types::Vector3f position)
+    Matrix4x4f PositionMatrix(Vector3f position)
     {
         return
         {
@@ -14,7 +16,7 @@ namespace InsanityEngine::Math::Functions::Matrix
     }
 
 
-    Types::Matrix4x4f ScaleMatrix(Types::Vector3f scale)
+    Matrix4x4f ScaleMatrix(Vector3f scale)
     {
         return
         {
@@ -25,7 +27,7 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f RotateXMatrix(Types::Radians<float> angle)
+    Matrix4x4f RotateXMatrix(Radians<float> angle)
     {
         float cosAngle = cos(angle.Data());
         float sinAngle = sin(angle.Data());
@@ -39,7 +41,7 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f RotateYMatrix(Types::Radians<float> angle)
+    Matrix4x4f RotateYMatrix(Radians<float> angle)
     {
         float cosAngle = cos(angle.Data());
         float sinAngle = sin(angle.Data());
@@ -53,7 +55,7 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f RotateZMatrix(Types::Radians<float> angle)
+    Matrix4x4f RotateZMatrix(Radians<float> angle)
     {
         float cosAngle = cos(angle.Data());
         float sinAngle = sin(angle.Data());
@@ -67,22 +69,22 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f RotateXMatrix(Types::Degrees<float> angle)
+    Matrix4x4f RotateXMatrix(Degrees<float> angle)
     {
         return RotateXMatrix(angle.ToRadians());
     }
 
-    Types::Matrix4x4f RotateYMatrix(Types::Degrees<float> angle)
+    Matrix4x4f RotateYMatrix(Degrees<float> angle)
     {
         return RotateYMatrix(angle.ToRadians());
     }
 
-    Types::Matrix4x4f RotateZMatrix(Types::Degrees<float> angle)
+    Matrix4x4f RotateZMatrix(Degrees<float> angle)
     {
         return RotateZMatrix(angle.ToRadians());
     }
 
-    Types::Matrix4x4f PerspectiveProjectionLH(Types::Radians<float> fovY, float aspectRatio, float zNear, float zFar)
+    Matrix4x4f PerspectiveProjectionLH(Radians<float> fovY, float aspectRatio, float zNear, float zFar)
     {
         float yScale = 1 / tanf(fovY.Data() / 2);
         float xScale = yScale / aspectRatio;
@@ -96,7 +98,7 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f PerspectiveProjectionRH(Types::Radians<float> fovY, float aspectRatio, float zNear, float zFar)
+    Matrix4x4f PerspectiveProjectionRH(Radians<float> fovY, float aspectRatio, float zNear, float zFar)
     {
         float yScale = 1 / tanf(fovY.Data() / 2);
         float xScale = yScale / aspectRatio;
@@ -110,17 +112,17 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f PerspectiveProjectionLH(Types::Degrees<float> fovY, float aspectRatio, float zNear, float zFar)
+    Matrix4x4f PerspectiveProjectionLH(Degrees<float> fovY, float aspectRatio, float zNear, float zFar)
     {
         return PerspectiveProjectionLH(fovY.ToRadians(), aspectRatio, zNear, zFar);
     }
 
-    Types::Matrix4x4f PerspectiveProjectionRH(Types::Degrees<float> fovY, float aspectRatio, float zNear, float zFar)
+    Matrix4x4f PerspectiveProjectionRH(Degrees<float> fovY, float aspectRatio, float zNear, float zFar)
     {
         return PerspectiveProjectionRH(fovY.ToRadians(), aspectRatio, zNear, zFar);
     }
 
-    Types::Matrix4x4f OrthographicProjectionLH(Types::Vector2f resolution, float zNear, float zFar)
+    Matrix4x4f OrthographicProjectionLH(Types::Vector2f resolution, float zNear, float zFar)
     {
         return Types::Matrix4x4f
         {
@@ -131,7 +133,7 @@ namespace InsanityEngine::Math::Functions::Matrix
         };
     }
 
-    Types::Matrix4x4f OrthographicProjectionRH(Types::Vector2f resolution, float zNear, float zFar)
+    Matrix4x4f OrthographicProjectionRH(Vector2f resolution, float zNear, float zFar)
     {
         return Types::Matrix4x4f
         {

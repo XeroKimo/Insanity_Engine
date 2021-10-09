@@ -2,7 +2,7 @@
 
 #include "MathConcepts.h"
 
-namespace InsanityEngine::Math::Types
+namespace InsanityEngine::Math::Scalar
 {
     template<Concepts::Arithmetic T>
     struct Scalar
@@ -16,4 +16,10 @@ namespace InsanityEngine::Math::Types
 
 
     };
+
+}
+
+namespace InsanityEngine::Math::Types
+{
+    using Math::Scalar::Scalar;
 }

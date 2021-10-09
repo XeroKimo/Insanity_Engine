@@ -1,12 +1,17 @@
 #pragma once
 #include "MathConcepts.h"
 #include "Matrix.h"
-#include "Trignometry.h"
+#include "Trigonometry.h"
 #include <array>
 #include <algorithm>
 
-namespace InsanityEngine::Math::Types
+namespace InsanityEngine::Math::Quaternion
 {
+    using Math::Vector::Vector;
+    using Math::Matrix::Matrix;
+    using Math::Trigonometry::Radians;
+    using Math::Trigonometry::Degrees;
+
     template<Concepts::FloatingPoint T>
     struct Quaternion
     {
@@ -144,9 +149,9 @@ namespace InsanityEngine::Math::Types
 
             return
             {
-                 Math::Functions::Trignometry::ToDegrees(radians.x()),
-                 Math::Functions::Trignometry::ToDegrees(radians.y()),
-                 Math::Functions::Trignometry::ToDegrees(radians.z())
+                 Math::Trigonometry::ToDegrees(radians.x()),
+                 Math::Trigonometry::ToDegrees(radians.y()),
+                 Math::Trigonometry::ToDegrees(radians.z())
             };
         }
 
@@ -184,7 +189,7 @@ namespace InsanityEngine::Math::Types
         }
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        Matrix4x4f ToMatrix() const
+        Matrix<float, 4, 4> ToMatrix() const
         {
             return
             {
@@ -197,16 +202,16 @@ namespace InsanityEngine::Math::Types
 
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        Matrix4x4f ToRotationMatrix() const
+        Matrix<float, 4, 4> ToRotationMatrix() const
         {
-            Matrix4x4f lh =
+            Matrix<float, 4, 4> lh =
             {
                  w(),  z(), -y(), x(),
                 -z(),  w(),  x(), y(),
                  y(), -x(),  w(), z(),
                 -x(), -y(), -z(), w()
             };
-            Matrix4x4f rh =
+            Matrix<float, 4, 4> rh =
             {
                  w(),  z(), -y(), -x(),
                 -z(),  w(),  x(), -y(),
@@ -218,4 +223,9 @@ namespace InsanityEngine::Math::Types
         }
     };
 
+}
+
+namespace InsanityEngine::Math::Types
+{
+    using Math::Quaternion::Quaternion;
 }

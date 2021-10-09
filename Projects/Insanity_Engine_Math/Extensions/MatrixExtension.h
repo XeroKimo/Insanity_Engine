@@ -1,8 +1,8 @@
 #pragma once
 #include "../Matrix.h"
-#include "../Trignometry.h"
+#include "../Trigonometry.h"
 
-namespace InsanityEngine::Math::Functions::Matrix
+namespace InsanityEngine::Math::Matrix
 {
     extern Types::Matrix4x4f PositionMatrix(Types::Vector3f position);
     extern Types::Matrix4x4f ScaleMatrix(Types::Vector3f scale);

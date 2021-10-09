@@ -127,11 +127,11 @@ namespace INSANITYMATHTEST
             glm::vec3 gTwo{ 4, 5, 6 };
 
 
-            Assert::AreEqual(Math::Functions::Vector::Magnitude(one), glm::length(gOne));
+            Assert::AreEqual(Math::Vector::Magnitude(one), glm::length(gOne));
 
-            Assert::AreEqual(Math::Functions::Vector::Dot(one, two), glm::dot(gOne, gTwo));
+            Assert::AreEqual(Math::Vector::Dot(one, two), glm::dot(gOne, gTwo));
 
-            Vector3f three = Math::Functions::Vector::Cross(one, two);
+            Vector3f three = Math::Vector::Cross(one, two);
             glm::vec3 gThree = glm::cross(gOne, gTwo);
 
             for(size_t i = 0; i < three.size; i++)
@@ -415,7 +415,7 @@ namespace INSANITYMATHTEST
                 13, 14, 15, 16
             };
 
-            Matrix4x4f two = Math::Functions::Matrix::TransposeCopy(one);
+            Matrix4x4f two = Math::Matrix::TransposeCopy(one);
 
             glm::mat4x4 gOne =
             {

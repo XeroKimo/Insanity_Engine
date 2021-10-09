@@ -5,14 +5,6 @@
 
 namespace InsanityEngine::Math
 {
-    namespace Types
-    {
-        template<Concepts::FloatingPoint T>
-        struct Degrees;
-
-        template<Concepts::FloatingPoint T>
-        struct Radians;
-    }
 
     namespace Constants
     {
@@ -26,10 +18,12 @@ namespace InsanityEngine::Math
         constexpr T degreesToRadians = std::numbers::pi_v<T> / static_cast<T>(180);
     }
 
-    namespace Functions::Trignometry
+    namespace Trigonometry
     {
-        using Types::Degrees;
-        using Types::Radians;
+        template<Concepts::FloatingPoint T>
+        struct Degrees;
+        template<Concepts::FloatingPoint T>
+        struct Radians;
 
         template<Concepts::FloatingPoint T>
         constexpr T ToRadians(T degrees) { return degrees * Constants::degreesToRadians<T>; }
@@ -42,10 +36,7 @@ namespace InsanityEngine::Math
 
         template<Concepts::FloatingPoint T>
         constexpr Degrees<T> ToDegrees(Radians<T> radians);
-    }
 
-    namespace Types
-    {
         template<Concepts::FloatingPoint T>
         struct Degrees
         {
@@ -163,19 +154,29 @@ namespace InsanityEngine::Math
         };
 
         template<Concepts::FloatingPoint T>
-        Degrees<T> Radians<T>::ToDegrees() const { return Functions::Trignometry::ToDegrees(*this); }
+        Degrees<T> Radians<T>::ToDegrees() const { return Math::Trigonometry::ToDegrees(*this); }
 
         template<Concepts::FloatingPoint T>
-        Radians<T> Degrees<T>::ToRadians() const { return Functions::Trignometry::ToRadians(*this); }
+        Radians<T> Degrees<T>::ToRadians() const { return Math::Trigonometry::ToRadians(*this); }
 
-    }
-
-    namespace Functions::Trignometry
-    {
         template<Concepts::FloatingPoint T>
         constexpr Radians<T> ToRadians(const Degrees<T> degrees) { return Radians<T>(ToRadians(degrees.Data())); }
 
         template<Concepts::FloatingPoint T>
         constexpr Degrees<T> ToDegrees(const Radians<T> radians) { return Degrees<T>(ToDegrees(radians.Data())); }
+    }
+
+    namespace Types
+    {
+        using Math::Trigonometry::Degrees;
+        using Math::Trigonometry::Radians;
+
+        using Degreesf = Degrees<float>;
+        using Degreesd = Degrees<double>;
+        using Degreesld = Degrees<long double>;
+
+        using Radiansf = Radians<float>;
+        using Radiansd = Radians<double>;
+        using Radiansld = Radians<long double>;
     }
 }

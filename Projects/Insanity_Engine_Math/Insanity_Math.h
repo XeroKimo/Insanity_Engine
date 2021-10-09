@@ -3,5 +3,5 @@
 #include "Scalar.h"
 #include "Matrix.h"
 #include "Vector.h"
-#include "Trignometry.h"
+#include "Trigonometry.h"
 #include "Quaternion.h"

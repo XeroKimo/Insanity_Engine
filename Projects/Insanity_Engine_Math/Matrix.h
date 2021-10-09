@@ -10,113 +10,22 @@
 
 namespace InsanityEngine::Math
 {
-    namespace Types
+    namespace Matrix
     {
         template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
         struct Matrix;
 
-        template<Concepts::Arithmetic T, size_t Size>
-        struct Vector;
-    }
+
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr Matrix<T, Rows, Columns> Identity() requires(Rows == Columns);
+
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr void Transpose(Matrix<T, Rows, Columns>& mat) requires(Rows == Columns);
+
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr Matrix<T, Columns, Rows> TransposeCopy(const Matrix<T, Rows, Columns>& mat);
 
 
-
-    namespace Functions
-    {
-        namespace Matrix
-        {
-            using Types::Matrix;
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr Matrix<T, Rows, Columns> Identity() requires(Rows == Columns);
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr void Transpose(Matrix<T, Rows, Columns>& mat) requires(Rows == Columns);
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr Matrix<T, Columns, Rows> TransposeCopy(const Matrix<T, Rows, Columns>& mat);
-        }
-
-
-
-        namespace Vector
-        {
-            using Types::Vector;
-
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr T MagnitudeSquared(const Vector<T, Size>& v);
-
-            template<Concepts::Arithmetic T, size_t Size>
-            T Magnitude(const Vector<T, Size>& v);
-
-            template<Concepts::Arithmetic T, size_t Size>
-            Vector<T, Size>& Normalize(Vector<T, Size>& v);
-
-            template<Concepts::Arithmetic T, size_t Size>
-            Vector<T, Size> NormalizeCopy(const Vector<T, Size>& lh);
-
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr T Dot(const Vector<T, Size>& lh, const Vector<T, Size>& rh);
-
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr Vector<T, Size> Cross(const Vector<T, Size>& lh, const Vector<T, Size>& rh) requires (Size == 3);
-
-
-            namespace Internal
-            {
-                template<Concepts::Arithmetic T, size_t Size>
-                constexpr T MagnitudeSquared(const std::array<T, Size>& v)
-                {
-                    return std::inner_product(v.begin(), v.end(), v.begin(), static_cast<T>(0), std::plus{}, std::multiplies{});
-                }
-
-                template<Concepts::Arithmetic T, size_t Size>
-                T Magnitude(const std::array<T, Size>& v)
-                {
-                    return std::sqrt(MagnitudeSquared(v));
-                }
-
-                template<Concepts::Arithmetic T, size_t Size>
-                std::array<T, Size>& Normalize(std::array<T, Size>& v)
-                {
-                    return v /= Magnitude(v);
-                }
-
-                template<Concepts::Arithmetic T, size_t Size>
-                std::array<T, Size> NormalizeCopy(const std::array<T, Size>& lh)
-                {
-                    return Normalize(Vector<T, Size>(lh));
-                }
-
-                template<Concepts::Arithmetic T, size_t Size>
-                constexpr T Dot(const std::array<T, Size>& lh, const std::array<T, Size>& rh)
-                {
-                    return std::inner_product(lh.begin(), lh.end(), rh.begin(), static_cast<T>(0), std::plus{}, std::multiplies{});
-                }
-
-                template<Concepts::Arithmetic T, size_t Size>
-                constexpr std::array<T, Size> Cross(const std::array<T, Size>& lh, const std::array<T, Size>& rh) requires (Size == 3)
-                {
-                    std::array<T, Size> v;
-
-                    constexpr size_t x = 0;
-                    constexpr size_t y = 1;
-                    constexpr size_t z = 2;
-
-                    v[x] = lh[y] * rh[z] - lh[z] * rh[y];
-                    v[y] = lh[z] * rh[x] - lh[x] * rh[z];
-                    v[z] = lh[x] * rh[y] - lh[y] * rh[x];
-
-                    return v;
-                }
-            }
-        }
-    }
-
-
-
-    namespace Types
-    {
         template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
         struct Matrix
         {
@@ -150,17 +59,17 @@ namespace InsanityEngine::Math
         public:
             constexpr static matrix_type Identity() requires(column_count == row_count)
             {
-                return Functions::Matrix::Identity<value_type, row_count, column_count>();
+                return Math::Matrix::Identity<value_type, row_count, column_count>();
             }
 
             constexpr matrix_type& Transpose() requires(column_count == row_count)
             {
-                return Functions::Matrix::Transpose(*this);
+                return Math::Matrix::Transpose(*this);
             }
 
             constexpr matrix_transpose_type TransposeCopy() const
             {
-                return Functions::Matrix::TransposeCopy(*this);
+                return Math::Matrix::TransposeCopy(*this);
             }
 
             constexpr value_type& At(size_t row, size_t column)
@@ -292,6 +201,68 @@ namespace InsanityEngine::Math
 
 
 
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr Matrix<T, Rows, Columns> Identity() requires(Rows == Columns)
+        {
+            Matrix<T, Rows, Columns> mat;
+
+            for(size_t x = 0, y = 0; x < Rows; x++, y++)
+            {
+                mat(y, x) = 1;
+            }
+
+            return mat;
+        }
+
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr void Transpose(Matrix<T, Rows, Columns>& mat) requires(Rows == Columns)
+        {
+            return (mat = TransposeCopy(mat));
+        }
+
+        template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
+        constexpr Matrix<T, Columns, Rows> TransposeCopy(const Matrix<T, Rows, Columns>& mat)
+        {
+            Matrix<T, Columns, Rows> copy;
+
+            for(size_t y = 0; y < Rows; y++)
+            {
+                for(size_t x = 0; x < Columns; x++)
+                {
+                    copy(x, y) = mat(y, x);
+                }
+            }
+
+            return copy;
+        }
+    }
+
+
+    namespace Vector
+    {
+        template<Concepts::Arithmetic T, size_t Size>
+        struct Vector;
+
+        using Math::Scalar::Scalar;
+
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr T MagnitudeSquared(const Vector<T, Size>& v);
+
+        template<Concepts::Arithmetic T, size_t Size>
+        T Magnitude(const Vector<T, Size>& v);
+
+        template<Concepts::Arithmetic T, size_t Size>
+        Vector<T, Size>& Normalize(Vector<T, Size>& v);
+
+        template<Concepts::Arithmetic T, size_t Size>
+        Vector<T, Size> NormalizeCopy(Vector<T, Size> lh);
+
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr T Dot(const Vector<T, Size>& lh, const Vector<T, Size>& rh);
+
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr Vector<T, Size> Cross(const Vector<T, Size>& lh, const Vector<T, Size>& rh) requires (Size == 3);
+
         template<Concepts::Arithmetic T, size_t Size>
         struct Vector
         {
@@ -361,11 +332,11 @@ namespace InsanityEngine::Math
             constexpr auto rend() const { return data.rend(); }
 
         public:
-            value_type Magnitude() const { return Functions::Vector::Magnitude(*this); }
-            value_type MagnitudeSquared() const { return Functions::Vector::MagnitudeSquared(*this); }
+            value_type Magnitude() const { return Math::Vector::Magnitude(*this); }
+            value_type MagnitudeSquared() const { return Math::Vector::MagnitudeSquared(*this); }
 
-            Vector& Normalize() { return Functions::Vector::Normalize(*this); }
-            Vector NormalizeCopy() const { return Functions::Vector::NormalizeCopy(*this); }
+            Vector& Normalize() { return Math::Vector::Normalize(*this); }
+            Vector NormalizeCopy() const { return Math::Vector::NormalizeCopy(*this); }
 
         public:
 
@@ -439,9 +410,8 @@ namespace InsanityEngine::Math
         };
 
 
-
         template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-        Vector<T, Rows> operator*(const Matrix<T, Rows, Columns>& lh, const Vector<T, Rows>& rh)
+        Vector<T, Rows> operator*(const Matrix::Matrix<T, Rows, Columns>& lh, const Vector<T, Rows>& rh)
         {
             Vector<T, Rows> vec;
 
@@ -455,104 +425,64 @@ namespace InsanityEngine::Math
 
             return vec;
         }
-    }
 
 
-
-    namespace Functions
-    {
-        namespace Matrix
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr T MagnitudeSquared(const Vector<T, Size>& v)
         {
-            using Types::Matrix;
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr Matrix<T, Rows, Columns> Identity() requires(Rows == Columns)
-            {
-                Matrix<T, Rows, Columns> mat;
-
-                for(size_t x = 0, y = 0; x < Rows; x++, y++)
-                {
-                    mat(y, x) = 1;
-                }
-
-                return mat;
-            }
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr void Transpose(Matrix<T, Rows, Columns>& mat) requires(Rows == Columns)
-            {
-                return (mat = TransposeCopy(mat));
-            }
-
-            template<Concepts::Arithmetic T, size_t Rows, size_t Columns>
-            constexpr Matrix<T, Columns, Rows> TransposeCopy(const Matrix<T, Rows, Columns>& mat)
-            {
-                Matrix<T, Columns, Rows> copy;
-
-                for(size_t y = 0; y < Rows; y++)
-                {
-                    for(size_t x = 0; x < Columns; x++)
-                    {
-                        copy(x, y) = mat(y, x);
-                    }
-                }
-
-                return copy;
-            }
+            return std::inner_product(v.begin(), v.end(), v.begin(), static_cast<T>(0), std::plus{}, std::multiplies{});
         }
 
-
-
-        namespace Vector
+        template<Concepts::Arithmetic T, size_t Size>
+        T Magnitude(const Vector<T, Size>& v)
         {
-            using Types::Vector;
+            return std::sqrt(MagnitudeSquared(v));
+        }
 
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr T MagnitudeSquared(const Vector<T, Size>& v)
-            {
-                return Internal::MagnitudeSquared(v.data);
-            }
+        template<Concepts::Arithmetic T, size_t Size>
+        Vector<T, Size>& Normalize(Vector<T, Size>& v)
+        {
+            return v /= Magnitude(v);
+        }
 
-            template<Concepts::Arithmetic T, size_t Size>
-            T Magnitude(const Vector<T, Size>& v)
-            {
-                return Internal::Magnitude(v.data);
-            }
+        template<Concepts::Arithmetic T, size_t Size>
+        Vector<T, Size> NormalizeCopy(Vector<T, Size> lh)
+        {
+            return Normalize(lh);
+        }
 
-            template<Concepts::Arithmetic T, size_t Size>
-            Vector<T, Size>& Normalize(Vector<T, Size>& v)
-            {
-                return Internal::Normalize(v.data);
-            }
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr T Dot(const Vector<T, Size>& lh, const Vector<T, Size>& rh)
+        {
+            return std::inner_product(lh.begin(), lh.end(), rh.begin(), static_cast<T>(0), std::plus{}, std::multiplies{});
+        }
 
-            template<Concepts::Arithmetic T, size_t Size>
-            Vector<T, Size> NormalizeCopy(const Vector<T, Size>& lh)
-            {
-                return Vector<T, Size>(Internal::NormalizeCopy(lh.data));
-            }
+        template<Concepts::Arithmetic T, size_t Size>
+        constexpr Vector<T, Size> Cross(const Vector<T, Size>& lh, const Vector<T, Size>& rh) requires (Size == 3)
+        {
+            Vector<T, Size> v;
 
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr T Dot(const Vector<T, Size>& lh, const Vector<T, Size>& rh)
-            {
-                return Internal::Dot(lh.data, rh.data);
-            }
+            constexpr size_t x = 0;
+            constexpr size_t y = 1;
+            constexpr size_t z = 2;
 
-            template<Concepts::Arithmetic T, size_t Size>
-            constexpr Vector<T, Size> Cross(const Vector<T, Size>& lh, const Vector<T, Size>& rh) requires (Size == 3)
-            {
-                Vector<T, Size> v;
+            v[x] = lh[y] * rh[z] - lh[z] * rh[y];
+            v[y] = lh[z] * rh[x] - lh[x] * rh[z];
+            v[z] = lh[x] * rh[y] - lh[y] * rh[x];
 
-                v.data = Internal::Cross(lh.data, rh.data);
-
-                return v;
-            }
+            return v;
         }
     }
-
 
 
     namespace Types
     {
+        using Math::Matrix::Matrix;
+        using Matrix4x4f = Matrix<float, 4, 4>;
+
+
+
+        using Math::Vector::Vector;
         using Vector2f = Vector<float, 2>;
         using Vector3f = Vector<float, 3>;
         using Vector4f = Vector<float, 4>;
@@ -580,7 +510,6 @@ namespace InsanityEngine::Math
         using Vector2ul = Vector<unsigned long long, 2>;
         using Vector3ul = Vector<unsigned long long, 3>;
         using Vector4ul = Vector<unsigned long long, 4>;
-
-        using Matrix4x4f = Matrix<float, 4, 4>;
     }
+
 }

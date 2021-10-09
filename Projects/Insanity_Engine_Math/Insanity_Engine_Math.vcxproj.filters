@@ -30,7 +30,7 @@
     <ClInclude Include="Insanity_Math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Trignometry.h">
+    <ClInclude Include="Trigonometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Extensions\MatrixExtension.h">

@@ -74,6 +74,6 @@ namespace InsanityEngine::DX11::StaticMesh
 
     Matrix4x4f MeshObject::GetObjectMatrix() const
     {
-        return Math::Functions::Matrix::PositionMatrix(position) * quat.ToRotationMatrix();
+        return Math::Matrix::PositionMatrix(position) * quat.ToRotationMatrix();
     }
 }
