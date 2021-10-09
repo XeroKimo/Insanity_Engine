@@ -11,7 +11,8 @@ using namespace InsanityEngine::Debug::Exceptions;
 namespace InsanityEngine::Application
 {
     Window::Window(std::string_view windowName, Vector2f windowSize, DX11::Device& device) :
-        m_device(&device)
+        m_device(&device),
+        m_handle(SDL_CreateWindow(windowName.data(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN), &SDL_DestroyWindow)
     {
         InitializeWindow(windowName, windowSize);
         InitializeSwapChain();
@@ -22,7 +23,6 @@ namespace InsanityEngine::Application
     {
         m_swapChain->SetFullscreenState(false, nullptr);
 
-        SDL_DestroyWindow(m_handle);
     }
 
     void Window::Present()
@@ -34,13 +34,13 @@ namespace InsanityEngine::Application
     {
         int width;
         int height;
-        SDL_GetWindowSize(m_handle, &width, &height);
+        SDL_GetWindowSize(m_handle.get(), &width, &height);
         return Vector2f(width, height);
     }
 
     void Window::InitializeWindow(std::string_view windowName, Math::Types::Vector2f windowSize)
     {
-        m_handle = SDL_CreateWindow(windowName.data(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN);
+        //m_handle = std::unique_ptr<SDL_Window, void(*)(SDL_Window*)>();
     }
 
     void Window::InitializeSwapChain()
@@ -74,7 +74,7 @@ namespace InsanityEngine::Application
 
         SDL_SysWMinfo info;
         SDL_VERSION(&info.version);
-        SDL_GetWindowWMInfo(m_handle, &info);
+        SDL_GetWindowWMInfo(m_handle.get(), &info);
 
         if(HRESULT hr = factory->CreateSwapChainForHwnd(
             m_device->GetDevice(),

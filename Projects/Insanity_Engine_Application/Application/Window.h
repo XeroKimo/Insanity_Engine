@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <wrl/client.h>
 #include <string_view>
+#include <memory>
 
 struct IDXGISwapChain4;
 struct ID3D11RenderTargetView1;
@@ -32,7 +33,7 @@ namespace InsanityEngine::Application
         ComPtr<IDXGISwapChain4> m_swapChain;
         ComPtr<ID3D11RenderTargetView1> m_backBuffer;
 
-        SDL_Window* m_handle;
+        std::unique_ptr<SDL_Window, void (*)(SDL_Window*)> m_handle;
     public:
         Window(std::string_view windowName, Math::Types::Vector2f windowSize, DX11::Device& device);
         ~Window();
