@@ -94,6 +94,7 @@
     <ClInclude Include="DX11\Device.h" />
     <ClInclude Include="DX11\Helpers.h" />
     <ClInclude Include="DX11\Mesh.h" />
+    <ClInclude Include="DX11\ResourceRegistry.h" />
     <ClInclude Include="Engine\Camera.h" />
     <ClInclude Include="Test Scenes\TriangleRender.h" />
   </ItemGroup>

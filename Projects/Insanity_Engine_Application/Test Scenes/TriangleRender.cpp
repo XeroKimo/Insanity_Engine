@@ -6,6 +6,7 @@
 #include "../DX11/Device.h"
 #include "../DX11/Mesh.h"
 #include "../DX11/Helpers.h"
+#include "../DX11/ResourceRegistry.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "../Engine/Camera.h"
@@ -20,11 +21,16 @@ using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 using InsanityEngine::DX11::ComPtr;
 
-static ComPtr<ID3D11VertexShader> vertexShader;
-static ComPtr<ID3D11PixelShader> pixelShader;
-static ComPtr<ID3D11InputLayout> inputLayout;
+static DX11::ResourceRegistry registry;
+
+static constexpr std::string_view g_VertexShader = "Vertex Shader";
+static constexpr std::string_view g_PixelShader = "Pixel Shader";
+static constexpr std::string_view g_InputLayout = "Input Layout";
+static constexpr std::string_view g_DepthStencilState = "Depth Stencil State";
+static constexpr std::string_view g_TextureView = "Texture View";
+static constexpr std::string_view g_SamplerState = "Sampler State";
+
 static ComPtr<ID3D11Buffer> cameraBuffer;
-static ComPtr<ID3D11DepthStencilState> depthStencilState;
 
 static std::shared_ptr<DX11::StaticMesh::Texture> texture;
 static std::shared_ptr<DX11::StaticMesh::Material> material;
@@ -36,8 +42,6 @@ static std::optional<InsanityEngine::Engine::Camera> camera;
 static ComPtr<ID3D11Buffer> meshObjectBuffer;
 
 static ComPtr<ID3D11Buffer> colorBufferTest;
-static ComPtr<ID3D11ShaderResourceView> textureView;
-static ComPtr<ID3D11SamplerState> samplerState;
 
 static bool aPressed = false;
 static bool wPressed = false;
@@ -157,10 +161,10 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     DX11::Helpers::ClearRenderTargetView(device.GetDeviceContext(), camera->GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
     device.GetDeviceContext()->ClearDepthStencilView(camera->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
     device.GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->GetDepthStencilView());
-    device.GetDeviceContext()->OMSetDepthStencilState(depthStencilState.Get(), 0);
+    device.GetDeviceContext()->OMSetDepthStencilState(registry.Get<ID3D11DepthStencilState>(g_DepthStencilState).Get(), 0);
     device.GetDeviceContext()->RSSetViewports(1, &viewport);
     device.GetDeviceContext()->RSSetScissorRects(1, &rect);
-    device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
+    device.GetDeviceContext()->IASetInputLayout(registry.Get<ID3D11InputLayout>(g_InputLayout).Get());
 
     SetMaterial(device, *meshObject->GetMaterial().get());
 
@@ -180,11 +184,7 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
 void ShutdownTriangleRender()
 {
     //DirectX::SetWICFactory(nullptr);
-    vertexShader = nullptr;
-    pixelShader = nullptr;
-    inputLayout = nullptr;
     cameraBuffer = nullptr;
-    depthStencilState = nullptr;
     meshObjectBuffer = nullptr;
     colorBufferTest = nullptr;
 }
@@ -210,7 +210,9 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
         throw HRESULTException("Failed to compile vertex shader", hr);
     }
 
+    ComPtr<ID3D11VertexShader> vertexShader;
     hr = device.GetDevice()->CreateVertexShader(data->GetBufferPointer(), data->GetBufferSize(), nullptr, &vertexShader);
+    registry.Register(g_VertexShader, vertexShader);
 
     if(FAILED(hr))
     {
@@ -218,7 +220,10 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
     }
 
     auto elements = StaticMesh::GetInputElementDescription();
+    ComPtr<ID3D11InputLayout> inputLayout;
     device.GetDevice()->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), data->GetBufferPointer(), data->GetBufferSize(), &inputLayout);
+
+    registry.Register(g_InputLayout, inputLayout);
 
     if(FAILED(hr))
     {
@@ -241,6 +246,8 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
         throw HRESULTException("Failed to compile pixel shader", hr);
     }
 
+    ComPtr<ID3D11PixelShader> pixelShader;
+
     hr = device.GetDevice()->CreatePixelShader(data->GetBufferPointer(), data->GetBufferSize(), nullptr, &pixelShader);
     if(FAILED(hr))
     {
@@ -248,11 +255,14 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
     }
 
     shader = std::make_shared<StaticMesh::Shader>(vertexShader, pixelShader);
+    registry.Register(g_PixelShader, pixelShader);
 }
 
 void InitializeMaterial(InsanityEngine::DX11::Device& device)
 {
+    ComPtr<ID3D11ShaderResourceView> textureView;
     HRESULT hr = DX11::Helpers::CreateTextureFromFile(device.GetDevice(), &textureView, L"Resources/Korone_NotLikeThis.png", DirectX::WIC_FLAGS_NONE);
+    registry.Register(g_TextureView, textureView);
 
     if(FAILED(hr))
     {
@@ -274,12 +284,13 @@ void InitializeMaterial(InsanityEngine::DX11::Device& device)
     samplerDesc.MinLOD = -FLT_MAX;
     samplerDesc.MaxLOD = FLT_MAX;
 
+    ComPtr<ID3D11SamplerState> samplerState;
     hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
     if(FAILED(hr))
     {
         throw HRESULTException("Failed to create sampler state", hr);
     }
-
+    registry.Register(g_SamplerState, samplerState);
     texture = std::make_shared<StaticMesh::Texture>(textureView, samplerState);
     material = std::make_shared<StaticMesh::Material>(shader, texture);
 }
@@ -341,7 +352,9 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
     desc.BackFace = desc.FrontFace;
 
+    ComPtr<ID3D11DepthStencilState> depthStencilState;
     device.GetDevice()->CreateDepthStencilState(&desc, &depthStencilState);
+    registry.Register(g_DepthStencilState, depthStencilState);
 }
 
 
