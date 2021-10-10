@@ -14,6 +14,7 @@ namespace InsanityEngine::DX11::StaticMesh
         Vector2f uv;
     };
 
+    extern std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription();
 
     class Mesh
     {
@@ -40,7 +41,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     };
 
-    extern std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription();
+
 
     class Texture
     {
@@ -61,22 +62,14 @@ namespace InsanityEngine::DX11::StaticMesh
         ID3D11SamplerState* GetSamplerState() const { return m_samplerState.Get(); }
     };
 
-    class Material
+    class Shader
     {
     private:
         ComPtr<ID3D11VertexShader> m_vertexShader;
         ComPtr<ID3D11PixelShader> m_pixelShader;
 
     public:
-        Texture albedo;
-        Vector4f color;
-
-    public:
-        Material(ComPtr<ID3D11VertexShader> vertexShader, ComPtr<ID3D11PixelShader> pixelShader, Texture albedo, Vector4f color = Vector4f(Scalar(1.f)));
-
-    public:
-        friend bool operator==(const Material& lh, const Material& rh) = default;
-        friend bool operator!=(const Material& lh, const Material& rh) = default;
+        Shader(ComPtr<ID3D11VertexShader> vertexShader, ComPtr<ID3D11PixelShader> pixelShader);
 
     public:
         ID3D11VertexShader* GetVertexShader() const { return m_vertexShader.Get(); }
@@ -84,16 +77,55 @@ namespace InsanityEngine::DX11::StaticMesh
     };
 
 
-    class MeshObject
+
+    class Material
     {
-    public:
-        Mesh mesh;
-        Vector3f position;
-        Quaternion<float> quat;
-        Material material;
+    private:
+        std::shared_ptr<Shader> m_shader;
+        std::shared_ptr<Texture> m_albedo;
 
     public:
-        MeshObject(Mesh mesh, Material material);
+        Vector4f color;
+
+    public:
+        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color = Vector4f(Scalar(1.f)));
+
+    public:
+        void SetShader(std::shared_ptr<Shader> shader);
+        void SetAlbedo(std::shared_ptr<Texture> texture);
+
+    public:
+        std::shared_ptr<Shader> GetShader() const { return m_shader; }
+        std::shared_ptr<Texture> GetAlbedo() const { return m_albedo; }
+
+
+    public:
+        friend bool operator==(const Material& lh, const Material& rh) = default;
+        friend bool operator!=(const Material& lh, const Material& rh) = default;
+
+    };
+
+
+    class MeshObject
+    {
+    private:
+        std::shared_ptr<Mesh> m_mesh;
+        std::shared_ptr<Material> m_material;
+
+    public:
+        Vector3f position;
+        Quaternion<float> quat;
+
+    public:
+        MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
+
+    public:
+        void SetMesh(std::shared_ptr<Mesh> mesh);
+        void SetMaterial(std::shared_ptr<Material> material);
+
+    public:
+        std::shared_ptr<Mesh> GetMesh() const { return m_mesh; }
+        std::shared_ptr<Material> GetMaterial() const { return m_material; }
 
     public:
         Matrix4x4f GetObjectMatrix() const;

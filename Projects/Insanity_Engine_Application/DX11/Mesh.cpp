@@ -4,14 +4,6 @@
 
 namespace InsanityEngine::DX11::StaticMesh
 {
-    Mesh::Mesh(ComPtr<ID3D11Buffer> vertexBuffer, UINT vertexCount, ComPtr<ID3D11Buffer> indexBuffer, UINT indexCount) :
-        m_vertexBuffer(vertexBuffer),
-        m_vertexCount(vertexCount),
-        m_indexBuffer(indexBuffer),
-        m_indexCount(indexCount)
-    {
-    }
-
     std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription()
     {
         std::array<D3D11_INPUT_ELEMENT_DESC, 3> inputLayout;
@@ -43,31 +35,66 @@ namespace InsanityEngine::DX11::StaticMesh
         return inputLayout;
     }
 
-    Texture::Texture(ComPtr<ID3D11ShaderResourceView> shaderResourceView, ComPtr<ID3D11SamplerState> samplerState) :
-        m_shaderResourceView(shaderResourceView),
-        m_samplerState(samplerState)
+
+    Mesh::Mesh(ComPtr<ID3D11Buffer> vertexBuffer, UINT vertexCount, ComPtr<ID3D11Buffer> indexBuffer, UINT indexCount) :
+        m_vertexBuffer(std::move(vertexBuffer)),
+        m_vertexCount(std::move(vertexCount)),
+        m_indexBuffer(std::move(indexBuffer)),
+        m_indexCount(std::move(indexCount))
     {
+        assert(m_vertexBuffer != nullptr);
+        assert(m_indexBuffer != nullptr);
+    }
+
+
+    Texture::Texture(ComPtr<ID3D11ShaderResourceView> shaderResourceView, ComPtr<ID3D11SamplerState> samplerState) :
+        m_shaderResourceView(std::move(shaderResourceView)),
+        m_samplerState(std::move(samplerState))
+    {
+        assert(m_shaderResourceView != nullptr);
+        assert(m_samplerState != nullptr);
     }
 
     void Texture::SetSamplerState(ComPtr<ID3D11SamplerState> samplerState)
     {
         assert(samplerState != nullptr);
 
-        m_samplerState = samplerState;
+        m_samplerState = std::move(samplerState);
     }
 
-    Material::Material(ComPtr<ID3D11VertexShader> vertexShader, ComPtr<ID3D11PixelShader> pixelShader, Texture albedo, Vector4f color) :
-        m_vertexShader(vertexShader),
-        m_pixelShader(pixelShader),
-        albedo(albedo),
+    Shader::Shader(ComPtr<ID3D11VertexShader> vertexShader, ComPtr<ID3D11PixelShader> pixelShader) :
+        m_vertexShader(std::move(vertexShader)),
+        m_pixelShader(std::move(pixelShader))
+    {
+        assert(m_vertexShader != nullptr);
+        assert(m_pixelShader != nullptr);
+    }
+
+    Material::Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
+        m_shader(std::move(shader)),
+        m_albedo(std::move(albedo)),
         color(color)
     {
 
     }
 
-    MeshObject::MeshObject(Mesh mesh, Material material) :
-        mesh(mesh),
-        material(material)
+    void Material::SetShader(std::shared_ptr<Shader> shader)
+    {
+        assert(shader != nullptr);
+
+        m_shader = std::move(shader);
+    }
+
+    void Material::SetAlbedo(std::shared_ptr<Texture> albedo)
+    {
+        assert(albedo != nullptr);
+
+        m_albedo = std::move(albedo);
+    }
+
+    MeshObject::MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material) :
+        m_mesh(std::move(mesh)),
+        m_material(std::move(material))
     {
 
     }

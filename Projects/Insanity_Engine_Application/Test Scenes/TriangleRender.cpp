@@ -23,15 +23,16 @@ using InsanityEngine::DX11::ComPtr;
 static ComPtr<ID3D11VertexShader> vertexShader;
 static ComPtr<ID3D11PixelShader> pixelShader;
 static ComPtr<ID3D11InputLayout> inputLayout;
-static std::optional<InsanityEngine::Engine::Camera> camera;
 static ComPtr<ID3D11Buffer> cameraBuffer;
 static ComPtr<ID3D11DepthStencilState> depthStencilState;
 
-static std::optional<DX11::StaticMesh::Texture> texture;
-static std::optional<DX11::StaticMesh::Material> material;
+static std::shared_ptr<DX11::StaticMesh::Texture> texture;
+static std::shared_ptr<DX11::StaticMesh::Material> material;
+static std::shared_ptr<DX11::StaticMesh::Shader> shader;
+static std::shared_ptr<DX11::StaticMesh::Mesh> mesh;
 
-static std::optional<InsanityEngine::DX11::StaticMesh::Mesh> mesh;
 static std::optional<InsanityEngine::DX11::StaticMesh::MeshObject> meshObject;
+static std::optional<InsanityEngine::Engine::Camera> camera;
 static ComPtr<ID3D11Buffer> meshObjectBuffer;
 
 static ComPtr<ID3D11Buffer> colorBufferTest;
@@ -161,7 +162,7 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     device.GetDeviceContext()->RSSetScissorRects(1, &rect);
     device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
 
-    SetMaterial(device, meshObject->material);
+    SetMaterial(device, *meshObject->GetMaterial().get());
 
     auto vsConstantBuffers = std::to_array(
         {
@@ -245,6 +246,8 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
     {
         throw HRESULTException("Failed to create pixel shader", hr);
     }
+
+    shader = std::make_shared<StaticMesh::Shader>(vertexShader, pixelShader);
 }
 
 void InitializeMaterial(InsanityEngine::DX11::Device& device)
@@ -277,8 +280,8 @@ void InitializeMaterial(InsanityEngine::DX11::Device& device)
         throw HRESULTException("Failed to create sampler state", hr);
     }
 
-    texture = StaticMesh::Texture(textureView, samplerState);
-    material = StaticMesh::Material(vertexShader, pixelShader, texture.value());
+    texture = std::make_shared<StaticMesh::Texture>(textureView, samplerState);
+    material = std::make_shared<StaticMesh::Material>(shader, texture);
 }
 
 void InitializeMesh(InsanityEngine::DX11::Device& device)
@@ -301,17 +304,17 @@ void InitializeMesh(InsanityEngine::DX11::Device& device)
 
     ComPtr<ID3D11Buffer> indexBuffer;
     Helpers::CreateIndexBuffer(device.GetDevice(), &indexBuffer, std::span(indices));
-    mesh = StaticMesh::Mesh(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
+    mesh = std::make_shared<StaticMesh::Mesh>(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
 
 
-    meshObject = DX11::StaticMesh::MeshObject(mesh.value(), material.value());
+    meshObject = DX11::StaticMesh::MeshObject(mesh, material);
 
     meshObject->position.z() = 2;
     Matrix4x4f objectMatrix = meshObject->GetObjectMatrix();
 
     Helpers::CreateConstantBuffer(device.GetDevice(), &meshObjectBuffer, objectMatrix, true);
 
-    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, meshObject->material.color, true);
+    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, meshObject->GetMaterial()->color, true);
 }
 
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
@@ -344,11 +347,11 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
 
 void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat)
 {
-    device.GetDeviceContext()->VSSetShader(mat.GetVertexShader(), nullptr, 0);
-    device.GetDeviceContext()->PSSetShader(mat.GetPixelShader(), nullptr, 0);
+    device.GetDeviceContext()->VSSetShader(mat.GetShader()->GetVertexShader(), nullptr, 0);
+    device.GetDeviceContext()->PSSetShader(mat.GetShader()->GetPixelShader(), nullptr, 0);
 
-    std::array samplers{ mat.albedo.GetSamplerState() };
-    std::array textures{ mat.albedo.GetView() };
+    std::array samplers{ mat.GetAlbedo()->GetSamplerState() };
+    std::array textures{ mat.GetAlbedo()->GetView() };
     device.GetDeviceContext()->PSSetSamplers(0, 1, samplers.data());
     device.GetDeviceContext()->PSSetShaderResources(0, 1, textures.data());
 }
@@ -357,7 +360,7 @@ void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject&
 {
     std::array vertexBuffers
     {
-        mesh.mesh.GetVertexBuffer()
+        mesh.GetMesh()->GetVertexBuffer()
     };
 
     UINT stride = sizeof(StaticMesh::VertexData);
@@ -365,10 +368,10 @@ void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject&
 
     device.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     device.GetDeviceContext()->IASetVertexBuffers(0, static_cast<UINT>(vertexBuffers.size()), vertexBuffers.data(), &stride, &offset);
-    device.GetDeviceContext()->IASetIndexBuffer(mesh.mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+    device.GetDeviceContext()->IASetIndexBuffer(mesh.GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
 void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
 {
-    device.GetDeviceContext()->DrawIndexed(mesh.mesh.GetIndexCount(), 0, 0);
+    device.GetDeviceContext()->DrawIndexed(mesh.GetMesh()->GetIndexCount(), 0, 0);
 }
