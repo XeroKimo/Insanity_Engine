@@ -17,94 +17,53 @@ namespace InsanityEngine::DX11
     class ResourceRegistry
     {
     private:
-        class BaseRegistry
-        {
-        public:
-            virtual RegisterStatus Register(std::string_view name, ComPtr<IUnknown> resource) = 0;
-            virtual void Unregister(std::string_view name) = 0;
-
-            virtual ComPtr<IUnknown> Get(std::string_view name) = 0;
-        };
-
-        template<class T>
-        class Registry : public BaseRegistry
-        {
-        private:
-            std::unordered_map<std::string, ComPtr<T>> registry;
-
-        public:
-            RegisterStatus Register(std::string_view name, ComPtr<IUnknown> resource) override
-            {
-                std::string nameCopy{ name };
-                if(registry.contains(nameCopy))
-                    return RegisterStatus::Name_Conflict;
-
-                ComPtr<T> derived;
-                resource.As(&derived);
-
-                registry[nameCopy] = derived;
-
-                return RegisterStatus::Succeeded;
-            }
-
-            void Unregister(std::string_view name) override
-            {
-                registry.erase(std::string(name));
-            }
-
-            ComPtr<IUnknown> Get(std::string_view name) override
-            {
-                auto it = registry.find(std::string(name));
-
-                if(it == registry.end())
-                    return nullptr;
-
-                return it->second;
-            }
-        };
-
-    private:
-        std::unordered_map<std::type_index, std::unique_ptr<BaseRegistry>> m_registries;
+        std::unordered_map<std::string, ComPtr<IUnknown>> m_resources;
 
     public:
-        template<class T>
-        RegisterStatus Register(std::string_view name, ComPtr<T> resource)
+        RegisterStatus Register(std::string_view name, ComPtr<IUnknown> resource)
         {
-            if(!m_registries.contains(std::type_index(typeid(T))))
-                m_registries[std::type_index(typeid(T))] = std::make_unique<Registry<T>>();
+            std::string nameCopy{ name };
+            if(m_resources.contains(nameCopy))
+                return RegisterStatus::Name_Conflict;
 
-            return m_registries[typeid(T)]->Register(name, resource);
+            m_resources[nameCopy] = resource;
+
+            return RegisterStatus::Succeeded;
         }
 
-        template<class T>
+
         void Unregister(std::string_view name)
         {
-            auto it = m_registries.find(std::type_index(typeid(T)));
+            auto it = m_resources.find(std::string(name));
 
-            if(it == m_registries.end())
+            if(it == m_resources.end())
                 return;
 
-            it->second->Unregister(name);
+            m_resources.erase(it);
+        }
+
+        ComPtr<IUnknown> Get(std::string_view name)
+        {
+            return Get<IUnknown>(name);
         }
 
         template<class T>
         ComPtr<T> Get(std::string_view name)
         {
-            auto it = m_registries.find(std::type_index(typeid(T)));
+            auto it = m_resources.find(std::string(name));
 
-            if(it == m_registries.end())
+            if(it == m_resources.end())
                 return nullptr;
 
-            ComPtr<IUnknown> resource = it->second->Get(name);
+            if constexpr(std::is_same_v<T, IUnknown>)
+                return it->second;
+            else
+            {
+                ComPtr<T> derived;
+                it->second.As(&derived);
 
-            if(resource == nullptr)
-                return nullptr;
-
-            ComPtr<T> derived;
-            resource.As(&derived);
-
-            return derived;
-
+                return derived;
+            }
         }
     };
 }
