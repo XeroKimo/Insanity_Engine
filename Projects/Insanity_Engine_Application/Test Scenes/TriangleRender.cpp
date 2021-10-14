@@ -319,7 +319,45 @@ void InitializeMesh(InsanityEngine::DX11::Device& device)
 
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
 {
-    camera = Engine::Camera(ComPtr<ID3D11Device5>(device.GetDevice()), ComPtr<ID3D11RenderTargetView>(window.GetBackBuffer()), true);
+    ComPtr<ID3D11Resource> resource;
+    window.GetBackBuffer()->GetResource(&resource);
+
+    ComPtr<ID3D11Texture2D> texture;
+    resource.As(&texture);
+
+    D3D11_TEXTURE2D_DESC textureDesc = {};
+    texture->GetDesc(&textureDesc);
+
+    //desc.Height = static_cast<UINT>(static_cast<float>(desc.Height) * resolutionMultiplier);
+    //desc.Width = static_cast<UINT>(static_cast<float>(desc.Width) * resolutionMultiplier);
+    textureDesc.MipLevels = 0;
+    textureDesc.ArraySize = 1;
+    textureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    ComPtr<ID3D11Texture2D> depthStencilTexture;
+    HRESULT hr = device.GetDevice()->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
+
+    if(FAILED(hr))
+    {
+        throw HRESULTException("Failed to create depth stencil texture", hr);
+    }
+
+    D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc;
+    depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    depthStencilDesc.Flags = 0;
+    depthStencilDesc.Texture2D.MipSlice = 0;
+
+    ComPtr<ID3D11DepthStencilView> depthStencilView;
+    hr = device.GetDevice()->CreateDepthStencilView(depthStencilTexture.Get(), &depthStencilDesc, &depthStencilView);
+
+    if(FAILED(hr))
+    {
+        throw HRESULTException("Failed to create depth stencil view", hr);
+    }
+
+    camera = Engine::Camera(ComPtr<ID3D11RenderTargetView>(window.GetBackBuffer()), depthStencilView);
 
     Vector2f windowSize = window.GetWindowSize();
     //camera->position.x() = 3;

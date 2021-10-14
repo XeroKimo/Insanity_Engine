@@ -18,7 +18,6 @@ namespace InsanityEngine::Engine
 
 
     private:
-        ComPtr<ID3D11Device5> m_device;
         ComPtr<ID3D11RenderTargetView> m_renderTargetView;
         ComPtr<ID3D11DepthStencilView> m_depthStencilView;
 
@@ -28,25 +27,16 @@ namespace InsanityEngine::Engine
         ClipPlane clipPlane;
         
     public:
-        Camera(ComPtr<ID3D11Device5> device, ComPtr<ID3D11Texture2D> renderTargetTexture, bool createDepthBuffer);
-        Camera(ComPtr<ID3D11Device5> device, ComPtr<ID3D11RenderTargetView> renderTargetView, bool createDepthBuffer);
+        Camera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr);
 
     public:
-        void SetRenderTarget(ComPtr<ID3D11Texture2D> renderTargetTexture);
-        void SetRenderTarget(ComPtr<ID3D11RenderTargetView> renderTargetView);
-
-        void CreateDepthBuffer();
-        void DestroyDepthBuffer();
+        void SetTargets(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr);
 
     public:
         ID3D11RenderTargetView* GetRenderTargetView() const { return m_renderTargetView.Get(); }
         ID3D11DepthStencilView* GetDepthStencilView() const { return m_depthStencilView.Get(); }
 
         Math::Types::Matrix4x4f GetViewMatrix() const;
-
-    private:
-        void CreateRenderTargetView(ComPtr<ID3D11Texture2D> renderTargetTexture);
-        void CreateDepthStencilView(ComPtr<ID3D11Texture2D> renderTargetTexture, float resolutionMultiplier);
     };
 
 }
