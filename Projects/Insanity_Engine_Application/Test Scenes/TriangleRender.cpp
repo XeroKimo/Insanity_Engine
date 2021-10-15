@@ -6,6 +6,7 @@
 #include "../DX11/Device.h"
 #include "../DX11/Mesh.h"
 #include "../DX11/Helpers.h"
+#include "../DX11/InputLayouts.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "../Engine/Camera.h"
@@ -217,8 +218,9 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
         throw HRESULTException("Failed to create vertex shader", hr);
     }
 
-    auto elements = StaticMesh::GetInputElementDescription();
-    device.GetDevice()->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), data->GetBufferPointer(), data->GetBufferSize(), &inputLayout);
+    inputLayout = InputLayouts::PositionNormalUV::CreateInputLayout(device.GetDevice());
+    //auto elements = StaticMesh::GetInputElementDescription();
+    //device.GetDevice()->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), data->GetBufferPointer(), data->GetBufferSize(), &inputLayout);
 
     if(FAILED(hr))
     {
