@@ -1,9 +1,13 @@
 #include "Mesh.h"
 #include "Extensions/MatrixExtension.h"
+#include "Device.h"
 #include <assert.h>
+
 
 namespace InsanityEngine::DX11::StaticMesh
 {
+    using namespace Math::Types;
+
     std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription()
     {
         std::array<D3D11_INPUT_ELEMENT_DESC, 3> inputLayout;
@@ -99,8 +103,21 @@ namespace InsanityEngine::DX11::StaticMesh
 
     }
 
+    void MeshObject::SetMesh(std::shared_ptr<Mesh> mesh)
+    {
+        assert(mesh != nullptr);
+        m_mesh = std::move(mesh);
+    }
+
+    void MeshObject::SetMaterial(std::shared_ptr<Material> material)
+    {
+        assert(material != nullptr);
+        m_material = std::move(material);
+    }
+
     Matrix4x4f MeshObject::GetObjectMatrix() const
     {
         return Math::Matrix::PositionMatrix(position) * quat.ToRotationMatrix();
     }
+
 }

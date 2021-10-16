@@ -7,6 +7,7 @@
 #include "../DX11/Mesh.h"
 #include "../DX11/Helpers.h"
 #include "../DX11/InputLayouts.h"
+#include "../DX11/Renderers.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "../Engine/Camera.h"
@@ -32,9 +33,9 @@ static std::shared_ptr<DX11::StaticMesh::Material> material;
 static std::shared_ptr<DX11::StaticMesh::Shader> shader;
 static std::shared_ptr<DX11::StaticMesh::Mesh> mesh;
 
-static std::optional<InsanityEngine::DX11::StaticMesh::MeshObject> meshObject;
+static std::optional<DX11::Renderers::StaticMesh::Renderer> g_renderer;
+static DX11::Renderers::StaticMesh::RenderObject* g_renderObject;
 static std::optional<InsanityEngine::Engine::Camera> camera;
-static ComPtr<ID3D11Buffer> meshObjectBuffer;
 
 static ComPtr<ID3D11Buffer> colorBufferTest;
 static ComPtr<ID3D11ShaderResourceView> textureView;
@@ -56,10 +57,12 @@ void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject
 
 void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
 {
+    g_renderer = Renderers::StaticMesh::Renderer(device);
     InitializeShaders(device);
     InitializeMaterial(device);
     InitializeMesh(device);
     InitializeCamera(device, window);
+
 }
 
 void TriangleRenderInput(SDL_Event event)
@@ -126,16 +129,17 @@ void TriangleRenderUpdate(float dt)
         axis.y() += 1;
     }
 
-    meshObject->quat *= Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt));
+    g_renderObject->object.quat *= Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt));
 }
 
 void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)
 {
     D3D11_MAPPED_SUBRESOURCE subresource;
-    device.GetDeviceContext()->Map(meshObjectBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
-    Matrix4x4f f = meshObject->GetObjectMatrix();
-    std::memcpy(subresource.pData, &f, sizeof(f));
-    device.GetDeviceContext()->Unmap(meshObjectBuffer.Get(), 0);
+    device.GetDeviceContext()->Map(g_renderObject->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+
+    DX11::Renderers::StaticMesh::VSObjectConstants constants{ .worldMatrix = g_renderObject->object.GetObjectMatrix() };
+    std::memcpy(subresource.pData, &constants, sizeof(constants));
+    device.GetDeviceContext()->Unmap(g_renderObject->GetConstantBuffer(), 0);
 
 
     std::array renderTargets
@@ -163,30 +167,31 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     device.GetDeviceContext()->RSSetScissorRects(1, &rect);
     device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
 
-    SetMaterial(device, *meshObject->GetMaterial().get());
+    SetMaterial(device, *g_renderObject->object.GetMaterial().get());
 
-    auto vsConstantBuffers = std::to_array(
-        {
-            cameraBuffer.Get(),
-            meshObjectBuffer.Get()
-        });
+    std::array vsConstantBuffers
+    {
+        cameraBuffer.Get(),
+        g_renderObject->GetConstantBuffer()
+    };
 
-    device.GetDeviceContext()->VSSetConstantBuffers(1, 2, vsConstantBuffers.data());
-    device.GetDeviceContext()->PSSetConstantBuffers(1, 1, colorBufferTest.GetAddressOf());
+    device.GetDeviceContext()->VSSetConstantBuffers(Renderers::Registers::VS::Shared::cameraConstants, vsConstantBuffers.size(), vsConstantBuffers.data());
+    device.GetDeviceContext()->PSSetConstantBuffers(Renderers::Registers::PS::StaticMesh::materialConstants, 1, colorBufferTest.GetAddressOf());
 
-    SetMesh(device, meshObject.value());
-    DrawMesh(device, meshObject.value());
+    SetMesh(device, g_renderObject->object);
+    DrawMesh(device, g_renderObject->object);
 }
 
 void ShutdownTriangleRender()
 {
     //DirectX::SetWICFactory(nullptr);
+
+    g_renderer->DestroyObject(g_renderObject);
     vertexShader = nullptr;
     pixelShader = nullptr;
     inputLayout = nullptr;
     cameraBuffer = nullptr;
     depthStencilState = nullptr;
-    meshObjectBuffer = nullptr;
     colorBufferTest = nullptr;
 }
 
@@ -219,8 +224,6 @@ void InitializeShaders(InsanityEngine::DX11::Device& device)
     }
 
     inputLayout = InputLayouts::PositionNormalUV::CreateInputLayout(device.GetDevice());
-    //auto elements = StaticMesh::GetInputElementDescription();
-    //device.GetDevice()->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), data->GetBufferPointer(), data->GetBufferSize(), &inputLayout);
 
     if(FAILED(hr))
     {
@@ -309,14 +312,10 @@ void InitializeMesh(InsanityEngine::DX11::Device& device)
     mesh = std::make_shared<StaticMesh::Mesh>(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
 
 
-    meshObject = DX11::StaticMesh::MeshObject(mesh, material);
+    g_renderObject = g_renderer->CreateObject(mesh, material);
+    g_renderObject->object.position.z() = 2;
 
-    meshObject->position.z() = 2;
-    Matrix4x4f objectMatrix = meshObject->GetObjectMatrix();
-
-    Helpers::CreateConstantBuffer(device.GetDevice(), &meshObjectBuffer, objectMatrix, true);
-
-    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, meshObject->GetMaterial()->color, true);
+    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, true, g_renderObject->object.GetMaterial()->color);
 }
 
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
@@ -330,8 +329,6 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     D3D11_TEXTURE2D_DESC textureDesc = {};
     texture->GetDesc(&textureDesc);
 
-    //desc.Height = static_cast<UINT>(static_cast<float>(desc.Height) * resolutionMultiplier);
-    //desc.Width = static_cast<UINT>(static_cast<float>(desc.Width) * resolutionMultiplier);
     textureDesc.MipLevels = 0;
     textureDesc.ArraySize = 1;
     textureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -365,7 +362,7 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     //camera->position.x() = 3;
     Matrix4x4f viewProjection = Math::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
 
-    Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, viewProjection, true);
+    Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, true, viewProjection);
 
     D3D11_DEPTH_STENCIL_DESC desc{};
 
@@ -392,8 +389,8 @@ void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Materia
 
     std::array samplers{ mat.GetAlbedo()->GetSamplerState() };
     std::array textures{ mat.GetAlbedo()->GetView() };
-    device.GetDeviceContext()->PSSetSamplers(0, 1, samplers.data());
-    device.GetDeviceContext()->PSSetShaderResources(0, 1, textures.data());
+    device.GetDeviceContext()->PSSetSamplers(Renderers::Registers::PS::StaticMesh::albedoSampler, 1, samplers.data());
+    device.GetDeviceContext()->PSSetShaderResources(Renderers::Registers::PS::StaticMesh::albedoTexture, 1, textures.data());
 }
 
 void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)

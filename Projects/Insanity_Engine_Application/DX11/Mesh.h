@@ -1,20 +1,17 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Insanity_Math.h"
+#include "InputLayouts.h"
 #include <array>
+
+namespace InsanityEngine::DX11
+{
+    class Device;
+}
 
 namespace InsanityEngine::DX11::StaticMesh
 {
-    using namespace Math::Types;
-
-    struct VertexData
-    {
-        Vector3f position;
-        Vector3f normal;
-        Vector2f uv;
-    };
-
-    extern std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription();
+    using VertexData = DX11::InputLayouts::PositionNormalUV::VertexData;
 
     class Mesh
     {
@@ -85,10 +82,10 @@ namespace InsanityEngine::DX11::StaticMesh
         std::shared_ptr<Texture> m_albedo;
 
     public:
-        Vector4f color;
+        Math::Types::Vector4f color;
 
     public:
-        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color = Vector4f(Scalar(1.f)));
+        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
 
     public:
         void SetShader(std::shared_ptr<Shader> shader);
@@ -113,8 +110,8 @@ namespace InsanityEngine::DX11::StaticMesh
         std::shared_ptr<Material> m_material;
 
     public:
-        Vector3f position;
-        Quaternion<float> quat;
+        Math::Types::Vector3f position;
+        Math::Types::Quaternion<float> quat;
 
     public:
         MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
@@ -128,7 +125,7 @@ namespace InsanityEngine::DX11::StaticMesh
         std::shared_ptr<Material> GetMaterial() const { return m_material; }
 
     public:
-        Matrix4x4f GetObjectMatrix() const;
+        Math::Types::Matrix4x4f GetObjectMatrix() const;
     };
 
 }

@@ -52,12 +52,18 @@ namespace InsanityEngine::DX11::Helpers
         return device->CreateBuffer(&bufferDesc, &data, buffer);
     }
 
-    extern HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, UINT bufferSize, const void* startingData, bool isDynamic);
+    extern HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, UINT bufferSize, bool isDynamic, const void* startingData);
 
     template<class T>
-    HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, const T& startingData, bool isDynamic)
+    HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, bool isDynamic, const T& startingData)
     {
-        return CreateConstantBuffer(device, buffer, sizeof(T), &startingData, isDynamic);
+        return CreateConstantBuffer(device, buffer, sizeof(T), isDynamic, &startingData);
+    }
+
+    template<class T>
+    HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, bool isDynamic)
+    {
+        return CreateConstantBuffer(device, buffer, sizeof(T), isDynamic, nullptr);
     }
 
     extern HRESULT CreateTextureFromFile(ID3D11Device* device, ID3D11ShaderResourceView** shaderResourceView, std::wstring_view file, DirectX::WIC_FLAGS flags);
