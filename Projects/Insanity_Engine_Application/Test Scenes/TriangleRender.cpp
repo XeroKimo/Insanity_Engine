@@ -51,9 +51,9 @@ void InitializeMaterial(InsanityEngine::DX11::Device& device);
 void InitializeMesh(InsanityEngine::DX11::Device& device);
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window);
 
-void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat);
-void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
-void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
+void SetMaterial(const InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat);
+void SetMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
+void DrawMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh);
 
 void TriangleRenderSetup(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
 {
@@ -134,12 +134,16 @@ void TriangleRenderUpdate(float dt)
 
 void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& window)
 {
-    D3D11_MAPPED_SUBRESOURCE subresource;
-    device.GetDeviceContext()->Map(g_renderObject->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+    //Updates constant buffers
+    for(auto& meshObject : g_renderer->GetRenderObjects())
+    {
+        D3D11_MAPPED_SUBRESOURCE subresource;
+        device.GetDeviceContext()->Map(meshObject->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
-    DX11::Renderers::StaticMesh::VSObjectConstants constants{ .worldMatrix = g_renderObject->object.GetObjectMatrix() };
-    std::memcpy(subresource.pData, &constants, sizeof(constants));
-    device.GetDeviceContext()->Unmap(g_renderObject->GetConstantBuffer(), 0);
+        DX11::Renderers::StaticMesh::VSObjectConstants constants{ .worldMatrix = meshObject->object.GetObjectMatrix() };
+        std::memcpy(subresource.pData, &constants, sizeof(constants));
+        device.GetDeviceContext()->Unmap(meshObject->GetConstantBuffer(), 0);
+    }
 
 
     std::array renderTargets
@@ -167,19 +171,29 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     device.GetDeviceContext()->RSSetScissorRects(1, &rect);
     device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
 
-    SetMaterial(device, *g_renderObject->object.GetMaterial().get());
-
-    std::array vsConstantBuffers
+    std::array vsCameraBuffer
     {
-        cameraBuffer.Get(),
-        g_renderObject->GetConstantBuffer()
+        cameraBuffer.Get()
     };
+    device.GetDeviceContext()->VSSetConstantBuffers(Renderers::Registers::VS::StaticMesh::cameraConstants, vsCameraBuffer.size(), vsCameraBuffer.data());
 
-    device.GetDeviceContext()->VSSetConstantBuffers(Renderers::Registers::VS::Shared::cameraConstants, vsConstantBuffers.size(), vsConstantBuffers.data());
-    device.GetDeviceContext()->PSSetConstantBuffers(Renderers::Registers::PS::StaticMesh::materialConstants, 1, colorBufferTest.GetAddressOf());
 
-    SetMesh(device, g_renderObject->object);
-    DrawMesh(device, g_renderObject->object);
+    for(auto& meshObject : g_renderer->GetRenderObjects())
+    {
+
+        SetMaterial(device, *meshObject->object.GetMaterial().get());
+
+        std::array vsConstantBuffers
+        {
+            meshObject->GetConstantBuffer()
+        };
+
+        device.GetDeviceContext()->VSSetConstantBuffers(Renderers::Registers::VS::StaticMesh::objectConstants, vsConstantBuffers.size(), vsConstantBuffers.data());
+        device.GetDeviceContext()->PSSetConstantBuffers(Renderers::Registers::PS::StaticMesh::materialConstants, 1, colorBufferTest.GetAddressOf());
+
+        SetMesh(device, meshObject->object);
+        DrawMesh(device, meshObject->object);
+    }
 }
 
 void ShutdownTriangleRender()
@@ -382,7 +396,7 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
 }
 
 
-void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat)
+void SetMaterial(const InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat)
 {
     device.GetDeviceContext()->VSSetShader(mat.GetShader()->GetVertexShader(), nullptr, 0);
     device.GetDeviceContext()->PSSetShader(mat.GetShader()->GetPixelShader(), nullptr, 0);
@@ -393,7 +407,7 @@ void SetMaterial(InsanityEngine::DX11::Device& device, const StaticMesh::Materia
     device.GetDeviceContext()->PSSetShaderResources(Renderers::Registers::PS::StaticMesh::albedoTexture, 1, textures.data());
 }
 
-void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
+void SetMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
 {
     std::array vertexBuffers
     {
@@ -408,7 +422,7 @@ void SetMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject&
     device.GetDeviceContext()->IASetIndexBuffer(mesh.GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
-void DrawMesh(InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
+void DrawMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::MeshObject& mesh)
 {
     device.GetDeviceContext()->DrawIndexed(mesh.GetMesh()->GetIndexCount(), 0, 0);
 }
