@@ -3,6 +3,7 @@
 #include "Insanity_Math.h"
 #include "InputLayouts.h"
 #include <array>
+#include <span>
 
 namespace InsanityEngine::DX11
 {
@@ -27,7 +28,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     public:
         friend bool operator==(const Mesh& lh, const Mesh& rh) = default;
-        friend bool operator!=(const Mesh & lh, const Mesh & rh) = default;
+        friend bool operator!=(const Mesh& lh, const Mesh& rh) = default;
 
     public:
         ID3D11Buffer* GetVertexBuffer() const { return m_vertexBuffer.Get(); }
@@ -59,6 +60,8 @@ namespace InsanityEngine::DX11::StaticMesh
         ID3D11SamplerState* GetSamplerState() const { return m_samplerState.Get(); }
     };
 
+
+
     class Shader
     {
     private:
@@ -77,6 +80,10 @@ namespace InsanityEngine::DX11::StaticMesh
 
     class Material
     {
+    public:
+        static std::shared_ptr<Texture> defaultAlbedo;
+        static std::shared_ptr<Shader> defaultShader;
+
     private:
         std::shared_ptr<Shader> m_shader;
         std::shared_ptr<Texture> m_albedo;
@@ -105,6 +112,10 @@ namespace InsanityEngine::DX11::StaticMesh
 
     class MeshObject
     {
+    public:
+        static std::shared_ptr<Mesh> defaultMesh;
+        static std::shared_ptr<Material> defaultMaterial;
+
     private:
         std::shared_ptr<Mesh> m_mesh;
         std::shared_ptr<Material> m_material;
@@ -127,5 +138,10 @@ namespace InsanityEngine::DX11::StaticMesh
     public:
         Math::Types::Matrix4x4f GetObjectMatrix() const;
     };
+
+
+    extern std::shared_ptr<Shader> CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader);
+    extern std::shared_ptr<Mesh> CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices);
+    extern std::shared_ptr<Texture> CreateTexture(ID3D11Device* device, std::wstring_view texture, ComPtr<ID3D11SamplerState> sampler);
 
 }

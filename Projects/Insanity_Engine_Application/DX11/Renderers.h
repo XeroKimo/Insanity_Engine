@@ -75,15 +75,35 @@ namespace InsanityEngine::DX11::Renderers
             ID3D11Buffer* GetConstantBuffer() const { return m_objectConstantBuffer.Get(); }
         };
 
+
+
+        class Renderer;
+
+
+
+        struct RenderObjectDeleter
+        {
+            Renderer* renderer = nullptr;
+
+            RenderObjectDeleter() = default;
+            RenderObjectDeleter(Renderer* renderer);
+
+            void operator()(RenderObject* renderObject);
+        };
+
+        using MeshHandle = std::unique_ptr<RenderObject, RenderObjectDeleter>;
+
         class Renderer
         {
+            friend void RenderObjectDeleter::operator()(RenderObject*);
+
             Device* m_device;
             std::vector<std::unique_ptr<RenderObject>> m_renderObjects;
 
         public:
             Renderer(Device& device);
 
-            RenderObject* CreateObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
+            MeshHandle CreateObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
             void DestroyObject(RenderObject*& object);
 
         public:
@@ -95,3 +115,8 @@ namespace InsanityEngine::DX11::Renderers
         };
     };
 }
+
+namespace InsanityEngine::DX11
+{
+    
+};

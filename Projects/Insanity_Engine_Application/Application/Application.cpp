@@ -44,9 +44,8 @@ namespace InsanityEngine::Application
                 previous = std::exchange(now, std::chrono::steady_clock::now());
                 std::chrono::duration<float> delta = now - previous;
 
-                TriangleRenderUpdate(std::chrono::duration<float>(delta).count());
-                TriangleRender(m_device, m_window);
-                m_window.Present();
+                Update(delta.count());
+                Draw();
             }
         }
 
@@ -58,6 +57,17 @@ namespace InsanityEngine::Application
     void Application::Quit()
     {
         m_running = false;
+    }
+
+    void Application::Update(float deltaTime)
+    {
+        TriangleRenderUpdate(deltaTime);
+    }
+
+    void Application::Draw()
+    {
+        TriangleRender(m_device, m_window);
+        m_window.Present();
     }
 
 

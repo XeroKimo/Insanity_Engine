@@ -11,10 +11,10 @@ namespace InsanityEngine::DX11::Renderers
         {
         }
 
-        RenderObject* Renderer::CreateObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material)
+        MeshHandle Renderer::CreateObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material)
         {
             m_renderObjects.push_back(std::make_unique<RenderObject>(CreateMeshConstantBuffer(), MeshObject(mesh, material)));
-            return m_renderObjects.back().get();
+            return { m_renderObjects.back().get(), RenderObjectDeleter(this) };
         }
 
         void Renderer::DestroyObject(RenderObject*& object)
@@ -30,6 +30,17 @@ namespace InsanityEngine::DX11::Renderers
             ComPtr<ID3D11Buffer> buffer;
             Helpers::CreateConstantBuffer<VSObjectConstants>(m_device->GetDevice(), &buffer, true);
             return buffer;
+        }
+
+
+        RenderObjectDeleter::RenderObjectDeleter(Renderer* renderer) :
+            renderer(renderer)
+        {
+        }
+
+        void RenderObjectDeleter::operator()(RenderObject* renderObject)
+        {
+            renderer->DestroyObject(renderObject);
         }
     }
 }

@@ -32,6 +32,10 @@ namespace InsanityEngine::Application
 
     public:
         Window& GetWindow() const { return m_window; }
+
+    private:
+        void Update(float deltaTime);
+        void Draw();
     };
 
     extern int RunApplication();
