@@ -45,6 +45,9 @@
     <ClInclude Include="DX11\Renderers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Application\Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Insanity_Engine_Application.cpp">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX11\Renderers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Application\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

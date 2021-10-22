@@ -89,6 +89,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
+    <ClInclude Include="Application\Renderer.h" />
     <ClInclude Include="Application\Window.h" />
     <ClInclude Include="DX11\CommonInclude.h" />
     <ClInclude Include="DX11\Device.h" />
@@ -101,6 +102,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
+    <ClCompile Include="Application\Renderer.cpp" />
     <ClCompile Include="Application\Window.cpp" />
     <ClCompile Include="DX11\Device.cpp" />
     <ClCompile Include="DX11\Helpers.cpp" />
