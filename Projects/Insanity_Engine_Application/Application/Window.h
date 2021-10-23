@@ -26,7 +26,7 @@ namespace InsanityEngine::Application
         friend class Window;
 
     protected:
-        virtual void Draw(ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D11RenderTargetView1> backBuffer) = 0;
+        virtual void Draw(ComPtr<ID3D11RenderTargetView1> backBuffer) = 0;
     };
 
     class Window

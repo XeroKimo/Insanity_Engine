@@ -99,6 +99,7 @@
     <ClInclude Include="DX11\Renderers.h" />
     <ClInclude Include="Engine\Camera.h" />
     <ClInclude Include="Test Scenes\TriangleRender.h" />
+    <ClInclude Include="Test Scenes\TriangleRenderScene2.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
@@ -112,6 +113,7 @@
     <ClCompile Include="Engine\Camera.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Test Scenes\TriangleRender.cpp" />
+    <ClCompile Include="Test Scenes\TriangleRenderScene2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

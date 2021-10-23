@@ -24,7 +24,6 @@ using InsanityEngine::DX11::ComPtr;
 
 static ComPtr<ID3D11InputLayout> inputLayout;
 static ComPtr<ID3D11Buffer> cameraBuffer;
-static ComPtr<ID3D11DepthStencilState> depthStencilState;
 
 //static std::shared_ptr<DX11::StaticMesh::Texture> texture;
 //static std::shared_ptr<DX11::StaticMesh::Material> material;
@@ -34,10 +33,6 @@ static ComPtr<ID3D11DepthStencilState> depthStencilState;
 static std::optional<DX11::Renderers::StaticMesh::Renderer> g_renderer;
 static DX11::Renderers::StaticMesh::MeshHandle g_renderObject;
 static std::optional<InsanityEngine::Engine::Camera> camera;
-
-static ComPtr<ID3D11Buffer> colorBufferTest;
-static ComPtr<ID3D11ShaderResourceView> textureView;
-static ComPtr<ID3D11SamplerState> samplerState;
 
 static bool aPressed = false;
 static bool wPressed = false;
@@ -164,7 +159,7 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
     DX11::Helpers::ClearRenderTargetView(device.GetDeviceContext(), camera->GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
     device.GetDeviceContext()->ClearDepthStencilView(camera->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
     device.GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->GetDepthStencilView());
-    device.GetDeviceContext()->OMSetDepthStencilState(depthStencilState.Get(), 0);
+    device.GetDeviceContext()->OMSetDepthStencilState(camera->GetDepthStencilState(), 0);
     device.GetDeviceContext()->RSSetViewports(1, &viewport);
     device.GetDeviceContext()->RSSetScissorRects(1, &rect);
     device.GetDeviceContext()->IASetInputLayout(inputLayout.Get());
@@ -186,8 +181,13 @@ void TriangleRender(DX11::Device& device, InsanityEngine::Application::Window& w
             meshObject->GetConstantBuffer()
         };
 
+        std::array psConstantBuffers
+        {
+            meshObject->object.GetMaterial()->GetConstantBuffer()
+        };
+
         device.GetDeviceContext()->VSSetConstantBuffers(Renderers::Registers::VS::StaticMesh::objectConstants, static_cast<UINT>(vsConstantBuffers.size()), vsConstantBuffers.data());
-        device.GetDeviceContext()->PSSetConstantBuffers(Renderers::Registers::PS::StaticMesh::materialConstants, 1, colorBufferTest.GetAddressOf());
+        device.GetDeviceContext()->PSSetConstantBuffers(Renderers::Registers::PS::StaticMesh::materialConstants, static_cast<UINT>(psConstantBuffers.size()), psConstantBuffers.data());
 
         SetMesh(device, meshObject->object);
         DrawMesh(device, meshObject->object);
@@ -200,8 +200,6 @@ void ShutdownTriangleRender()
 
     inputLayout = nullptr;
     cameraBuffer = nullptr;
-    depthStencilState = nullptr;
-    colorBufferTest = nullptr;
 }
 
 void InitializeShaders(InsanityEngine::DX11::Device& device)
@@ -227,6 +225,7 @@ void InitializeMaterial(InsanityEngine::DX11::Device& device)
     samplerDesc.MinLOD = -FLT_MAX;
     samplerDesc.MaxLOD = FLT_MAX;
 
+    ComPtr<ID3D11SamplerState> samplerState;
     HRESULT hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
     if(FAILED(hr))
     {
@@ -234,7 +233,7 @@ void InitializeMaterial(InsanityEngine::DX11::Device& device)
     }
 
     StaticMesh::Material::defaultAlbedo = StaticMesh::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState);
-    StaticMesh::MeshObject::defaultMaterial = std::make_shared<StaticMesh::Material>(nullptr, nullptr);
+    StaticMesh::MeshObject::defaultMaterial = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, nullptr);
 }
 
 void InitializeMesh(InsanityEngine::DX11::Device& device)
@@ -255,8 +254,6 @@ void InitializeMesh(InsanityEngine::DX11::Device& device)
 
     g_renderObject = g_renderer->CreateObject(nullptr, nullptr);
     g_renderObject->object.position.z() = 2;
-
-    Helpers::CreateConstantBuffer(device.GetDevice(), &colorBufferTest, true, g_renderObject->object.GetMaterial()->color);
 }
 
 void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Window& window)
@@ -297,13 +294,6 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
         throw HRESULTException("Failed to create depth stencil view", hr);
     }
 
-    camera = Engine::Camera(ComPtr<ID3D11RenderTargetView>(window.GetBackBuffer()), depthStencilView);
-
-    Vector2f windowSize = window.GetWindowSize();
-    //camera->position.x() = 3;
-    Matrix4x4f viewProjection = Math::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
-
-    Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, true, viewProjection);
 
     D3D11_DEPTH_STENCIL_DESC desc{};
 
@@ -319,7 +309,16 @@ void InitializeCamera(InsanityEngine::DX11::Device& device, InsanityEngine::Appl
     desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
     desc.BackFace = desc.FrontFace;
 
+    ComPtr<ID3D11DepthStencilState> depthStencilState;
     device.GetDevice()->CreateDepthStencilState(&desc, &depthStencilState);
+
+    camera = Engine::Camera(ComPtr<ID3D11RenderTargetView>(window.GetBackBuffer()), depthStencilView, depthStencilState);
+
+    Vector2f windowSize = window.GetWindowSize();
+    //camera->position.x() = 3;
+    Matrix4x4f viewProjection = Math::Matrix::PerspectiveProjectionLH(Degrees<float>(90), windowSize.x() / windowSize.y(), camera->clipPlane.Near, camera->clipPlane.Far) * camera->GetViewMatrix();
+
+    Helpers::CreateConstantBuffer(device.GetDevice(), &cameraBuffer, true, viewProjection);
 }
 
 

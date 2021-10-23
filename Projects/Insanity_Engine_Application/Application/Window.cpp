@@ -33,7 +33,7 @@ namespace InsanityEngine::Application
 
     void Window::Draw()
     {
-        m_renderer->Draw(m_swapChain, m_backBuffer);
+        m_renderer->Draw(m_backBuffer);
         m_swapChain->Present(1, 0);
     }
 

@@ -88,11 +88,12 @@ namespace InsanityEngine::DX11::StaticMesh
         std::shared_ptr<Shader> m_shader;
         std::shared_ptr<Texture> m_albedo;
 
+        ComPtr<ID3D11Buffer> m_materialConstantBuffer;
     public:
         Math::Types::Vector4f color;
 
     public:
-        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
+        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, ComPtr<ID3D11Buffer> materialConstantBuffer, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
 
     public:
         void SetShader(std::shared_ptr<Shader> shader);
@@ -101,7 +102,7 @@ namespace InsanityEngine::DX11::StaticMesh
     public:
         std::shared_ptr<Shader> GetShader() const { return m_shader; }
         std::shared_ptr<Texture> GetAlbedo() const { return m_albedo; }
-
+        ID3D11Buffer* GetConstantBuffer() const { return m_materialConstantBuffer.Get(); }
 
     public:
         friend bool operator==(const Material& lh, const Material& rh) = default;
@@ -143,5 +144,6 @@ namespace InsanityEngine::DX11::StaticMesh
     extern std::shared_ptr<Shader> CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader);
     extern std::shared_ptr<Mesh> CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices);
     extern std::shared_ptr<Texture> CreateTexture(ID3D11Device* device, std::wstring_view texture, ComPtr<ID3D11SamplerState> sampler);
+    extern std::shared_ptr<Material> CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
 
 }

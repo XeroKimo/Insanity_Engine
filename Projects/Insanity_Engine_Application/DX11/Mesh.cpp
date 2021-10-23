@@ -3,6 +3,7 @@
 #include "Device.h"
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "Helpers.h"
+#include "Renderers.h"
 #include <assert.h>
 
 
@@ -79,12 +80,15 @@ namespace InsanityEngine::DX11::StaticMesh
     std::shared_ptr<Shader> Material::defaultShader = nullptr;
     std::shared_ptr<Texture> Material::defaultAlbedo = nullptr;
 
-    Material::Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
+    Material::Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, ComPtr<ID3D11Buffer> materialConstantBuffer, Vector4f color) :
         m_shader((shader == nullptr) ? defaultShader : std::move(shader)),
         m_albedo((albedo == nullptr) ? defaultAlbedo : std::move(albedo)),
+        m_materialConstantBuffer(std::move(materialConstantBuffer)),
         color(color)
     {
-        assert(m_albedo != nullptr && m_shader != nullptr);
+        assert(m_shader != nullptr);
+        assert(m_materialConstantBuffer != nullptr);
+        assert(m_albedo != nullptr);
     }
 
     void Material::SetShader(std::shared_ptr<Shader> shader)
@@ -228,6 +232,14 @@ namespace InsanityEngine::DX11::StaticMesh
         }
 
         return std::make_shared<Texture>(resource, sampler);
+    }
+
+    std::shared_ptr<Material> CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color)
+    {
+        ComPtr<ID3D11Buffer> constantBuffer;
+        Renderers::StaticMesh::PSMaterialConstants constants{ .color = color };
+        Helpers::CreateConstantBuffer(device, &constantBuffer, true, constants);
+        return std::make_shared<Material>(shader, texture, constantBuffer, color);
     }
 
 }

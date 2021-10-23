@@ -4,6 +4,7 @@
 #include "../Application/Window.h"
 #include "../DX11/Device.h"
 #include "../Test Scenes/TriangleRender.h"
+#include "../Test Scenes/TriangleRenderScene2.h"
 #include "Renderer.h"
 
 #include "SDL.h"
@@ -24,6 +25,7 @@ namespace InsanityEngine::Application
     int Application::Run()
     {
         
+        TriangleRenderSetup2(m_device, m_renderer, m_window);
         //TriangleRenderSetup(m_device, m_window);
 
         std::chrono::time_point previous = std::chrono::steady_clock::now();
@@ -33,6 +35,7 @@ namespace InsanityEngine::Application
         {
             if(SDL_PollEvent(&event))
             {
+                TriangleRenderInput2(event);
                 //TriangleRenderInput(event);
 
                 if(event.type == SDL_EventType::SDL_QUIT)
@@ -45,7 +48,9 @@ namespace InsanityEngine::Application
                 previous = std::exchange(now, std::chrono::steady_clock::now());
                 float delta = std::chrono::duration<float>(now - previous).count();
 
-
+                TriangleRenderUpdate2(delta);
+                //TriangleRender(m_device, m_window);
+                //m_window.Present();
                 m_window.Draw();
             }
         }

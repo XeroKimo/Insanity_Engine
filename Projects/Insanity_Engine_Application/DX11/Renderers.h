@@ -115,8 +115,3 @@ namespace InsanityEngine::DX11::Renderers
         };
     };
 }
-
-namespace InsanityEngine::DX11
-{
-    
-};
