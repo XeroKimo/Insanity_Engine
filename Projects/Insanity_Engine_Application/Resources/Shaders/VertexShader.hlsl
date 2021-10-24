@@ -12,12 +12,12 @@ struct VertexOutput
     float4 uv : TEXCOORD;
 };
 
-cbuffer ApplicationConstants : register(b0)
+cbuffer Application : register(b0)
 {
 
 }
 
-cbuffer CameraConstants : register(b1)
+cbuffer Camera : register(b1)
 {
     float4x4 viewProjMatrix;
 }

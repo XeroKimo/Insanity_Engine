@@ -55,7 +55,7 @@ namespace InsanityEngine::Application
             }
         }
 
-        ShutdownTriangleRender();
+        TriangleRenderShutdown2();
 
         return 0;
     }

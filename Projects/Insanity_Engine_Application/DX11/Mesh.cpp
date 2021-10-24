@@ -3,45 +3,13 @@
 #include "Device.h"
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "Helpers.h"
-#include "Renderers.h"
+#include "ShaderConstants.h"
 #include <assert.h>
 
 
 namespace InsanityEngine::DX11::StaticMesh
 {
     using namespace Math::Types;
-
-    std::array<D3D11_INPUT_ELEMENT_DESC, 3> GetInputElementDescription()
-    {
-        std::array<D3D11_INPUT_ELEMENT_DESC, 3> inputLayout;
-
-        inputLayout[0].SemanticName = "POSITION";
-        inputLayout[0].SemanticIndex = 0;
-        inputLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-        inputLayout[0].InputSlot = 0;
-        inputLayout[0].AlignedByteOffset = 0;
-        inputLayout[0].InputSlotClass = D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA;
-        inputLayout[0].InstanceDataStepRate = 0;
-
-        inputLayout[1].SemanticName = "NORMAL";
-        inputLayout[1].SemanticIndex = 0;
-        inputLayout[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-        inputLayout[1].InputSlot = 0;
-        inputLayout[1].AlignedByteOffset = sizeof(Math::Types::Vector3f);
-        inputLayout[1].InputSlotClass = D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA;
-        inputLayout[1].InstanceDataStepRate = 0;
-
-        inputLayout[2].SemanticName = "TEXCOORD";
-        inputLayout[2].SemanticIndex = 0;
-        inputLayout[2].Format = DXGI_FORMAT_R32G32_FLOAT;
-        inputLayout[2].InputSlot = 0;
-        inputLayout[2].AlignedByteOffset = sizeof(Math::Types::Vector3f) * 2;
-        inputLayout[2].InputSlotClass = D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA;
-        inputLayout[2].InstanceDataStepRate = 0;
-
-        return inputLayout;
-    }
-
 
     Mesh::Mesh(ComPtr<ID3D11Buffer> vertexBuffer, UINT vertexCount, ComPtr<ID3D11Buffer> indexBuffer, UINT indexCount) :
         m_vertexBuffer(std::move(vertexBuffer)),
@@ -112,11 +80,12 @@ namespace InsanityEngine::DX11::StaticMesh
 
     }
 
-    std::shared_ptr<Mesh>     MeshObject::defaultMesh = nullptr;
+    std::shared_ptr<Mesh> MeshObject::defaultMesh = nullptr;
     std::shared_ptr<Material> MeshObject::defaultMaterial = nullptr;
+
     MeshObject::MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material) :
-        m_mesh      ((mesh == nullptr) ? defaultMesh : std::move(mesh)),
-        m_material  ((material == nullptr) ? defaultMaterial : std::move(material))
+        m_mesh((mesh == nullptr) ? defaultMesh : std::move(mesh)),
+        m_material((material == nullptr) ? defaultMaterial : std::move(material))
     {
         assert(m_mesh != nullptr && m_material != nullptr);
     }
@@ -135,7 +104,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     Matrix4x4f MeshObject::GetObjectMatrix() const
     {
-        return Math::Matrix::PositionMatrix(position) * quat.ToRotationMatrix();
+        return Math::Matrix::PositionMatrix(position) * rotation.ToRotationMatrix();
     }
 
     std::shared_ptr<Shader> CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader)
@@ -237,7 +206,7 @@ namespace InsanityEngine::DX11::StaticMesh
     std::shared_ptr<Material> CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color)
     {
         ComPtr<ID3D11Buffer> constantBuffer;
-        Renderers::StaticMesh::PSMaterialConstants constants{ .color = color };
+        StaticMesh::Constants::PSMaterial constants{ .color = color };
         Helpers::CreateConstantBuffer(device, &constantBuffer, true, constants);
         return std::make_shared<Material>(shader, texture, constantBuffer, color);
     }

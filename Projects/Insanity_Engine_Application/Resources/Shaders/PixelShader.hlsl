@@ -10,7 +10,7 @@ struct VertexOutput
 Texture2D albedoTexture : register(t0);
 SamplerState albedoSampler : register(s0);
 
-cbuffer ApplicationConstants : register(b0)
+cbuffer Application : register(b0)
 {
 
 }

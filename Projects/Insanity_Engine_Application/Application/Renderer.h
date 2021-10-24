@@ -9,6 +9,8 @@ namespace InsanityEngine::Application
 {
     class Renderer;
 
+
+
     class CameraObject
     {
         template<class T>
@@ -28,6 +30,8 @@ namespace InsanityEngine::Application
         ID3D11Buffer* GetConstantBuffer() const { return m_cameraConstants.Get(); }
     };
 
+
+
     class MeshObject
     {
         template<class T>
@@ -45,6 +49,8 @@ namespace InsanityEngine::Application
         ID3D11Buffer* GetConstantBuffer() const { return m_objectConstants.Get(); }
     };
 
+
+
     template<class T>
     class Handle;
 
@@ -57,6 +63,7 @@ namespace InsanityEngine::Application
 
     public:
         Handle() = default;
+        Handle(std::nullptr_t) {}
         Handle(Renderer& renderer, CameraObject& object);
         Handle(const Handle& other) = delete;
         Handle(Handle&& other) noexcept :
@@ -79,6 +86,12 @@ namespace InsanityEngine::Application
             return *this;
         }
 
+        Handle& operator=(std::nullptr_t)
+        {
+            Handle copy = std::move(*this);
+            return *this;
+        }
+
     };
 
 
@@ -91,6 +104,7 @@ namespace InsanityEngine::Application
 
     public:
         Handle() = default;
+        Handle(std::nullptr_t) {}
         Handle(Renderer& renderer, MeshObject& object);
         Handle(const Handle& other) = delete;
         Handle(Handle&& other) noexcept :
@@ -102,7 +116,7 @@ namespace InsanityEngine::Application
         };
         ~Handle();
 
-        Handle operator=(const Handle& other) = delete;
+        Handle& operator=(const Handle& other) = delete;
         Handle& operator=(Handle&& other) noexcept
         {
             m_renderer = std::move(other.m_renderer);
@@ -112,12 +126,29 @@ namespace InsanityEngine::Application
             return *this;
         }
 
+        Handle& operator=(std::nullptr_t)
+        {
+            Handle copy = std::move(*this);
+            return *this;
+        }
 
     public:
         void SetPosition(Math::Types::Vector3f position)
         {
             m_object->mesh.position = position;
         }
+
+        void SetRotation(Math::Types::Quaternion<float> rotation)
+        {
+            m_object->mesh.rotation = rotation;
+        }
+
+        void Rotate(Math::Types::Quaternion<float> rotation)
+        {
+            m_object->mesh.rotation *= rotation;
+        }
+
+        std::shared_ptr<DX11::StaticMesh::Material> GetMaterial() { return m_object->mesh.GetMaterial(); }
     };
 
 
@@ -138,8 +169,6 @@ namespace InsanityEngine::Application
 
         DX11::Device* m_device = nullptr;
         std::array<ComPtr<ID3D11InputLayout>, 1> m_inputLayouts;
-        //std::unordered_map<std::string, ComPtr<ID3D11VertexShader>> m_vertexShaders;
-        //std::unordered_map<std::string, ComPtr<ID3D11PixelShader>> m_pixelShaders;
 
         std::vector<std::unique_ptr<CameraObject>> m_cameras;
         std::vector<std::unique_ptr<MeshObject>> m_meshes;

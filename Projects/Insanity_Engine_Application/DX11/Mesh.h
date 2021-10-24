@@ -36,7 +36,6 @@ namespace InsanityEngine::DX11::StaticMesh
 
         UINT GetVertexCount() const { return m_vertexCount; }
         UINT GetIndexCount() const { return m_indexCount; }
-
     };
 
 
@@ -111,6 +110,7 @@ namespace InsanityEngine::DX11::StaticMesh
     };
 
 
+
     class MeshObject
     {
     public:
@@ -123,7 +123,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     public:
         Math::Types::Vector3f position;
-        Math::Types::Quaternion<float> quat;
+        Math::Types::Quaternion<float> rotation;
 
     public:
         MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
