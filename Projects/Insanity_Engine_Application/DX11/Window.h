@@ -16,7 +16,7 @@ namespace InsanityEngine::DX11
     class Device;
 }
 
-namespace InsanityEngine::Application
+namespace InsanityEngine::DX11
 {
     class BaseRenderer
     {

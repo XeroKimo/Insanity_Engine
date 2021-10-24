@@ -1,14 +1,13 @@
 #pragma once
-#include "../Application/Window.h"
-#include "../DX11/Mesh.h"
-#include "../Engine/Camera.h"
+#include "../Window.h"
+#include "../Mesh.h"
+#include "Camera.h"
 #include <array>
 #include <unordered_map>
 
-namespace InsanityEngine::Application
+namespace InsanityEngine::DX11
 {
     class Renderer;
-
 
 
     class CameraObject
@@ -19,10 +18,10 @@ namespace InsanityEngine::Application
         ComPtr<ID3D11Buffer> m_cameraConstants;
 
     public:
-        InsanityEngine::Engine::Camera camera;
+        Camera camera;
 
     public:
-        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, InsanityEngine::Engine::Camera&& camera);
+        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, Camera&& camera);
 
 
     public:

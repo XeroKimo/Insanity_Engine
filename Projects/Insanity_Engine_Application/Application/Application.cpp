@@ -1,11 +1,11 @@
 #include "Application.h"
 #include "Vector.h"
 
-#include "../Application/Window.h"
+#include "../DX11/Window.h"
 #include "../DX11/Device.h"
 #include "../Test Scenes/TriangleRender.h"
 #include "../Test Scenes/TriangleRenderScene2.h"
-#include "Renderer.h"
+#include "../DX11/Renderer/Renderer.h"
 
 #include "SDL.h"
 #include <chrono>
@@ -15,7 +15,7 @@ using namespace InsanityEngine::Math::Types;
 
 namespace InsanityEngine::Application
 {
-    Application::Application(DX11::Device& device, Window& window, Renderer& renderer) :
+    Application::Application(DX11::Device& device, DX11::Window& window, DX11::Renderer& renderer) :
         m_device(device),
         m_window(window),
         m_renderer(renderer)
@@ -74,8 +74,8 @@ namespace InsanityEngine::Application
         try
         {
             DX11::Device device;
-            Renderer renderer{ device };
-            Window window{ "Insanity Engine", { 1280.f, 720.f }, device, renderer };
+            DX11::Renderer renderer{ device };
+            DX11::Window window{ "Insanity Engine", { 1280.f, 720.f }, device, renderer };
 
 
             Application app(device, window, renderer);

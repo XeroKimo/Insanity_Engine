@@ -7,7 +7,7 @@ using namespace InsanityEngine;
 using namespace InsanityEngine::Math::Types;
 using namespace InsanityEngine::Debug::Exceptions;
 
-namespace InsanityEngine::Engine
+namespace InsanityEngine::DX11
 {
     Camera::Camera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil, ComPtr<ID3D11DepthStencilState> depthStencilState) :
         m_renderTargetView(std::move(renderTarget)),

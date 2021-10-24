@@ -18,7 +18,7 @@
     <ClInclude Include="Application\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Application\Window.h">
+    <ClInclude Include="DX11\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX11\Device.h">
@@ -33,7 +33,7 @@
     <ClInclude Include="DX11\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Camera.h">
+    <ClInclude Include="DX11\Renderer\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Test Scenes\TriangleRender.h">
@@ -45,7 +45,7 @@
     <ClInclude Include="DX11\ShaderConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Application\Renderer.h">
+    <ClInclude Include="DX11\Renderer\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Test Scenes\TriangleRenderScene2.h">
@@ -62,7 +62,7 @@
     <ClCompile Include="DX11\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application\Window.cpp">
+    <ClCompile Include="DX11\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX11\Helpers.cpp">
@@ -71,7 +71,7 @@
     <ClCompile Include="DX11\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Camera.cpp">
+    <ClCompile Include="DX11\Renderer\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Test Scenes\TriangleRender.cpp">
@@ -80,7 +80,7 @@
     <ClCompile Include="DX11\InputLayouts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application\Renderer.cpp">
+    <ClCompile Include="DX11\Renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Test Scenes\TriangleRenderScene2.cpp">

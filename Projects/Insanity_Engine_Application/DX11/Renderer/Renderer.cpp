@@ -1,24 +1,23 @@
 #include "Renderer.h"
-#include "../DX11/Device.h"
-#include "../DX11/Helpers.h"
-#include "../DX11/CommonInclude.h"
-#include "../DX11/InputLayouts.h"
-#include "../DX11/ShaderConstants.h"
+#include "../Device.h"
+#include "../Helpers.h"
+#include "../CommonInclude.h"
+#include "../InputLayouts.h"
+#include "../ShaderConstants.h"
 #include "Extensions/MatrixExtension.h"
 #include <assert.h>
 #include <algorithm>
 
 using namespace InsanityEngine;
 using namespace InsanityEngine::Math::Types;
-using namespace InsanityEngine::DX11;
 
 
 
-static void SetMaterial(const InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat);
-static void SetMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::Mesh& mesh);
-static void DrawMesh(const InsanityEngine::DX11::Device& device, const Application::MeshObject& mesh);
+static void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Material& mat);
+static void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Mesh& mesh);
+static void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject& mesh);
 
-namespace InsanityEngine::Application
+namespace InsanityEngine::DX11
 {
     Renderer::Renderer(DX11::Device& device) :
         m_device(&device)
@@ -29,7 +28,7 @@ namespace InsanityEngine::Application
     CameraHandle Renderer::CreateCamera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil, ComPtr<ID3D11DepthStencilState> depthStencilState)
     {
         assert(renderTarget != nullptr);
-        Engine::Camera camera{ renderTarget, depthStencil, depthStencilState };
+        Camera camera{ renderTarget, depthStencil, depthStencilState };
         StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(camera.GetViewMatrix(), camera.GetPerspectiveMatrix()) };
 
         ComPtr<ID3D11Buffer> constantBuffer;
@@ -134,7 +133,7 @@ namespace InsanityEngine::Application
             m_meshes.erase(it, m_meshes.end());
     }
 
-    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, InsanityEngine::Engine::Camera&& camera) :
+    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, DX11::Camera&& camera) :
         m_cameraConstants(cameraConstants),
         camera(std::move(camera))
     {
@@ -150,7 +149,7 @@ namespace InsanityEngine::Application
 }
 
 
-void SetMaterial(const InsanityEngine::DX11::Device& device, const StaticMesh::Material& mat)
+void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Material& mat)
 {
     device.GetDeviceContext()->VSSetShader(mat.GetShader()->GetVertexShader(), nullptr, 0);
     device.GetDeviceContext()->PSSetShader(mat.GetShader()->GetPixelShader(), nullptr, 0);
@@ -158,25 +157,25 @@ void SetMaterial(const InsanityEngine::DX11::Device& device, const StaticMesh::M
     std::array samplers{ mat.GetAlbedo()->GetSamplerState() };
     std::array textures{ mat.GetAlbedo()->GetView() };
     std::array constantBuffers{ mat.GetConstantBuffer()};
-    device.GetDeviceContext()->PSSetSamplers        (StaticMesh::Registers::PS::albedoSampler, 1, samplers.data());
-    device.GetDeviceContext()->PSSetShaderResources (StaticMesh::Registers::PS::albedoTexture, 1, textures.data());
-    device.GetDeviceContext()->PSSetConstantBuffers (StaticMesh::Registers::PS::materialConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
+    device.GetDeviceContext()->PSSetSamplers        (DX11::StaticMesh::Registers::PS::albedoSampler, 1, samplers.data());
+    device.GetDeviceContext()->PSSetShaderResources (DX11::StaticMesh::Registers::PS::albedoTexture, 1, textures.data());
+    device.GetDeviceContext()->PSSetConstantBuffers (DX11::StaticMesh::Registers::PS::materialConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
 }
 
-void SetMesh(const InsanityEngine::DX11::Device& device, const StaticMesh::Mesh& mesh)
+void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Mesh& mesh)
 {
     std::array vertexBuffers { mesh.GetVertexBuffer() };
 
-    UINT stride = sizeof(StaticMesh::VertexData);
+    UINT stride = sizeof(DX11::StaticMesh::VertexData);
     UINT offset = 0;
 
     device.GetDeviceContext()->IASetVertexBuffers(0, static_cast<UINT>(vertexBuffers.size()), vertexBuffers.data(), &stride, &offset);
     device.GetDeviceContext()->IASetIndexBuffer(mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
-void DrawMesh(const InsanityEngine::DX11::Device& device, const Application::MeshObject& mesh)
+void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject& mesh)
 {
     std::array constantBuffers { mesh.GetConstantBuffer() };
-    device.GetDeviceContext()->VSSetConstantBuffers(StaticMesh::Registers::VS::objectConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
+    device.GetDeviceContext()->VSSetConstantBuffers(DX11::StaticMesh::Registers::VS::objectConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
     device.GetDeviceContext()->DrawIndexed(mesh.mesh.GetMesh()->GetIndexCount(), 0, 0);
 }

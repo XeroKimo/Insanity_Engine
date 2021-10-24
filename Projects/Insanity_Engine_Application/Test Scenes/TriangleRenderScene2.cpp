@@ -1,7 +1,7 @@
 #include "TriangleRenderScene2.h"
 #include "../DX11/Device.h"
-#include "../Application/Window.h"
-#include "../Application/Renderer.h"
+#include "../DX11/Window.h"
+#include "../DX11/Renderer/Renderer.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 
@@ -12,12 +12,12 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static Application::MeshHandle mesh;
-static Application::MeshHandle mesh2;
-static Application::MeshHandle mesh3;
-static Application::MeshHandle mesh4;
-static Application::MeshHandle mesh5;
-static Application::CameraHandle camera;
+static DX11::MeshHandle mesh;
+static DX11::MeshHandle mesh2;
+static DX11::MeshHandle mesh3;
+static DX11::MeshHandle mesh4;
+static DX11::MeshHandle mesh5;
+static DX11::CameraHandle camera;
 
 static std::shared_ptr<StaticMesh::Material> mat2;
 static std::shared_ptr<StaticMesh::Material> mat3;
@@ -29,7 +29,7 @@ static bool wPressed = false;
 static bool sPressed = false;
 static bool dPressed = false;
 
-void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::Application::Renderer& renderer, InsanityEngine::Application::Window& window)
+void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Renderer& renderer, InsanityEngine::DX11::Window& window)
 {
 
     D3D11_SAMPLER_DESC samplerDesc;

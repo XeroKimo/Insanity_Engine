@@ -1,8 +1,8 @@
 #pragma once
-#include "../DX11/CommonInclude.h"
+#include "../CommonInclude.h"
 #include "Vector.h"
 
-namespace InsanityEngine::Engine
+namespace InsanityEngine::DX11
 {
     struct ClipPlane
     {

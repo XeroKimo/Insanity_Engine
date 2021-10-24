@@ -8,7 +8,7 @@
 using namespace InsanityEngine::Math::Types;
 using namespace InsanityEngine::Debug::Exceptions;
 
-namespace InsanityEngine::Application
+namespace InsanityEngine::DX11
 {
     Window::Window(std::string_view windowName, Vector2f windowSize, DX11::Device& device, BaseRenderer& renderer) :
         m_device(&device),
