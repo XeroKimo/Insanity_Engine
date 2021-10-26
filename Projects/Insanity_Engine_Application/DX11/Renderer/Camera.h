@@ -1,6 +1,6 @@
 #pragma once
 #include "../CommonInclude.h"
-#include "Vector.h"
+#include "Insanity_Math.h"
 
 namespace InsanityEngine::DX11
 {
@@ -24,6 +24,7 @@ namespace InsanityEngine::DX11
 
     public:
         Math::Types::Vector3f position;
+        Math::Types::Quaternion<float> rotation;
         float fov = 90;
         ClipPlane clipPlane;
         

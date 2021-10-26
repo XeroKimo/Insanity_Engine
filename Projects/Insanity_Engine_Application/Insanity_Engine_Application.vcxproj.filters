@@ -51,6 +51,9 @@
     <ClInclude Include="Test Scenes\TriangleRenderScene2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DX11\Renderer\StaticMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Insanity_Engine_Application.cpp">

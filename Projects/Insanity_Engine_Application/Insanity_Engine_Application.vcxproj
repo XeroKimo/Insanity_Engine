@@ -90,6 +90,7 @@
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="DX11\Renderer\Renderer.h" />
+    <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="DX11\Window.h" />
     <ClInclude Include="DX11\CommonInclude.h" />
     <ClInclude Include="DX11\Device.h" />

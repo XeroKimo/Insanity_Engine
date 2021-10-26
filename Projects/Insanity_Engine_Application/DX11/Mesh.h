@@ -84,25 +84,25 @@ namespace InsanityEngine::DX11::StaticMesh
         static std::shared_ptr<Shader> defaultShader;
 
     private:
+        ComPtr<ID3D11Buffer> m_constantBuffer;
         std::shared_ptr<Shader> m_shader;
         std::shared_ptr<Texture> m_albedo;
-
-        ComPtr<ID3D11Buffer> m_materialConstantBuffer;
-    public:
-        Math::Types::Vector4f color;
+        Math::Types::Vector4f m_color;
 
     public:
-        Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, ComPtr<ID3D11Buffer> materialConstantBuffer, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
+        Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
 
     public:
         void SetShader(std::shared_ptr<Shader> shader);
         void SetAlbedo(std::shared_ptr<Texture> texture);
+        void SetColor(Math::Types::Vector4f color);
 
     public:
         std::shared_ptr<Shader> GetShader() const { return m_shader; }
         std::shared_ptr<Texture> GetAlbedo() const { return m_albedo; }
-        ID3D11Buffer* GetConstantBuffer() const { return m_materialConstantBuffer.Get(); }
+        Math::Types::Vector4f GetColor() const { return m_color; }
 
+        ID3D11Buffer* GetConstantBuffer() const { return m_constantBuffer.Get(); }
     public:
         friend bool operator==(const Material& lh, const Material& rh) = default;
         friend bool operator!=(const Material& lh, const Material& rh) = default;
@@ -123,6 +123,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     public:
         Math::Types::Vector3f position;
+        Math::Types::Vector3f scale{ Math::Types::Scalar(1.f) };
         Math::Types::Quaternion<float> rotation;
 
     public:

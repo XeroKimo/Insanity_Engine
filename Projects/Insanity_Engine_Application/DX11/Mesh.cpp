@@ -48,14 +48,14 @@ namespace InsanityEngine::DX11::StaticMesh
     std::shared_ptr<Shader> Material::defaultShader = nullptr;
     std::shared_ptr<Texture> Material::defaultAlbedo = nullptr;
 
-    Material::Material(std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, ComPtr<ID3D11Buffer> materialConstantBuffer, Vector4f color) :
+    Material::Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
+        m_constantBuffer(std::move(constantBuffer)),
         m_shader((shader == nullptr) ? defaultShader : std::move(shader)),
         m_albedo((albedo == nullptr) ? defaultAlbedo : std::move(albedo)),
-        m_materialConstantBuffer(std::move(materialConstantBuffer)),
-        color(color)
+        m_color(color)
     {
+        assert(m_constantBuffer != nullptr);
         assert(m_shader != nullptr);
-        assert(m_materialConstantBuffer != nullptr);
         assert(m_albedo != nullptr);
     }
 
@@ -78,6 +78,11 @@ namespace InsanityEngine::DX11::StaticMesh
 
         assert(m_albedo != nullptr);
 
+    }
+
+    void Material::SetColor(Math::Types::Vector4f color)
+    {
+        m_color = color;
     }
 
     std::shared_ptr<Mesh> MeshObject::defaultMesh = nullptr;
@@ -104,7 +109,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     Matrix4x4f MeshObject::GetObjectMatrix() const
     {
-        return Math::Matrix::PositionMatrix(position) * rotation.ToRotationMatrix();
+        return Math::Matrix::ScaleRotateTransformMatrix(Math::Matrix::ScaleMatrix(scale), rotation.ToRotationMatrix(), Math::Matrix::PositionMatrix(position));
     }
 
     std::shared_ptr<Shader> CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader)
@@ -208,7 +213,8 @@ namespace InsanityEngine::DX11::StaticMesh
         ComPtr<ID3D11Buffer> constantBuffer;
         StaticMesh::Constants::PSMaterial constants{ .color = color };
         Helpers::CreateConstantBuffer(device, &constantBuffer, true, constants);
-        return std::make_shared<Material>(shader, texture, constantBuffer, color);
+
+        return std::make_shared<Material>(constantBuffer, shader, texture, color);
     }
 
 }

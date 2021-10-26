@@ -282,7 +282,7 @@ namespace InsanityEngine::Math
             explicit constexpr Vector(const data_t& data) : data(data) {}
 
             template<Concepts::Arithmetic ConversionT>
-            constexpr Vector(Scalar<ConversionT> scalar) { std::fill(data.begin(), data.end(), static_cast<value_type>(scalar.value)); }
+            explicit constexpr Vector(Scalar<ConversionT> scalar) { std::fill(data.begin(), data.end(), static_cast<value_type>(scalar.value)); }
 
             template<Concepts::Arithmetic ConversionT, size_t SizeConversion>
             constexpr Vector(const Vector<ConversionT, SizeConversion>& other)

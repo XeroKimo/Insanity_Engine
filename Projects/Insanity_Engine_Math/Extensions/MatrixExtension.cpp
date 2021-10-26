@@ -144,16 +144,17 @@ namespace InsanityEngine::Math::Matrix
         };
     }
 
-    Types::Matrix4x4f ViewProjectionMatrix(const Types::Matrix4x4f& view, const Types::Matrix4x4f perspective)
+    Types::Matrix4x4f ViewProjectionMatrix(const Types::Matrix4x4f& view, const Types::Matrix4x4f& projection)
     {
-        return perspective * view;
+        return projection * view;
     }
 
-    Types::Matrix4x4f WorldViewProjectionMatrix(const Types::Matrix4x4f& world, const Types::Matrix4x4f& view, const Types::Matrix4x4f perspective)
+    Types::Matrix4x4f WorldViewProjectionMatrix(const Types::Matrix4x4f& world, const Types::Matrix4x4f& view, const Types::Matrix4x4f& projection)
     {
-        return ViewProjectionMatrix(view, perspective) * world;
+        return ViewProjectionMatrix(view, projection) * world;
     }
-    Types::Matrix4x4f ScaleRotateTransformMatrix(const Types::Matrix4x4f& scale, const Types::Matrix4x4f& rotate, const Types::Matrix4x4f transform)
+
+    Types::Matrix4x4f ScaleRotateTransformMatrix(const Types::Matrix4x4f& scale, const Types::Matrix4x4f& rotate, const Types::Matrix4x4f& transform)
     {
         return transform * rotate * scale;
     }

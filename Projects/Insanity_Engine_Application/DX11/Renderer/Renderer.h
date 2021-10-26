@@ -147,6 +147,11 @@ namespace InsanityEngine::DX11
             m_object->mesh.rotation *= rotation;
         }
 
+        void SetScale(Math::Types::Vector3f scale)
+        {
+            m_object->mesh.scale = scale;
+        }
+
         std::shared_ptr<DX11::StaticMesh::Material> GetMaterial() { return m_object->mesh.GetMaterial(); }
     };
 

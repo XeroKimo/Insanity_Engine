@@ -224,6 +224,17 @@ void TriangleRenderUpdate2(float dt)
     mesh3.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
+
+    static float accumulatedTime = 0;
+
+
+    mesh2.GetMaterial()->SetColor(Vector4f{ 1, 0, 0, 1 } * Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    mesh3.GetMaterial()->SetColor(Vector4f{ 0, 1, 0, 1 } * Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh4.GetMaterial()->SetColor(Vector4f{ 0, 0, 1, 1 } * Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh5.GetMaterial()->SetColor(Vector4f{ 1, 1, 0, 1 } * Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+
+    mesh.SetScale((Vector3f{ 1, 1, 1 } * Vector3f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) }));
+    accumulatedTime += dt;
 }
 
 void TriangleRenderShutdown2()

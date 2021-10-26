@@ -30,7 +30,7 @@ namespace InsanityEngine::DX11
     }
     Math::Types::Matrix4x4f Camera::GetViewMatrix() const
     {
-        return Math::Matrix::PositionMatrix(position);
+        return Math::Matrix::PositionMatrix(position) * rotation.ToRotationMatrix();
     }
     Math::Types::Matrix4x4f Camera::GetPerspectiveMatrix() const
     {

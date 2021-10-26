@@ -188,7 +188,8 @@ namespace InsanityEngine::Math::Quaternion
             }
         }
 
-        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
+        //Referenced equations https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/code/index.htm
+        //The matrix form of the quaternion, if you're looking to make an actually rotation matrix, use ToRotationMatrix()
         Matrix<float, 4, 4> ToMatrix() const
         {
             return
@@ -202,6 +203,7 @@ namespace InsanityEngine::Math::Quaternion
 
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
+        //Creates a Rotation Matrix from the quaternion, if you're looking to view the matrix form of the quaternion, use ToMatrix()
         Matrix<float, 4, 4> ToRotationMatrix() const
         {
             Matrix<float, 4, 4> lh =

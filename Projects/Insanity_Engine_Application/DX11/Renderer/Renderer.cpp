@@ -53,15 +53,23 @@ namespace InsanityEngine::DX11
     {
         DX11::Helpers::ClearRenderTargetView(m_device->GetDeviceContext(), backBuffer.Get(), Vector4f{ 0, 0.3f, 0.7f, 1 });
 
-        //Updates all mesh constant buffers
+        //Updates all mesh and materials (might dupe for now but who cares) constant buffers
         for(const auto& mesh : m_meshes)
         {
+            //Mesh constants updated
             D3D11_MAPPED_SUBRESOURCE subresource;
             m_device->GetDeviceContext()->Map(mesh->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
             StaticMesh::Constants::VSMesh constants{ .worldMatrix = mesh->mesh.GetObjectMatrix() };
             std::memcpy(subresource.pData, &constants, sizeof(constants));
             m_device->GetDeviceContext()->Unmap(mesh->GetConstantBuffer(), 0);
+
+            //Material constants updated
+            m_device->GetDeviceContext()->Map(mesh->mesh.GetMaterial()->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+
+            StaticMesh::Constants::PSMaterial psConstants{ .color = mesh->mesh.GetMaterial()->GetColor() };
+            std::memcpy(subresource.pData, &psConstants, sizeof(psConstants));
+            m_device->GetDeviceContext()->Unmap(mesh->mesh.GetMaterial()->GetConstantBuffer(), 0);
         }
 
         for(const auto& camera : m_cameras)
