@@ -13,8 +13,8 @@ using namespace InsanityEngine::Math::Types;
 
 
 
-static void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Material& mat);
-static void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Mesh& mesh);
+static void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::Resources::StaticMesh::Material& mat);
+static void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::Resources::Mesh& mesh);
 static void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject& mesh);
 
 namespace InsanityEngine::DX11
@@ -25,27 +25,24 @@ namespace InsanityEngine::DX11
         m_inputLayouts[positionNormalUVLayout] = DX11::InputLayouts::PositionNormalUV::CreateInputLayout(m_device->GetDevice());
     }
 
-    CameraHandle Renderer::CreateCamera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil, ComPtr<ID3D11DepthStencilState> depthStencilState)
+    CameraHandle Renderer::CreateCamera(CameraData data)
     {
-        assert(renderTarget != nullptr);
-        Camera camera{ renderTarget, depthStencil, depthStencilState };
-        StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(camera.GetViewMatrix(), camera.GetPerspectiveMatrix()) };
+        StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(data.GetViewMatrix(), data.GetPerspectiveMatrix()) };
 
         ComPtr<ID3D11Buffer> constantBuffer;
         Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
-        m_cameras.push_back(std::make_unique<CameraObject>(constantBuffer, std::move(camera)));
+        m_cameras.push_back(std::make_unique<CameraObject>(constantBuffer, std::move(data)));
         return CameraHandle(*this, *m_cameras.back().get());
     }
 
-    MeshHandle Renderer::CreateMesh(std::shared_ptr<DX11::StaticMesh::Mesh> mesh, std::shared_ptr<DX11::StaticMesh::Material> material)
+    MeshHandle Renderer::CreateMesh(DX11::StaticMesh::MeshObjectData data)
     {
-        StaticMesh::MeshObject obj{ mesh, material };
-        StaticMesh::Constants::VSMesh constants{ .worldMatrix = obj.GetObjectMatrix() };
+        StaticMesh::Constants::VSMesh constants{ .worldMatrix = data.GetObjectMatrix() };
 
         ComPtr<ID3D11Buffer> constantBuffer;
         Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
 
-        m_meshes.push_back(std::make_unique<MeshObject>(constantBuffer, std::move(obj)));
+        m_meshes.push_back(std::make_unique<MeshObject>(constantBuffer, std::move(data)));
         return MeshHandle(*this, *m_meshes.back().get());
     }
 
@@ -60,16 +57,16 @@ namespace InsanityEngine::DX11
             D3D11_MAPPED_SUBRESOURCE subresource;
             m_device->GetDeviceContext()->Map(mesh->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
-            StaticMesh::Constants::VSMesh constants{ .worldMatrix = mesh->mesh.GetObjectMatrix() };
+            StaticMesh::Constants::VSMesh constants{ .worldMatrix = mesh->data.GetObjectMatrix() };
             std::memcpy(subresource.pData, &constants, sizeof(constants));
             m_device->GetDeviceContext()->Unmap(mesh->GetConstantBuffer(), 0);
 
             //Material constants updated
-            m_device->GetDeviceContext()->Map(mesh->mesh.GetMaterial()->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+            m_device->GetDeviceContext()->Map(mesh->data.GetMaterial()->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
-            StaticMesh::Constants::PSMaterial psConstants{ .color = mesh->mesh.GetMaterial()->GetColor() };
+            StaticMesh::Constants::PSMaterial psConstants{ .color = mesh->data.GetMaterial()->GetColor() };
             std::memcpy(subresource.pData, &psConstants, sizeof(psConstants));
-            m_device->GetDeviceContext()->Unmap(mesh->mesh.GetMaterial()->GetConstantBuffer(), 0);
+            m_device->GetDeviceContext()->Unmap(mesh->data.GetMaterial()->GetConstantBuffer(), 0);
         }
 
         for(const auto& camera : m_cameras)
@@ -78,19 +75,19 @@ namespace InsanityEngine::DX11
             D3D11_MAPPED_SUBRESOURCE subresource;
             m_device->GetDeviceContext()->Map(camera->GetConstantBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
-            StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(camera->camera.GetViewMatrix(), camera->camera.GetPerspectiveMatrix()) };
+            StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(camera->data.GetViewMatrix(), camera->data.GetPerspectiveMatrix()) };
             std::memcpy(subresource.pData, &constants, sizeof(constants));
             m_device->GetDeviceContext()->Unmap(camera->GetConstantBuffer(), 0);
 
             //Clear render targets
-            if(camera->camera.GetRenderTargetView() != backBuffer.Get())
-                DX11::Helpers::ClearRenderTargetView(m_device->GetDeviceContext(), camera->camera.GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
+            if(camera->data.GetRenderTargetView() != backBuffer.Get())
+                DX11::Helpers::ClearRenderTargetView(m_device->GetDeviceContext(), camera->data.GetRenderTargetView(), Vector4f{ 0, 0.3f, 0.7f, 1 });
 
-            if(camera->camera.GetDepthStencilView() != nullptr)
-                m_device->GetDeviceContext()->ClearDepthStencilView(camera->camera.GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+            if(camera->data.GetDepthStencilView() != nullptr)
+                m_device->GetDeviceContext()->ClearDepthStencilView(camera->data.GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
             //Setting the cameras
-            Vector2f resolution = camera->camera.GetRenderTargetResolution();
+            Vector2f resolution = camera->data.GetRenderTargetResolution();
 
             D3D11_VIEWPORT viewport = {};
             viewport.Width = static_cast<float>(resolution.x());
@@ -103,9 +100,9 @@ namespace InsanityEngine::DX11
             rect.bottom = static_cast<LONG>(resolution.y());
 
 
-            std::array renderTargets { static_cast<ID3D11RenderTargetView*>(camera->camera.GetRenderTargetView())};
-            m_device->GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->camera.GetDepthStencilView());
-            m_device->GetDeviceContext()->OMSetDepthStencilState(camera->camera.GetDepthStencilState(), 0);
+            std::array renderTargets { static_cast<ID3D11RenderTargetView*>(camera->data.GetRenderTargetView())};
+            m_device->GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera->data.GetDepthStencilView());
+            m_device->GetDeviceContext()->OMSetDepthStencilState(camera->data.GetDepthStencilState(), 0);
             m_device->GetDeviceContext()->RSSetViewports(1, &viewport);
             m_device->GetDeviceContext()->RSSetScissorRects(1, &rect);
 
@@ -119,8 +116,8 @@ namespace InsanityEngine::DX11
             //Draw meshes
             for(const auto& mesh : m_meshes)
             {
-                SetMaterial(*m_device, *mesh->mesh.GetMaterial());
-                SetMesh(*m_device, *mesh->mesh.GetMesh());
+                SetMaterial(*m_device, *mesh->data.GetMaterial());
+                SetMesh(*m_device, *mesh->data.GetMesh());
                 DrawMesh(*m_device, *mesh);
             }
         }
@@ -141,23 +138,23 @@ namespace InsanityEngine::DX11
             m_meshes.erase(it, m_meshes.end());
     }
 
-    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, DX11::Camera&& camera) :
+    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, DX11::CameraData&& data) :
         m_cameraConstants(cameraConstants),
-        camera(std::move(camera))
+        data(std::move(data))
     {
         assert(m_cameraConstants != nullptr);
     }
 
-    MeshObject::MeshObject(ComPtr<ID3D11Buffer> constantBuffer, DX11::StaticMesh::MeshObject&& mesh) :
+    MeshObject::MeshObject(ComPtr<ID3D11Buffer> constantBuffer, DX11::StaticMesh::MeshObjectData&& data) :
         m_objectConstants(constantBuffer),
-        mesh(std::move(mesh))
+        data(std::move(data))
     {
         assert(m_objectConstants != nullptr);
     }
 }
 
 
-void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Material& mat)
+void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::Resources::StaticMesh::Material& mat)
 {
     device.GetDeviceContext()->VSSetShader(mat.GetShader()->GetVertexShader(), nullptr, 0);
     device.GetDeviceContext()->PSSetShader(mat.GetShader()->GetPixelShader(), nullptr, 0);
@@ -170,7 +167,7 @@ void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::StaticM
     device.GetDeviceContext()->PSSetConstantBuffers (DX11::StaticMesh::Registers::PS::materialConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
 }
 
-void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::Mesh& mesh)
+void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::Resources::Mesh& mesh)
 {
     std::array vertexBuffers { mesh.GetVertexBuffer() };
 
@@ -185,5 +182,5 @@ void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject
 {
     std::array constantBuffers { mesh.GetConstantBuffer() };
     device.GetDeviceContext()->VSSetConstantBuffers(DX11::StaticMesh::Registers::VS::objectConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
-    device.GetDeviceContext()->DrawIndexed(mesh.mesh.GetMesh()->GetIndexCount(), 0, 0);
+    device.GetDeviceContext()->DrawIndexed(mesh.data.GetMesh()->GetIndexCount(), 0, 0);
 }

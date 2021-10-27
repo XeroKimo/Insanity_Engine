@@ -10,7 +10,7 @@ namespace InsanityEngine::DX11
         float Far = 0.0003f;
     };
 
-    class Camera
+    class CameraData
     {
     private:
         template<class T>
@@ -29,7 +29,7 @@ namespace InsanityEngine::DX11
         ClipPlane clipPlane;
         
     public:
-        Camera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr, ComPtr<ID3D11DepthStencilState> depthStencilState = nullptr);
+        CameraData(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr, ComPtr<ID3D11DepthStencilState> depthStencilState = nullptr);
 
     public:
         void SetTargets(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr);

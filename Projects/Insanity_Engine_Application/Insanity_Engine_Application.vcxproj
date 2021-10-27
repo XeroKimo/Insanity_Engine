@@ -96,7 +96,7 @@
     <ClInclude Include="DX11\Device.h" />
     <ClInclude Include="DX11\Helpers.h" />
     <ClInclude Include="DX11\InputLayouts.h" />
-    <ClInclude Include="DX11\Mesh.h" />
+    <ClInclude Include="DX11\Resources.h" />
     <ClInclude Include="DX11\ShaderConstants.h" />
     <ClInclude Include="DX11\Renderer\Camera.h" />
     <ClInclude Include="Test Scenes\TriangleRender.h" />
@@ -109,7 +109,7 @@
     <ClCompile Include="DX11\Device.cpp" />
     <ClCompile Include="DX11\Helpers.cpp" />
     <ClCompile Include="DX11\InputLayouts.cpp" />
-    <ClCompile Include="DX11\Mesh.cpp" />
+    <ClCompile Include="DX11\Resources.cpp" />
     <ClCompile Include="DX11\Renderer\Camera.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Test Scenes\TriangleRender.cpp" />

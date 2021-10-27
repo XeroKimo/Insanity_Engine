@@ -9,7 +9,7 @@ using namespace InsanityEngine::Debug::Exceptions;
 
 namespace InsanityEngine::DX11
 {
-    Camera::Camera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil, ComPtr<ID3D11DepthStencilState> depthStencilState) :
+    CameraData::CameraData(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil, ComPtr<ID3D11DepthStencilState> depthStencilState) :
         m_renderTargetView(std::move(renderTarget)),
         m_depthStencilView(std::move(depthStencil)),
         m_depthStencilState(std::move(depthStencilState))
@@ -17,27 +17,27 @@ namespace InsanityEngine::DX11
         assert(m_renderTargetView != nullptr);
     }
 
-    void Camera::SetTargets(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil)
+    void CameraData::SetTargets(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil)
     {
         assert(renderTarget != nullptr);
 
         m_renderTargetView = std::move(renderTarget);
         m_depthStencilView = std::move(depthStencil);
     }
-    void Camera::SetDepthStencilState(ComPtr<ID3D11DepthStencilState> depthStencilState)
+    void CameraData::SetDepthStencilState(ComPtr<ID3D11DepthStencilState> depthStencilState)
     {
         m_depthStencilState = std::move(depthStencilState);
     }
-    Math::Types::Matrix4x4f Camera::GetViewMatrix() const
+    Math::Types::Matrix4x4f CameraData::GetViewMatrix() const
     {
         return Math::Matrix::PositionMatrix(position) * rotation.ToRotationMatrix();
     }
-    Math::Types::Matrix4x4f Camera::GetPerspectiveMatrix() const
+    Math::Types::Matrix4x4f CameraData::GetPerspectiveMatrix() const
     {
         Vector2f resolution = GetRenderTargetResolution();
         return Math::Matrix::PerspectiveProjectionLH(Degrees(fov), resolution.x() / resolution.y(), clipPlane.Near, clipPlane.Far);
     }
-    Math::Types::Vector2f Camera::GetRenderTargetResolution() const
+    Math::Types::Vector2f CameraData::GetRenderTargetResolution() const
     {
         ComPtr<ID3D11Resource> resource;
         m_renderTargetView->GetResource(&resource);

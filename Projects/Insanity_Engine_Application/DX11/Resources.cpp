@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "Resources.h"
 #include "Extensions/MatrixExtension.h"
 #include "Device.h"
 #include "Debug Classes/Exceptions/HRESULTException.h"
@@ -7,7 +7,7 @@
 #include <assert.h>
 
 
-namespace InsanityEngine::DX11::StaticMesh
+namespace InsanityEngine::DX11::Resources
 {
     using namespace Math::Types;
 
@@ -45,74 +45,9 @@ namespace InsanityEngine::DX11::StaticMesh
         assert(m_pixelShader != nullptr);
     }
 
-    std::shared_ptr<Shader> Material::defaultShader = nullptr;
-    std::shared_ptr<Texture> Material::defaultAlbedo = nullptr;
 
-    Material::Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
-        m_constantBuffer(std::move(constantBuffer)),
-        m_shader((shader == nullptr) ? defaultShader : std::move(shader)),
-        m_albedo((albedo == nullptr) ? defaultAlbedo : std::move(albedo)),
-        m_color(color)
-    {
-        assert(m_constantBuffer != nullptr);
-        assert(m_shader != nullptr);
-        assert(m_albedo != nullptr);
-    }
 
-    void Material::SetShader(std::shared_ptr<Shader> shader)
-    {
-        m_shader = std::move(shader);
-
-        if(m_shader == nullptr)
-            m_shader = defaultShader;
-
-        assert(m_shader != nullptr);
-    }
-
-    void Material::SetAlbedo(std::shared_ptr<Texture> albedo)
-    {
-        m_albedo = std::move(albedo);
-
-        if(m_albedo == nullptr)
-            m_albedo = defaultAlbedo;
-
-        assert(m_albedo != nullptr);
-
-    }
-
-    void Material::SetColor(Math::Types::Vector4f color)
-    {
-        m_color = color;
-    }
-
-    std::shared_ptr<Mesh> MeshObject::defaultMesh = nullptr;
-    std::shared_ptr<Material> MeshObject::defaultMaterial = nullptr;
-
-    MeshObject::MeshObject(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material) :
-        m_mesh((mesh == nullptr) ? defaultMesh : std::move(mesh)),
-        m_material((material == nullptr) ? defaultMaterial : std::move(material))
-    {
-        assert(m_mesh != nullptr && m_material != nullptr);
-    }
-
-    void MeshObject::SetMesh(std::shared_ptr<Mesh> mesh)
-    {
-        assert(mesh != nullptr);
-        m_mesh = std::move(mesh);
-    }
-
-    void MeshObject::SetMaterial(std::shared_ptr<Material> material)
-    {
-        assert(material != nullptr);
-        m_material = std::move(material);
-    }
-
-    Matrix4x4f MeshObject::GetObjectMatrix() const
-    {
-        return Math::Matrix::ScaleRotateTransformMatrix(Math::Matrix::ScaleMatrix(scale), rotation.ToRotationMatrix(), Math::Matrix::PositionMatrix(position));
-    }
-
-    std::shared_ptr<Shader> CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader)
+    Shader CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader)
     {
         ComPtr<ID3DBlob> data;
         ComPtr<ID3DBlob> error;
@@ -171,10 +106,71 @@ namespace InsanityEngine::DX11::StaticMesh
             throw Debug::Exceptions::HRESULTException("Failed to create pixel shader:" + std::string(errorMsg), hr);
         }
 
-        return std::make_shared<Shader>(vs, ps);
+        return Shader(vs, ps);
     }
 
-    std::shared_ptr<Mesh> CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices)
+
+    Texture CreateTexture(ID3D11Device* device, std::wstring_view texture, ComPtr<ID3D11SamplerState> sampler)
+    {
+        ComPtr<ID3D11ShaderResourceView> resource;
+        HRESULT hr = Helpers::CreateTextureFromFile(device, &resource, texture, DirectX::WIC_FLAGS_NONE);
+
+        if(FAILED(hr))
+        {
+            throw Debug::Exceptions::HRESULTException("Failed to create Index Buffer", hr);
+        }
+
+        return Texture(resource, sampler);
+    }
+
+    namespace StaticMesh
+    {
+        Material::Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
+            m_constantBuffer(std::move(constantBuffer)),
+            m_shader(std::move(shader)),
+            m_albedo(std::move(albedo)),
+            m_color(color)
+        {
+            assert(m_constantBuffer != nullptr);
+            assert(m_shader != nullptr);
+            assert(m_albedo != nullptr);
+        }
+
+        void Material::SetShader(std::shared_ptr<Shader> shader)
+        {
+            m_shader = std::move(shader);
+            assert(shader != nullptr);
+        }
+
+        void Material::SetAlbedo(std::shared_ptr<Texture> albedo)
+        {
+            m_albedo = std::move(albedo);
+            assert(m_albedo != nullptr);
+        }
+
+        void Material::SetColor(Math::Types::Vector4f color)
+        {
+            m_color = color;
+        }
+
+
+        Material CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color)
+        {
+            ComPtr<ID3D11Buffer> constantBuffer;
+            DX11::StaticMesh::Constants::PSMaterial constants{ .color = color };
+            Helpers::CreateConstantBuffer(device, &constantBuffer, true, constants);
+
+            return Material(constantBuffer, shader, texture, color);
+        }
+
+    }
+}
+
+namespace InsanityEngine::DX11::StaticMesh
+{
+    using namespace Math::Types;
+
+    Resources::Mesh CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices)
     {
         ComPtr<ID3D11Buffer> vertexBuffer;
         HRESULT hr = Helpers::CreateVertexBuffer(device, &vertexBuffer, vertices, Helpers::VertexBufferUsage::Immutable);
@@ -192,29 +188,31 @@ namespace InsanityEngine::DX11::StaticMesh
             throw Debug::Exceptions::HRESULTException("Failed to create Index Buffer", hr);
         }
 
-        return std::make_shared<Mesh>(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
+        return Resources::Mesh(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
     }
 
-    std::shared_ptr<Texture> CreateTexture(ID3D11Device* device, std::wstring_view texture, ComPtr<ID3D11SamplerState> sampler)
+    MeshObjectData::MeshObjectData(std::shared_ptr<Resources::Mesh> mesh, std::shared_ptr<Resources::StaticMesh::Material> material) :
+        m_mesh(std::move(mesh)),
+        m_material(std::move(material))
     {
-        ComPtr<ID3D11ShaderResourceView> resource;
-        HRESULT hr = Helpers::CreateTextureFromFile(device, &resource, texture, DirectX::WIC_FLAGS_NONE);
-
-        if(FAILED(hr))
-        {
-            throw Debug::Exceptions::HRESULTException("Failed to create Index Buffer", hr);
-        }
-
-        return std::make_shared<Texture>(resource, sampler);
+        assert(m_mesh != nullptr);
+        assert(m_material != nullptr);
     }
 
-    std::shared_ptr<Material> CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color)
+    void MeshObjectData::SetMesh(std::shared_ptr<Resources::Mesh> mesh)
     {
-        ComPtr<ID3D11Buffer> constantBuffer;
-        StaticMesh::Constants::PSMaterial constants{ .color = color };
-        Helpers::CreateConstantBuffer(device, &constantBuffer, true, constants);
-
-        return std::make_shared<Material>(constantBuffer, shader, texture, color);
+        m_mesh = std::move(mesh);
+        assert(m_mesh != nullptr);
     }
 
+    void MeshObjectData::SetMaterial(std::shared_ptr<Resources::StaticMesh::Material> material)
+    {
+        m_material = std::move(material);
+        assert(m_material != nullptr);
+    }
+
+    Matrix4x4f MeshObjectData::GetObjectMatrix() const
+    {
+        return Math::Matrix::ScaleRotateTransformMatrix(Math::Matrix::ScaleMatrix(scale), rotation.ToRotationMatrix(), Math::Matrix::PositionMatrix(position));
+    }
 }

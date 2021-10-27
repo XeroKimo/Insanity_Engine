@@ -1,6 +1,6 @@
 #pragma once
 #include "../Window.h"
-#include "../Mesh.h"
+#include "../Resources.h"
 #include "Camera.h"
 #include <array>
 #include <unordered_map>
@@ -18,10 +18,10 @@ namespace InsanityEngine::DX11
         ComPtr<ID3D11Buffer> m_cameraConstants;
 
     public:
-        Camera camera;
+        CameraData data;
 
     public:
-        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, Camera&& camera);
+        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, CameraData&& camera);
 
 
     public:
@@ -39,10 +39,10 @@ namespace InsanityEngine::DX11
         ComPtr<ID3D11Buffer> m_objectConstants;
 
     public:
-        DX11::StaticMesh::MeshObject mesh;
+        DX11::StaticMesh::MeshObjectData data;
 
     public:
-        MeshObject(ComPtr<ID3D11Buffer> constantBuffer, DX11::StaticMesh::MeshObject&& mesh);
+        MeshObject(ComPtr<ID3D11Buffer> constantBuffer, DX11::StaticMesh::MeshObjectData&& data);
 
     public:
         ID3D11Buffer* GetConstantBuffer() const { return m_objectConstants.Get(); }
@@ -134,25 +134,25 @@ namespace InsanityEngine::DX11
     public:
         void SetPosition(Math::Types::Vector3f position)
         {
-            m_object->mesh.position = position;
+            m_object->data.position = position;
         }
 
         void SetRotation(Math::Types::Quaternion<float> rotation)
         {
-            m_object->mesh.rotation = rotation;
+            m_object->data.rotation = rotation;
         }
 
         void Rotate(Math::Types::Quaternion<float> rotation)
         {
-            m_object->mesh.rotation *= rotation;
+            m_object->data.rotation *= rotation;
         }
 
         void SetScale(Math::Types::Vector3f scale)
         {
-            m_object->mesh.scale = scale;
+            m_object->data.scale = scale;
         }
 
-        std::shared_ptr<DX11::StaticMesh::Material> GetMaterial() { return m_object->mesh.GetMaterial(); }
+        std::shared_ptr<Resources::StaticMesh::Material> GetMaterial() { return m_object->data.GetMaterial(); }
     };
 
 
@@ -180,8 +180,8 @@ namespace InsanityEngine::DX11
         Renderer(DX11::Device& device);
 
     public:
-        CameraHandle CreateCamera(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr, ComPtr<ID3D11DepthStencilState> depthStencilState = nullptr);
-        MeshHandle CreateMesh(std::shared_ptr<DX11::StaticMesh::Mesh> mesh, std::shared_ptr<DX11::StaticMesh::Material> material);
+        CameraHandle CreateCamera(CameraData data);
+        MeshHandle CreateMesh(DX11::StaticMesh::MeshObjectData data);
 
     protected:
         void Draw(ComPtr<ID3D11RenderTargetView1> backBuffer) override;

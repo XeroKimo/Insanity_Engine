@@ -30,7 +30,7 @@
     <ClInclude Include="DX11\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX11\Mesh.h">
+    <ClInclude Include="DX11\Resources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX11\Renderer\Camera.h">
@@ -71,7 +71,7 @@
     <ClCompile Include="DX11\Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX11\Mesh.cpp">
+    <ClCompile Include="DX11\Resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX11\Renderer\Camera.cpp">

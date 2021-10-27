@@ -19,10 +19,16 @@ static DX11::MeshHandle mesh4;
 static DX11::MeshHandle mesh5;
 static DX11::CameraHandle camera;
 
-static std::shared_ptr<StaticMesh::Material> mat2;
-static std::shared_ptr<StaticMesh::Material> mat3;
-static std::shared_ptr<StaticMesh::Material> mat4;
-static std::shared_ptr<StaticMesh::Material> mat5;
+static std::shared_ptr<Resources::Mesh> meshRes;
+static std::shared_ptr<Resources::Texture> tex;
+static std::shared_ptr<Resources::Texture> tex2;
+static std::shared_ptr<Resources::Shader> shader;
+
+static std::shared_ptr<Resources::StaticMesh::Material> mat;
+static std::shared_ptr<Resources::StaticMesh::Material> mat2;
+static std::shared_ptr<Resources::StaticMesh::Material> mat3;
+static std::shared_ptr<Resources::StaticMesh::Material> mat4;
+static std::shared_ptr<Resources::StaticMesh::Material> mat5;
 
 static bool aPressed = false;
 static bool wPressed = false;
@@ -55,10 +61,11 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     }
 
 
-    StaticMesh::Material::defaultShader = StaticMesh::CreateShader(device.GetDevice(), L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl");
-    StaticMesh::Material::defaultAlbedo = StaticMesh::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState);
+    shader = std::make_shared<Resources::Shader>(Resources::CreateShader(device.GetDevice(), L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl"));
 
-    std::shared_ptr<StaticMesh::Texture> dank = StaticMesh::CreateTexture(device.GetDevice(), L"Resources/Dank.png", samplerState);
+    tex = std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
+    tex2 = std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Dank.png", samplerState));
+
     auto vertices = std::to_array(
         {
             StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
@@ -71,21 +78,20 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
             0, 1, 2
         });
 
-    StaticMesh::MeshObject::defaultMesh = StaticMesh::CreateMesh(device.GetDevice(), std::span(vertices), std::span(indices));
-    StaticMesh::Material::defaultShader = StaticMesh::CreateShader(device.GetDevice(), L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl");
-    StaticMesh::Material::defaultAlbedo = StaticMesh::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState);
-    StaticMesh::MeshObject::defaultMaterial = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, nullptr);
-    mat2 = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, dank, { 1, 0 ,0, 1 });
-    mat3 = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, dank, { 0, 1 ,0, 1 });
-    mat4 = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, dank, { 0, 0 ,1, 1 });
-    mat5 = StaticMesh::CreateMaterial(device.GetDevice(), nullptr, dank, { 1, 1 ,0, 1 });
+    meshRes = std::make_shared<Resources::Mesh>(StaticMesh::CreateMesh(device.GetDevice(), std::span(vertices), std::span(indices)));
+
+    mat = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex));
+    mat2 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 0 ,0, 1 }));
+    mat3 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 1 ,0, 1 }));
+    mat4 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 0 ,1, 1 }));
+    mat5 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 1 ,0, 1 }));
 
 
-    mesh = renderer.CreateMesh(nullptr, nullptr);
-    mesh2 = renderer.CreateMesh(nullptr, mat2);
-    mesh3 = renderer.CreateMesh(nullptr, mat3);
-    mesh4 = renderer.CreateMesh(nullptr, mat4);
-    mesh5 = renderer.CreateMesh(nullptr, mat5);
+    mesh = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat));
+    mesh2 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat2));
+    mesh3 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat3));
+    mesh4 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat4));
+    mesh5 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat5));
 
     mesh.SetPosition({ 0, 0, 2 });
     mesh2.SetPosition({ 1, 0, 2 });
@@ -155,7 +161,7 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
 
 
 
-    camera = renderer.CreateCamera(window.GetBackBuffer(), depthStencilView, depthStencilState);
+    camera = renderer.CreateCamera(CameraData(window.GetBackBuffer(), depthStencilView, depthStencilState));
 }
 void TriangleRenderInput2(SDL_Event event)
 {
