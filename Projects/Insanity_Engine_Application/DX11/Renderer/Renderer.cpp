@@ -15,7 +15,7 @@ using namespace InsanityEngine::Math::Types;
 
 static void SetMaterial(const InsanityEngine::DX11::Device& device, const DX11::Resources::StaticMesh::Material& mat);
 static void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::Resources::Mesh& mesh);
-static void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject& mesh);
+static void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::MeshObject& mesh);
 
 namespace InsanityEngine::DX11
 {
@@ -35,15 +35,15 @@ namespace InsanityEngine::DX11
         return CameraHandle(*this, *m_cameras.back().get());
     }
 
-    MeshHandle Renderer::CreateMesh(DX11::StaticMesh::MeshObjectData data)
+    StaticMeshHandle Renderer::CreateMesh(DX11::StaticMesh::MeshObjectData data)
     {
         StaticMesh::Constants::VSMesh constants{ .worldMatrix = data.GetObjectMatrix() };
 
         ComPtr<ID3D11Buffer> constantBuffer;
         Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
 
-        m_meshes.push_back(std::make_unique<MeshObject>(constantBuffer, std::move(data)));
-        return MeshHandle(*this, *m_meshes.back().get());
+        m_meshes.push_back(std::make_unique<StaticMesh::MeshObject>(constantBuffer, std::move(data)));
+        return StaticMeshHandle(*this, *m_meshes.back().get());
     }
 
     void Renderer::Draw(ComPtr<ID3D11RenderTargetView1> backBuffer)
@@ -125,32 +125,19 @@ namespace InsanityEngine::DX11
 
     void Renderer::Destroy(CameraObject* object)
     {
-        auto it = std::find_if(m_cameras.begin(), m_cameras.end(), [=](std::unique_ptr<CameraObject>& o) { return o.get() == object; });
+        auto it = std::remove_if(m_cameras.begin(), m_cameras.end(), [=](std::unique_ptr<CameraObject>& o) { return o.get() == object; });
         if(it != m_cameras.end())
             m_cameras.erase(it, m_cameras.end());
     }
 
-    void Renderer::Destroy(MeshObject* object)
+    void Renderer::Destroy(StaticMesh::MeshObject* object)
     {
-        auto it = std::find_if(m_meshes.begin(), m_meshes.end(), [=](std::unique_ptr<MeshObject>& o) { return o.get() == object; });
+        auto it = std::remove_if(m_meshes.begin(), m_meshes.end(), [=](std::unique_ptr<StaticMesh::MeshObject>& o) { return o.get() == object; });
 
         if(it != m_meshes.end())
             m_meshes.erase(it, m_meshes.end());
     }
 
-    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, DX11::CameraData&& data) :
-        m_cameraConstants(cameraConstants),
-        data(std::move(data))
-    {
-        assert(m_cameraConstants != nullptr);
-    }
-
-    MeshObject::MeshObject(ComPtr<ID3D11Buffer> constantBuffer, DX11::StaticMesh::MeshObjectData&& data) :
-        m_objectConstants(constantBuffer),
-        data(std::move(data))
-    {
-        assert(m_objectConstants != nullptr);
-    }
 }
 
 
@@ -178,7 +165,7 @@ void SetMesh(const InsanityEngine::DX11::Device& device, const DX11::Resources::
     device.GetDeviceContext()->IASetIndexBuffer(mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 }
 
-void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::MeshObject& mesh)
+void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::MeshObject& mesh)
 {
     std::array constantBuffers { mesh.GetConstantBuffer() };
     device.GetDeviceContext()->VSSetConstantBuffers(DX11::StaticMesh::Registers::VS::objectConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());

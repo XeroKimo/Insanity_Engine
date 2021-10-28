@@ -54,6 +54,12 @@
     <ClInclude Include="DX11\Renderer\StaticMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DX11\Renderer\MeshObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Renderer\Handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Insanity_Engine_Application.cpp">
@@ -87,6 +93,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Test Scenes\TriangleRenderScene2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Renderer\MeshObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

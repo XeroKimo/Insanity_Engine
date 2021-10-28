@@ -30,7 +30,7 @@ namespace InsanityEngine::DX11
     }
     Math::Types::Matrix4x4f CameraData::GetViewMatrix() const
     {
-        return Math::Matrix::PositionMatrix(position) * rotation.ToRotationMatrix();
+        return Math::Matrix::PositionMatrix(-position) * rotation.ToRotationMatrix();
     }
     Math::Types::Matrix4x4f CameraData::GetPerspectiveMatrix() const
     {
@@ -49,5 +49,22 @@ namespace InsanityEngine::DX11
         texture->GetDesc(&desc);
 
         return Math::Types::Vector2f(desc.Width, desc.Height);
+    }
+
+
+    CameraObject::CameraObject(ComPtr<ID3D11Buffer> cameraConstants, DX11::CameraData&& data) :
+        m_cameraConstants(cameraConstants),
+        data(std::move(data))
+    {
+        assert(m_cameraConstants != nullptr);
+    }
+
+    void CameraHandle::SetPosition(Math::Types::Vector3f position)
+    {
+        Object().data.position = position;
+    }
+    void CameraHandle::SetRotation(Math::Types::Quaternion<float> rotation)
+    {
+        Object().data.rotation = rotation;
     }
 }

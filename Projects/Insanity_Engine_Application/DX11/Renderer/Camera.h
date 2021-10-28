@@ -1,6 +1,7 @@
 #pragma once
 #include "../CommonInclude.h"
 #include "Insanity_Math.h"
+#include "Handle.h"
 
 namespace InsanityEngine::DX11
 {
@@ -46,4 +47,38 @@ namespace InsanityEngine::DX11
         Math::Types::Vector2f GetRenderTargetResolution() const;
     };
 
+
+    class CameraObject
+    {
+        template<class T>
+        using ComPtr = Microsoft::WRL::ComPtr<T>;
+    private:
+        ComPtr<ID3D11Buffer> m_cameraConstants;
+
+    public:
+        CameraData data;
+
+    public:
+        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, CameraData&& camera);
+
+
+    public:
+
+        ID3D11Buffer* GetConstantBuffer() const { return m_cameraConstants.Get(); }
+    };
+
+
+
+    class CameraHandle : public ManagedHandle<CameraObject>
+    {
+    public:
+        using ManagedHandle<CameraObject>::ManagedHandle;
+
+    public:
+        void SetPosition(Math::Types::Vector3f position);
+        void SetRotation(Math::Types::Quaternion<float> rotation);
+
+        Math::Types::Vector3f GetPosition() const { return Object().data.position; }
+        Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
+    };
 }

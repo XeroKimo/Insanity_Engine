@@ -89,6 +89,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
+    <ClInclude Include="DX11\Renderer\Handle.h" />
+    <ClInclude Include="DX11\Renderer\MeshObject.h" />
     <ClInclude Include="DX11\Renderer\Renderer.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="DX11\Window.h" />
@@ -104,6 +106,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
+    <ClCompile Include="DX11\Renderer\MeshObject.cpp" />
     <ClCompile Include="DX11\Renderer\Renderer.cpp" />
     <ClCompile Include="DX11\Window.cpp" />
     <ClCompile Include="DX11\Device.cpp" />

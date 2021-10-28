@@ -12,11 +12,11 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static DX11::MeshHandle mesh;
-static DX11::MeshHandle mesh2;
-static DX11::MeshHandle mesh3;
-static DX11::MeshHandle mesh4;
-static DX11::MeshHandle mesh5;
+static DX11::StaticMeshHandle mesh;
+static DX11::StaticMeshHandle mesh2;
+static DX11::StaticMeshHandle mesh3;
+static DX11::StaticMeshHandle mesh4;
+static DX11::StaticMeshHandle mesh5;
 static DX11::CameraHandle camera;
 
 static std::shared_ptr<Resources::Mesh> meshRes;
@@ -34,6 +34,13 @@ static bool aPressed = false;
 static bool wPressed = false;
 static bool sPressed = false;
 static bool dPressed = false;
+
+static bool upPressed = false;
+static bool downPressed = false;
+static bool leftPressed = false;
+static bool rightPressed = false;
+
+static bool ctrlPressed = false;
 
 void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Renderer& renderer, InsanityEngine::DX11::Window& window)
 {
@@ -160,8 +167,10 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     device.GetDevice()->CreateDepthStencilState(&desc, &depthStencilState);
 
 
-
-    camera = renderer.CreateCamera(CameraData(window.GetBackBuffer(), depthStencilView, depthStencilState));
+    CameraData data(window.GetBackBuffer(), depthStencilView, depthStencilState);
+    data.clipPlane.Near = 0.0001f;
+    data.clipPlane.Far = 1000.f;
+    camera = renderer.CreateCamera(data);
 }
 void TriangleRenderInput2(SDL_Event event)
 {
@@ -182,6 +191,21 @@ void TriangleRenderInput2(SDL_Event event)
         case SDL_KeyCode::SDLK_d:
             dPressed = true;
             break;
+        case SDL_KeyCode::SDLK_UP:
+            upPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_DOWN:
+            downPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_LEFT:
+            leftPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_RIGHT:
+            rightPressed = true;
+            break;
+        case SDL_KeyCode::SDLK_LCTRL:
+            ctrlPressed = true;
+            break;
         }
 
         break;
@@ -200,6 +224,21 @@ void TriangleRenderInput2(SDL_Event event)
         case SDL_KeyCode::SDLK_d:
             dPressed = false;
             break;
+        case SDL_KeyCode::SDLK_UP:
+            upPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_DOWN:
+            downPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_LEFT:
+            leftPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_RIGHT:
+            rightPressed = false;
+            break;
+        case SDL_KeyCode::SDLK_LCTRL:
+            ctrlPressed = false;
+            break;
         }
         break;
     }
@@ -208,6 +247,8 @@ void TriangleRenderUpdate2(float dt)
 {
 
     Vector2f axis;
+    Vector3f cameraDirection;
+    Vector3f cameraRotation;
     if(aPressed)
     {
         axis.y() -= 1;
@@ -225,11 +266,56 @@ void TriangleRenderUpdate2(float dt)
         axis.y() += 1;
     }
 
+    if(!ctrlPressed)
+    {
+        if(upPressed)
+        {
+            cameraDirection.z() += 1;
+        }
+        if(downPressed)
+        {
+            cameraDirection.z() -= 1;
+        }
+        if(leftPressed)
+        {
+            cameraDirection.x() -= 1;
+        }
+        if(rightPressed)
+        {
+            cameraDirection.x() += 1;
+        }
+    }
+    else
+    {
+        if(upPressed)
+        {
+            cameraRotation.x() += 1;
+        }
+        if(downPressed)
+        {
+            cameraRotation.x() -= 1;
+        }
+        if(leftPressed)
+        {
+            cameraRotation.y() -= 1;
+        }
+        if(rightPressed)
+        {
+            cameraRotation.y() += 1;
+        }
+    }
+
+    camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
+    camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
+
     mesh.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh2.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh3.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
+
+    StaticMeshHandle test{ std::move(mesh) };
+    mesh = std::move(test);
 
     static float accumulatedTime = 0;
 

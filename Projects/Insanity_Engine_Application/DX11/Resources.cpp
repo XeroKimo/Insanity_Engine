@@ -190,29 +190,4 @@ namespace InsanityEngine::DX11::StaticMesh
 
         return Resources::Mesh(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
     }
-
-    MeshObjectData::MeshObjectData(std::shared_ptr<Resources::Mesh> mesh, std::shared_ptr<Resources::StaticMesh::Material> material) :
-        m_mesh(std::move(mesh)),
-        m_material(std::move(material))
-    {
-        assert(m_mesh != nullptr);
-        assert(m_material != nullptr);
-    }
-
-    void MeshObjectData::SetMesh(std::shared_ptr<Resources::Mesh> mesh)
-    {
-        m_mesh = std::move(mesh);
-        assert(m_mesh != nullptr);
-    }
-
-    void MeshObjectData::SetMaterial(std::shared_ptr<Resources::StaticMesh::Material> material)
-    {
-        m_material = std::move(material);
-        assert(m_material != nullptr);
-    }
-
-    Matrix4x4f MeshObjectData::GetObjectMatrix() const
-    {
-        return Math::Matrix::ScaleRotateTransformMatrix(Math::Matrix::ScaleMatrix(scale), rotation.ToRotationMatrix(), Math::Matrix::PositionMatrix(position));
-    }
 }
