@@ -5,7 +5,10 @@ namespace InsanityEngine::DX11
 {
     class Device;
     class Window;
-    class Renderer;
+    namespace StaticMesh
+    {
+        class Renderer;
+    }
 }
 
 namespace InsanityEngine::Application
@@ -16,11 +19,11 @@ namespace InsanityEngine::Application
     private:
         DX11::Device& m_device;
         DX11::Window& m_window;
-        DX11::Renderer& m_renderer;
+        DX11::StaticMesh::Renderer& m_renderer;
 
         bool m_running = true;
     public:
-        Application(DX11::Device& device, DX11::Window& window, DX11::Renderer& renderer);
+        Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer);
         Application(const Application& other) = delete;
         Application(Application&& other) noexcept = delete;
 

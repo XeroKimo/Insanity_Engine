@@ -1,5 +1,6 @@
 #include "Window.h"
-#include "../DX11/Device.h"
+#include "Device.h"
+#include "Helpers.h"
 #include "Debug Classes/Exceptions/HRESULTException.h"
 #include "SDL_config_windows.h"
 #include "SDL.h"
@@ -10,10 +11,9 @@ using namespace InsanityEngine::Debug::Exceptions;
 
 namespace InsanityEngine::DX11
 {
-    Window::Window(std::string_view windowName, Vector2f windowSize, DX11::Device& device, BaseRenderer& renderer) :
+    Window::Window(std::string_view windowName, Vector2f windowSize, DX11::Device& device) :
         m_device(&device),
-        m_handle(SDL_CreateWindow(windowName.data(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN), &SDL_DestroyWindow),
-        m_renderer(&renderer)
+        m_handle(SDL_CreateWindow(windowName.data(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN), &SDL_DestroyWindow)
     {
         InitializeWindow(windowName, windowSize);
         InitializeSwapChain();
@@ -26,17 +26,15 @@ namespace InsanityEngine::DX11
 
     }
 
+    void Window::ClearBackBuffer()
+    {
+        Helpers::ClearRenderTargetView(m_device->GetDeviceContext(), m_backBuffer.Get(), clearColor);
+    }
+
     void Window::Present()
     {
         m_swapChain->Present(1, 0);
     }
-
-    void Window::Draw()
-    {
-        m_renderer->Draw(m_backBuffer);
-        m_swapChain->Present(1, 0);
-    }
-
 
     Vector2f Window::GetWindowSize() const
     {

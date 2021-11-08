@@ -59,12 +59,12 @@ namespace InsanityEngine::DX11
         assert(m_cameraConstants != nullptr);
     }
 
-    void CameraHandle::SetPosition(Math::Types::Vector3f position)
-    {
-        Object().data.position = position;
-    }
-    void CameraHandle::SetRotation(Math::Types::Quaternion<float> rotation)
-    {
-        Object().data.rotation = rotation;
-    }
+    //void CameraHandle::SetPosition(Math::Types::Vector3f position)
+    //{
+    //    Object().data.position = position;
+    //}
+    //void CameraHandle::SetRotation(Math::Types::Quaternion<float> rotation)
+    //{
+    //    Object().data.rotation = rotation;
+    //}
 }

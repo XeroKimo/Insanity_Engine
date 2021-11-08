@@ -69,16 +69,16 @@ namespace InsanityEngine::DX11
 
 
 
-    class CameraHandle : public ManagedHandle<CameraObject>
-    {
-    public:
-        using ManagedHandle<CameraObject>::ManagedHandle;
+    //class CameraHandle : public ManagedHandle<CameraObject>
+    //{
+    //public:
+    //    using ManagedHandle<CameraObject>::ManagedHandle;
 
-    public:
-        void SetPosition(Math::Types::Vector3f position);
-        void SetRotation(Math::Types::Quaternion<float> rotation);
+    //public:
+    //    void SetPosition(Math::Types::Vector3f position);
+    //    void SetRotation(Math::Types::Quaternion<float> rotation);
 
-        Math::Types::Vector3f GetPosition() const { return Object().data.position; }
-        Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
-    };
+    //    Math::Types::Vector3f GetPosition() const { return Object().data.position; }
+    //    Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
+    //};
 }

@@ -12,12 +12,12 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static DX11::StaticMeshHandle mesh;
-static DX11::StaticMeshHandle mesh2;
-static DX11::StaticMeshHandle mesh3;
-static DX11::StaticMeshHandle mesh4;
-static DX11::StaticMeshHandle mesh5;
-static DX11::CameraHandle camera;
+static DX11::StaticMesh::StaticMeshHandle mesh;
+static DX11::StaticMesh::StaticMeshHandle mesh2;
+static DX11::StaticMesh::StaticMeshHandle mesh3;
+static DX11::StaticMesh::StaticMeshHandle mesh4;
+static DX11::StaticMesh::StaticMeshHandle mesh5;
+//static DX11::StaticMesh::CameraHandle camera;
 
 static std::shared_ptr<Resources::Mesh> meshRes;
 static std::shared_ptr<Resources::Texture> tex;
@@ -42,7 +42,7 @@ static bool rightPressed = false;
 
 static bool ctrlPressed = false;
 
-void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Renderer& renderer, InsanityEngine::DX11::Window& window)
+void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::StaticMesh::Renderer& renderer, InsanityEngine::DX11::Window& window)
 {
 
     D3D11_SAMPLER_DESC samplerDesc;
@@ -170,7 +170,7 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     CameraData data(window.GetBackBuffer(), depthStencilView, depthStencilState);
     data.clipPlane.Near = 0.0001f;
     data.clipPlane.Far = 1000.f;
-    camera = renderer.CreateCamera(data);
+    //camera = renderer.CreateCamera(data);
 }
 void TriangleRenderInput2(SDL_Event event)
 {
@@ -266,47 +266,47 @@ void TriangleRenderUpdate2(float dt)
         axis.y() += 1;
     }
 
-    if(!ctrlPressed)
-    {
-        if(upPressed)
-        {
-            cameraDirection.z() += 1;
-        }
-        if(downPressed)
-        {
-            cameraDirection.z() -= 1;
-        }
-        if(leftPressed)
-        {
-            cameraDirection.x() -= 1;
-        }
-        if(rightPressed)
-        {
-            cameraDirection.x() += 1;
-        }
-    }
-    else
-    {
-        if(upPressed)
-        {
-            cameraRotation.x() += 1;
-        }
-        if(downPressed)
-        {
-            cameraRotation.x() -= 1;
-        }
-        if(leftPressed)
-        {
-            cameraRotation.y() -= 1;
-        }
-        if(rightPressed)
-        {
-            cameraRotation.y() += 1;
-        }
-    }
+    //if(!ctrlPressed)
+    //{
+    //    if(upPressed)
+    //    {
+    //        cameraDirection.z() += 1;
+    //    }
+    //    if(downPressed)
+    //    {
+    //        cameraDirection.z() -= 1;
+    //    }
+    //    if(leftPressed)
+    //    {
+    //        cameraDirection.x() -= 1;
+    //    }
+    //    if(rightPressed)
+    //    {
+    //        cameraDirection.x() += 1;
+    //    }
+    //}
+    //else
+    //{
+    //    if(upPressed)
+    //    {
+    //        cameraRotation.x() += 1;
+    //    }
+    //    if(downPressed)
+    //    {
+    //        cameraRotation.x() -= 1;
+    //    }
+    //    if(leftPressed)
+    //    {
+    //        cameraRotation.y() -= 1;
+    //    }
+    //    if(rightPressed)
+    //    {
+    //        cameraRotation.y() += 1;
+    //    }
+    //}
 
-    camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
-    camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
+    //camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
+    //camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
 
     mesh.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh2.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
@@ -314,7 +314,7 @@ void TriangleRenderUpdate2(float dt)
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
 
-    StaticMeshHandle test{ std::move(mesh) };
+    StaticMesh::StaticMeshHandle test{ std::move(mesh) };
     mesh = std::move(test);
 
     static float accumulatedTime = 0;
@@ -336,5 +336,5 @@ void TriangleRenderShutdown2()
     mesh3 = nullptr;
     mesh4 = nullptr;
     mesh5 = nullptr;
-    camera = nullptr;
+    //camera = nullptr;
 }

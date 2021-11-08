@@ -4,6 +4,8 @@
 
 namespace InsanityEngine::DX11::StaticMesh
 {
+    class Renderer;
+
     class MeshObjectData
     {
     public:
@@ -53,11 +55,11 @@ namespace InsanityEngine::DX11::StaticMesh
     };
 
 
-    class MeshHandle : public ManagedHandle<MeshObject>
+    class MeshHandle : public ManagedHandle<MeshObject, Renderer>
     {
 
     public:
-        using ManagedHandle<MeshObject>::ManagedHandle;
+        using ManagedHandle<MeshObject, Renderer>::ManagedHandle;
 
 
 
