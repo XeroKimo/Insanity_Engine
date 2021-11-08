@@ -25,16 +25,6 @@ namespace InsanityEngine::DX11::StaticMesh
         m_inputLayouts[positionNormalUVLayout] = DX11::InputLayouts::PositionNormalUV::CreateInputLayout(m_device->GetDevice());
     }
 
-    //CameraHandle Renderer::CreateCamera(CameraData data)
-    //{
-    //    StaticMesh::Constants::Camera constants{ .viewProjMatrix = Math::Matrix::ViewProjectionMatrix(data.GetViewMatrix(), data.GetPerspectiveMatrix()) };
-
-    //    ComPtr<ID3D11Buffer> constantBuffer;
-    //    Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
-    //    m_cameras.push_back(std::make_unique<CameraObject>(constantBuffer, std::move(data)));
-    //    return CameraHandle(*this, *m_cameras.back().get());
-    //}
-
     StaticMeshHandle Renderer::CreateMesh(MeshObjectData data)
     {
         StaticMesh::Constants::VSMesh constants{ .worldMatrix = data.GetObjectMatrix() };
@@ -81,13 +71,6 @@ namespace InsanityEngine::DX11::StaticMesh
         }
 
     }
-
-    //void Renderer::Destroy(CameraObject* object)
-    //{
-    //    auto it = std::remove_if(m_cameras.begin(), m_cameras.end(), [=](std::unique_ptr<CameraObject>& o) { return o.get() == object; });
-    //    if(it != m_cameras.end())
-    //        m_cameras.erase(it, m_cameras.end());
-    //}
 
     void Renderer::Destroy(StaticMesh::MeshObject* object)
     {

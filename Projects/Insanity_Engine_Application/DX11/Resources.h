@@ -2,6 +2,7 @@
 #include "CommonInclude.h"
 #include "Insanity_Math.h"
 #include "InputLayouts.h"
+#include "../../Insanity_Engine_Application/Resource.h"
 #include <array>
 #include <span>
 
@@ -131,6 +132,13 @@ namespace InsanityEngine::DX11::Resources
     extern Texture CreateTexture(ID3D11Device* device, std::wstring_view texture, ComPtr<ID3D11SamplerState> sampler);
 
 }
+
+template<>
+struct InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Texture> : InsanityEngine::ResourceInitializer<UnknownResource>
+{
+    std::wstring_view textureName;
+    DX11::ComPtr<ID3D11SamplerState> sampler;
+};
 
 
 

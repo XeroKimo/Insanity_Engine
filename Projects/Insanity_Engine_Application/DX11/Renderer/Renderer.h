@@ -28,14 +28,11 @@ namespace InsanityEngine::DX11::StaticMesh
 
         DX11::Device* m_device = nullptr;
         std::array<ComPtr<ID3D11InputLayout>, 1> m_inputLayouts;
-
-        //std::vector<std::unique_ptr<CameraObject>> m_cameras;
         std::vector<std::unique_ptr<StaticMesh::MeshObject>> m_meshes;
     public:
         Renderer(DX11::Device& device);
 
     public:
-        //CameraHandle CreateCamera(CameraData data);
         StaticMeshHandle CreateMesh(DX11::StaticMesh::MeshObjectData data);
 
     public:
@@ -43,16 +40,6 @@ namespace InsanityEngine::DX11::StaticMesh
         void Draw();
 
     private:
-        //void Destroy(CameraObject* object);
         void Destroy(StaticMesh::MeshObject* object);
     };
-
-    //template<class T>
-    //ManagedHandle<T>::~ManagedHandle()
-    //{
-    //    if(m_renderer != nullptr)
-    //    {
-    //        m_renderer->Destroy(m_object);
-    //    }
-    //}
 }

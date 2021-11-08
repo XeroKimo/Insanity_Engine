@@ -2,6 +2,7 @@
 #include "../DX11/Device.h"
 #include "../DX11/Window.h"
 #include "../DX11/Renderer/Renderer.h"
+#include "../../Insanity_Engine_Application/Resource.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 
@@ -42,7 +43,7 @@ static bool rightPressed = false;
 
 static bool ctrlPressed = false;
 
-void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::StaticMesh::Renderer& renderer, InsanityEngine::DX11::Window& window)
+void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::StaticMesh::Renderer& renderer, InsanityEngine::DX11::Window& window, ResourceFactory& factory)
 {
 
     D3D11_SAMPLER_DESC samplerDesc;
@@ -70,7 +71,9 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
 
     shader = std::make_shared<Resources::Shader>(Resources::CreateShader(device.GetDevice(), L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl"));
 
-    tex = std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
+  
+    std::shared_ptr<Resource<Resources::Texture>> test = factory.CreateResource<Resources::Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png", samplerState });
+    tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
     tex2 = std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Dank.png", samplerState));
 
     auto vertices = std::to_array(

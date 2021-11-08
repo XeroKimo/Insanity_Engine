@@ -101,6 +101,7 @@
     <ClInclude Include="DX11\Resources.h" />
     <ClInclude Include="DX11\ShaderConstants.h" />
     <ClInclude Include="DX11\Renderer\Camera.h" />
+    <ClInclude Include="Resource.h" />
     <ClInclude Include="Test Scenes\TriangleRender.h" />
     <ClInclude Include="Test Scenes\TriangleRenderScene2.h" />
   </ItemGroup>
@@ -115,6 +116,7 @@
     <ClCompile Include="DX11\Resources.cpp" />
     <ClCompile Include="DX11\Renderer\Camera.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
+    <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Test Scenes\TriangleRender.cpp" />
     <ClCompile Include="Test Scenes\TriangleRenderScene2.cpp" />
   </ItemGroup>

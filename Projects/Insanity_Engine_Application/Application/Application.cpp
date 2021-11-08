@@ -5,10 +5,12 @@
 #include "../DX11/Device.h"
 #include "../DX11/Helpers.h"
 #include "../DX11/ShaderConstants.h"
+#include "../DX11/Resources.h"
 #include "../Test Scenes/TriangleRender.h"
 #include "../Test Scenes/TriangleRenderScene2.h"
 #include "../DX11/Renderer/Renderer.h"
 #include "Extensions/MatrixExtension.h"
+#include "../../Insanity_Engine_Application/Resource.h"
 
 #include "SDL.h"
 #include <chrono>
@@ -16,19 +18,41 @@
 using namespace InsanityEngine;
 using namespace InsanityEngine::Math::Types;
 
+
+
+struct ResourceCreationTest
+{
+    std::shared_ptr<InsanityEngine::Resource<DX11::Resources::Texture>> CreateTexture(const InsanityEngine::ResourceInitializer<DX11::Resources::Texture>& initializer)
+    {
+        return std::make_shared<InsanityEngine::Resource<DX11::Resources::Texture>>(initializer.name, DX11::Resources::CreateTexture(device->GetDevice(), initializer.textureName, initializer.sampler));
+    }
+
+    DX11::Device* device;
+
+    ResourceCreationCallback<DX11::Resources::Texture, ResourceCreationTest, decltype(&ResourceCreationTest::CreateTexture)> callback = { *this, &ResourceCreationTest::CreateTexture };
+
+
+};
+
+static ResourceCreationTest g_test;
+
 namespace InsanityEngine::Application
 {
-    Application::Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer) :
+    Application::Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer, ResourceFactory& factory) :
         m_device(device),
         m_window(window),
-        m_renderer(renderer)
+        m_renderer(renderer),
+        m_factory(factory)
     {
+        g_test.device = &m_device;
+
+        m_factory.AddResourceCreationCallback<DX11::Resources::Texture>(g_test.callback);
     }
 
     int Application::Run()
     {
         
-        TriangleRenderSetup2(m_device, m_renderer, m_window);
+        TriangleRenderSetup2(m_device, m_renderer, m_window, m_factory);
         //TriangleRenderSetup(m_device, m_window);
 
         std::chrono::time_point previous = std::chrono::steady_clock::now();
@@ -176,12 +200,14 @@ namespace InsanityEngine::Application
 
         try
         {
+            ResourceFactory factory;
+
             DX11::Device device;
             DX11::StaticMesh::Renderer renderer{ device };
             DX11::Window window{ "Insanity Engine", { 1280.f, 720.f }, device };
 
 
-            Application app(device, window, renderer);
+            Application app(device, window, renderer, factory);
             app.Run();
         }
         catch(std::exception e)

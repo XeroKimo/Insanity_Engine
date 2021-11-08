@@ -1,13 +1,17 @@
 #pragma once
 #include <memory>
 
-namespace InsanityEngine::DX11
+namespace InsanityEngine
 {
-    class Device;
-    class Window;
-    namespace StaticMesh
+    class ResourceFactory;
+    namespace DX11
     {
-        class Renderer;
+        class Device;
+        class Window;
+        namespace StaticMesh
+        {
+            class Renderer;
+        }
     }
 }
 
@@ -20,10 +24,11 @@ namespace InsanityEngine::Application
         DX11::Device& m_device;
         DX11::Window& m_window;
         DX11::StaticMesh::Renderer& m_renderer;
+        ResourceFactory& m_factory;
 
         bool m_running = true;
     public:
-        Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer);
+        Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer, ResourceFactory& factory);
         Application(const Application& other) = delete;
         Application(Application&& other) noexcept = delete;
 
