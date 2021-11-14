@@ -5,6 +5,7 @@
 #include "../../Insanity_Engine_Application/Resource.h"
 #include <array>
 #include <span>
+#include <variant>
 
 namespace InsanityEngine::DX11
 {
@@ -133,6 +134,14 @@ namespace InsanityEngine::DX11::Resources
 
 }
 
+
+namespace InsanityEngine::DX11::StaticMesh
+{
+    using VertexData = DX11::InputLayouts::PositionNormalUV::VertexData;
+
+    extern Resources::Mesh CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices);
+}
+
 template<>
 struct InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Texture> : InsanityEngine::ResourceInitializer<UnknownResource>
 {
@@ -140,13 +149,22 @@ struct InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Text
     DX11::ComPtr<ID3D11SamplerState> sampler;
 };
 
-
-
-namespace InsanityEngine::DX11::StaticMesh
+template<>
+struct InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Mesh> : InsanityEngine::ResourceInitializer<UnknownResource>
 {
-    using VertexData = DX11::InputLayouts::PositionNormalUV::VertexData;
+    struct StaticMeshRaw
+    {
+        std::span<DX11::StaticMesh::VertexData> vertices;
+        std::span<UINT> indices;
+    };
+    
+    std::variant<StaticMeshRaw> data;
 
-    extern Resources::Mesh CreateMesh(ID3D11Device* device, std::span<VertexData> vertices, std::span<UINT> indices);
+};
 
-
-}
+template<>
+struct InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Shader> : InsanityEngine::ResourceInitializer<UnknownResource>
+{
+    std::wstring_view vertexShader;
+    std::wstring_view pixelShader;
+};

@@ -20,10 +20,10 @@ static DX11::StaticMesh::StaticMeshHandle mesh4;
 static DX11::StaticMesh::StaticMeshHandle mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
-static std::shared_ptr<Resources::Mesh> meshRes;
-static std::shared_ptr<Resources::Texture> tex;
-static std::shared_ptr<Resources::Texture> tex2;
-static std::shared_ptr<Resources::Shader> shader;
+static std::shared_ptr<Resource<Resources::Mesh>> meshRes;
+static std::shared_ptr<Resource<Resources::Texture>> tex;
+static std::shared_ptr<Resource<Resources::Texture>> tex2;
+static std::shared_ptr<Resource<Resources::Shader>> shader;
 
 static std::shared_ptr<Resources::StaticMesh::Material> mat;
 static std::shared_ptr<Resources::StaticMesh::Material> mat2;
@@ -68,13 +68,13 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
         throw HRESULTException("Failed to create sampler state", hr);
     }
 
-
-    shader = std::make_shared<Resources::Shader>(Resources::CreateShader(device.GetDevice(), L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl"));
+    ResourceInitializer<Resources::Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
+    shader = factory.CreateResource<Resources::Shader>(shaderData);
 
   
-    std::shared_ptr<Resource<Resources::Texture>> test = factory.CreateResource<Resources::Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png", samplerState });
-    tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
-    tex2 = std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Dank.png", samplerState));
+    tex = factory.CreateResource<Resources::Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png", samplerState });
+    //tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
+    tex2 = factory.CreateResource<Resources::Texture>({ "Resources/Dank.png", L"Resources/Dank.png", samplerState });
 
     auto vertices = std::to_array(
         {
@@ -88,20 +88,20 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
             0, 1, 2
         });
 
-    meshRes = std::make_shared<Resources::Mesh>(StaticMesh::CreateMesh(device.GetDevice(), std::span(vertices), std::span(indices)));
+    meshRes = factory.CreateResource<Resources::Mesh>({ "Mesh", ResourceInitializer<Resources::Mesh>::StaticMeshRaw{vertices, indices} });
 
-    mat = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex));
-    mat2 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 0 ,0, 1 }));
-    mat3 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 1 ,0, 1 }));
-    mat4 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 0 ,1, 1 }));
-    mat5 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 1 ,0, 1 }));
+    mat = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(),   std::shared_ptr<Resources::Shader>(shader, &shader->Get()), std::shared_ptr<Resources::Texture>(tex, &tex->Get())));
+    mat2 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(),  std::shared_ptr<Resources::Shader>(shader, &shader->Get()), std::shared_ptr<Resources::Texture>(tex2, &tex2->Get()), { 1, 0 ,0, 1 }));
+    mat3 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(),  std::shared_ptr<Resources::Shader>(shader, &shader->Get()), std::shared_ptr<Resources::Texture>(tex2, &tex2->Get()), { 0, 1 ,0, 1 }));
+    mat4 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(),  std::shared_ptr<Resources::Shader>(shader, &shader->Get()), std::shared_ptr<Resources::Texture>(tex2, &tex2->Get()), { 0, 0 ,1, 1 }));
+    mat5 = std::make_shared<Resources::StaticMesh::Material>(Resources::StaticMesh::CreateMaterial(device.GetDevice(),  std::shared_ptr<Resources::Shader>(shader, &shader->Get()), std::shared_ptr<Resources::Texture>(tex2, &tex2->Get()), { 1, 1 ,0, 1 }));
 
 
-    mesh = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat));
-    mesh2 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat2));
-    mesh3 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat3));
-    mesh4 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat4));
-    mesh5 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat5));
+    mesh = renderer.CreateMesh(StaticMesh::MeshObjectData( std::shared_ptr<Resources::Mesh>(meshRes, &meshRes->Get()),  mat));
+    mesh2 = renderer.CreateMesh(StaticMesh::MeshObjectData(std::shared_ptr<Resources::Mesh>(meshRes, &meshRes->Get()), mat2));
+    mesh3 = renderer.CreateMesh(StaticMesh::MeshObjectData(std::shared_ptr<Resources::Mesh>(meshRes, &meshRes->Get()), mat3));
+    mesh4 = renderer.CreateMesh(StaticMesh::MeshObjectData(std::shared_ptr<Resources::Mesh>(meshRes, &meshRes->Get()), mat4));
+    mesh5 = renderer.CreateMesh(StaticMesh::MeshObjectData(std::shared_ptr<Resources::Mesh>(meshRes, &meshRes->Get()), mat5));
 
     mesh.SetPosition({ 0, 0, 2 });
     mesh2.SetPosition({ 1, 0, 2 });

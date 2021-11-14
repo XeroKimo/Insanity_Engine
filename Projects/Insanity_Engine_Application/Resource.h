@@ -3,10 +3,34 @@
 #include <memory>
 #include <unordered_map>
 #include <typeindex>
+#include <functional>
+
+#include <concepts>
+
 
 
 namespace InsanityEngine
 {
+    template<class FunctionSig, class OptClass>
+    struct FunctionPointerImpl;
+
+    template<class RetType, class... Params>
+    struct FunctionPointerImpl<RetType(Params...), void>
+    {
+        using type = RetType(*)(Params...);
+    };
+
+    template<class RetType, class... Params, class Type>
+    struct FunctionPointerImpl<RetType(Params...), Type>
+    {
+        using type = RetType(Type::*)(Params...);
+    };
+
+    template<class FunctionSig, class OptClass = void>
+    using FunctionPointer = typename FunctionPointerImpl<FunctionSig, OptClass>::type;
+
+
+
 
     template<class T>
     struct ResourceInitializer;
@@ -27,6 +51,7 @@ namespace InsanityEngine
     struct ResourceInitializer<UnknownResource>
     {
         std::string_view name;
+
     };
 
     template<class T>
@@ -68,17 +93,20 @@ namespace InsanityEngine
     };
 
 
+    template <class ResourceType>
+    using ResourceCreationFunction = std::function<std::shared_ptr<Resource<ResourceType>>(const ResourceInitializer<ResourceType>& initializer)>;
 
-    template <class ResourceType, class CreatorType, class CallbackType>
+
+    template <class ResourceType>
     class ResourceCreationCallback : public UnknownResourceCreationCallback
     {
+        using CallbackType = std::function<std::shared_ptr<Resource<ResourceType>>(const ResourceInitializer<ResourceType>& initializer)>;
+
     private:
-        CreatorType* m_creator = nullptr;
         CallbackType m_callback;
 
     public:
-        ResourceCreationCallback(CreatorType& creator, CallbackType callback) :
-            m_creator(&creator),
+        ResourceCreationCallback(CallbackType callback) :
             m_callback(callback)
         {
 
@@ -87,7 +115,7 @@ namespace InsanityEngine
     private:
         std::shared_ptr<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const override
         {
-            return std::invoke(m_callback, m_creator, static_cast<const ResourceInitializer<ResourceType>&>(initializer));
+            return m_callback(static_cast<const ResourceInitializer<ResourceType>&>(initializer));
         }
     };
 
@@ -106,12 +134,13 @@ namespace InsanityEngine
 
 
 
-    template <class ResourceType, class CreatorType, class CallbackType>
+    template <class ResourceType, class CreatorType>
     class ResourceGetterCallback : public UnknownResourceGetterCallback
     {
+        using CallbackType = FunctionPointer<std::shared_ptr<Resource<ResourceType>>(std::string_view name), CreatorType>;
     private:
         CreatorType* m_creator = nullptr;
-        CallbackType m_callback;
+        CallbackType m_callback = nullptr;
 
     public:
         ResourceGetterCallback(CreatorType& creator, CallbackType callback) :
@@ -131,14 +160,14 @@ namespace InsanityEngine
 
     class ResourceFactory
     {
-        std::unordered_map<std::type_index, const UnknownResourceCreationCallback*> m_resourceCreationCallbacks;
-        std::unordered_map<std::type_index, const UnknownResourceGetterCallback*> m_resourceGetterCallbacks;
+        std::unordered_map<std::type_index, std::unique_ptr<UnknownResourceCreationCallback>> m_resourceCreationCallbacks;
+        std::unordered_map<std::type_index, std::unique_ptr<UnknownResourceGetterCallback>> m_resourceGetterCallbacks;
 
     public:
         template<class ResourceType>
-        void AddResourceCreationCallback(const UnknownResourceCreationCallback& callback)
+        void AddResourceCreationCallback(ResourceCreationFunction<ResourceType> callback)
         {
-            m_resourceCreationCallbacks[typeid(ResourceType)] = &callback;
+            m_resourceCreationCallbacks.insert({ typeid(ResourceType), std::make_unique<ResourceCreationCallback<ResourceType>>(callback) });
         }
 
         template<class ResourceType>

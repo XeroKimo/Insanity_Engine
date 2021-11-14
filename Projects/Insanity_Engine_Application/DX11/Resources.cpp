@@ -191,3 +191,9 @@ namespace InsanityEngine::DX11::StaticMesh
         return Resources::Mesh(vertexBuffer, static_cast<UINT>(vertices.size()), indexBuffer, static_cast<UINT>(indices.size()));
     }
 }
+//
+//InsanityEngine::ResourceInitializer<InsanityEngine::DX11::Resources::Mesh>::ResourceInitializer(std::string_view name, StaticMeshRaw mesh) :
+//    InsanityEngine::ResourceInitializer<InsanityEngine::UnknownResource>(name),
+//    data(mesh)
+//{
+//}
