@@ -83,6 +83,13 @@ namespace InsanityEngine::DX11::StaticMesh
 }
 
 template<>
+struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::ComponentInitializer<InsanityEngine::UnknownComponent>
+{
+    DX11::StaticMesh::MeshObjectData data;
+
+};
+
+template<>
 class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::UnknownComponent, public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>
 {
 private:

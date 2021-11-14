@@ -3,14 +3,25 @@
 
 namespace InsanityEngine::DX11
 {
-    RenderModule::RenderModule(ResourceFactory& factory, Device& device) :
-        m_device(device)
+    RenderModule::RenderModule(ResourceFactory& resourceFactory, ComponentFactory& componentFactory, Device& device) :
+        m_device(device),
+        m_renderer(device)
     {
-        factory.AddResourceCreationCallback<Resources::Texture>([&](const ResourceInitializer<Resources::Texture>& init) { return this->CreateTexture(init); });
-        factory.AddResourceCreationCallback<Resources::Mesh>([&](const ResourceInitializer<Resources::Mesh>& init) { return this->CreateMesh(init); });
-        factory.AddResourceCreationCallback<Resources::Shader>([&](const ResourceInitializer<Resources::Shader>& init) { return this->CreateShader(init); });
+        resourceFactory.AddResourceCreationCallback<Resources::Texture>([&](const ResourceInitializer<Resources::Texture>& init) { return this->CreateTexture(init); });
+        resourceFactory.AddResourceCreationCallback<Resources::Mesh>([&](const ResourceInitializer<Resources::Mesh>& init) { return this->CreateMesh(init); });
+        resourceFactory.AddResourceCreationCallback<Resources::Shader>([&](const ResourceInitializer<Resources::Shader>& init) { return this->CreateShader(init); });
 
+        componentFactory.RegisterComponentCreationCallback<StaticMesh::MeshObject>([&](const ComponentInitializer<StaticMesh::MeshObject>& init) { return m_renderer.CreateMesh(init.data); });
     }
+    void RenderModule::Update(float deltaTime)
+    {
+        m_renderer.Update();
+    }
+    void RenderModule::Draw()
+    {
+        m_renderer.Draw();
+    }
+
     std::shared_ptr<Resource<Resources::Texture>> RenderModule::CreateTexture(const ResourceInitializer<Resources::Texture>& initializer)
     {
         return std::make_shared<Resource<Resources::Texture>>(initializer.name, Resources::CreateTexture(m_device.GetDevice(), initializer.textureName, initializer.sampler));

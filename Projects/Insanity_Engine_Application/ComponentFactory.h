@@ -7,6 +7,7 @@
 
 #include <concepts>
 #include <any>
+#include <optional>
 
 
 
@@ -42,13 +43,13 @@ namespace InsanityEngine
     class UnknownComponentCreationCallback
     {
     public:
-        std::any operator()(const ComponentInitializer<UnknownComponent>& initializer) const
+        void operator()(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const
         {
-            return ForewardCreation(initializer);
+            return ForewardCreation(initializer, obj);
         }
 
     private:
-        virtual std::any ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer) const = 0;
+        virtual void ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const = 0;
     };
 
 
@@ -72,9 +73,11 @@ namespace InsanityEngine
         }
 
     private:
-        std::any ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer) const override
+        void ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const override
         {
-            return m_callback(static_cast<const ComponentInitializer<ComponentType>&>(initializer));
+            std::optional<Component<ComponentType>>& opt = *reinterpret_cast<std::optional<Component<ComponentType>>*>(obj);
+
+            opt = m_callback(static_cast<const ComponentInitializer<ComponentType>&>(initializer));
         }
     };
 
@@ -100,7 +103,9 @@ namespace InsanityEngine
         template<class ComponentType>
         Component<ComponentType> CreateComponent(const ComponentInitializer<ComponentType>& initializer)
         {
-            return std::any_cast<Component<ComponentType>>((*m_componentCreationCallbacks[typeid(ComponentType)])(initializer));
+            std::optional<Component<ComponentType>> obj;
+            (*m_componentCreationCallbacks[typeid(ComponentType)])(initializer, &obj);
+            return std::move(obj.value());
         }
 
     };

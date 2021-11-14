@@ -2,6 +2,9 @@
 #include "CommonInclude.h"
 #include "Resources.h"
 #include "../ResourceFactory.h"
+#include "../ComponentFactory.h"
+#include "Renderer/Renderer.h"
+
 
 
 
@@ -13,9 +16,11 @@ namespace InsanityEngine::DX11
     {
     private:
         Device& m_device;
+        StaticMesh::Renderer m_renderer;
+
 
     public:
-        RenderModule(ResourceFactory& factory, Device& device);
+        RenderModule(ResourceFactory& resourceFactory, ComponentFactory& componentFactory, Device& device);
 
     public:
         void Update(float deltaTime);

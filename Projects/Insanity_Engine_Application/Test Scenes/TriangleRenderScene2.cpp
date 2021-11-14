@@ -3,6 +3,7 @@
 #include "../DX11/Window.h"
 #include "../DX11/Renderer/Renderer.h"
 #include "../../Insanity_Engine_Application/ResourceFactory.h"
+#include "../ComponentFactory.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 
@@ -13,11 +14,11 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static Component<StaticMesh::MeshObject> mesh;
-static Component<StaticMesh::MeshObject> mesh2;
-static Component<StaticMesh::MeshObject> mesh3;
-static Component<StaticMesh::MeshObject> mesh4;
-static Component<StaticMesh::MeshObject> mesh5;
+static Component<DX11::StaticMesh::MeshObject> mesh;
+static Component<DX11::StaticMesh::MeshObject> mesh2;
+static Component<DX11::StaticMesh::MeshObject> mesh3;
+static Component<DX11::StaticMesh::MeshObject> mesh4;
+static Component<DX11::StaticMesh::MeshObject> mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
 static std::shared_ptr<Resource<Resources::Mesh>> meshRes;
@@ -43,7 +44,7 @@ static bool rightPressed = false;
 
 static bool ctrlPressed = false;
 
-void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::StaticMesh::Renderer& renderer, InsanityEngine::DX11::Window& window, ResourceFactory& factory)
+void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Window& window, ResourceFactory& factory, ComponentFactory& componentFactory)
 {
 
     D3D11_SAMPLER_DESC samplerDesc;
@@ -71,16 +72,16 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     ResourceInitializer<Resources::Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
     shader = factory.CreateResource<Resources::Shader>(shaderData);
 
-  
+
     tex = factory.CreateResource<Resources::Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png", samplerState });
     //tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
     tex2 = factory.CreateResource<Resources::Texture>({ "Resources/Dank.png", L"Resources/Dank.png", samplerState });
 
     auto vertices = std::to_array(
         {
-            StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
-            StaticMesh::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
-            StaticMesh::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
+            DX11::StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
+            DX11::StaticMesh::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
+            DX11::StaticMesh::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
         });
 
     auto indices = std::to_array<UINT>(
@@ -90,18 +91,18 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
 
     meshRes = factory.CreateResource<Resources::Mesh>({ "Mesh", ResourceInitializer<Resources::Mesh>::StaticMeshRaw{vertices, indices} });
 
-    mat =  std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex));
+    mat = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex));
     mat2 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 0 ,0, 1 }));
     mat3 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 1 ,0, 1 }));
     mat4 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 0 ,1, 1 }));
     mat5 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 1 ,0, 1 }));
 
 
-    mesh = renderer.CreateMesh( StaticMesh::MeshObjectData(meshRes,  mat));
-    mesh2 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat2));
-    mesh3 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat3));
-    mesh4 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat4));
-    mesh5 = renderer.CreateMesh(StaticMesh::MeshObjectData(meshRes, mat5));
+    mesh = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>( ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat) });
+    mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat2) });
+    mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat3) });
+    mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat4) });
+    mesh5 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat5) });
 
     mesh.SetPosition({ 0, 0, 2 });
     mesh2.SetPosition({ 1, 0, 2 });
@@ -317,18 +318,18 @@ void TriangleRenderUpdate2(float dt)
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
 
-    Component<StaticMesh::MeshObject> test{ std::move(mesh) };
+    Component<DX11::StaticMesh::MeshObject> test{ std::move(mesh) };
     mesh = std::move(test);
 
     static float accumulatedTime = 0;
 
 
-    mesh2.GetMaterial()->Get().SetColor(Vector4f{ 1, 0, 0, 1 } * Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
-    mesh3.GetMaterial()->Get().SetColor(Vector4f{ 0, 1, 0, 1 } * Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh4.GetMaterial()->Get().SetColor(Vector4f{ 0, 0, 1, 1 } * Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh5.GetMaterial()->Get().SetColor(Vector4f{ 1, 1, 0, 1 } * Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    mesh2.GetMaterial()->Get().SetColor(Vector4f{ 1, 0, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    mesh3.GetMaterial()->Get().SetColor(Vector4f{ 0, 1, 0, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh4.GetMaterial()->Get().SetColor(Vector4f{ 0, 0, 1, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh5.GetMaterial()->Get().SetColor(Vector4f{ 1, 1, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
 
-    mesh.SetScale((Vector3f{ 1, 1, 1 } * Vector3f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) }));
+    mesh.SetScale((Vector3f{ 1, 1, 1 } *Vector3f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) }));
     accumulatedTime += dt;
 }
 

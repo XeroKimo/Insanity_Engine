@@ -12,6 +12,7 @@
 #include "Extensions/MatrixExtension.h"
 #include "../../Insanity_Engine_Application/ResourceFactory.h"
 #include "../DX11/RenderModule.h"
+#include "../ComponentFactory.h"
 
 #include "SDL.h"
 #include <chrono>
@@ -22,11 +23,12 @@ using namespace InsanityEngine::Math::Types;
 
 namespace InsanityEngine::Application
 {
-    Application::Application(DX11::Device& device, DX11::Window& window, DX11::StaticMesh::Renderer& renderer, ResourceFactory& factory) :
+    Application::Application(DX11::Device& device, DX11::Window& window, DX11::RenderModule& renderer, ResourceFactory& factory, ComponentFactory& componentFactory) :
         m_device(device),
         m_window(window),
         m_renderer(renderer),
-        m_factory(factory)
+        m_factory(factory),
+        m_componentFactory(componentFactory)
     {
 
     }
@@ -34,7 +36,7 @@ namespace InsanityEngine::Application
     int Application::Run()
     {
         
-        TriangleRenderSetup2(m_device, m_renderer, m_window, m_factory);
+        TriangleRenderSetup2(m_device, m_window, m_factory, m_componentFactory);
         //TriangleRenderSetup(m_device, m_window);
 
         std::chrono::time_point previous = std::chrono::steady_clock::now();
@@ -156,7 +158,7 @@ namespace InsanityEngine::Application
 
                 std::array vsCameraBuffer{ camera.GetConstantBuffer() };
                 m_device.GetDeviceContext()->VSSetConstantBuffers(DX11::StaticMesh::Registers::VS::cameraConstants, static_cast<UINT>(vsCameraBuffer.size()), vsCameraBuffer.data());
-                m_renderer.Update();
+                m_renderer.Update(delta);
                 m_renderer.Draw();
                 m_window.Present();
                 //TriangleRender(m_device, m_window);
@@ -182,15 +184,16 @@ namespace InsanityEngine::Application
 
         try
         {
-            ResourceFactory factory;
+            ResourceFactory resourceFactory;
+            ComponentFactory componentFactory;
 
             DX11::Device device;
-            DX11::StaticMesh::Renderer renderer{ device };
-            DX11::RenderModule renderModule{ factory, device };
+            //DX11::StaticMesh::Renderer renderer{ device };
+            DX11::RenderModule renderModule{ resourceFactory, componentFactory, device };
             DX11::Window window{ "Insanity Engine", { 1280.f, 720.f }, device };
 
 
-            Application app(device, window, renderer, factory);
+            Application app(device, window, renderModule, resourceFactory, componentFactory);
             app.Run();
         }
         catch(std::exception e)
