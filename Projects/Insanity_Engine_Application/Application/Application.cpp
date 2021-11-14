@@ -10,7 +10,7 @@
 #include "../Test Scenes/TriangleRenderScene2.h"
 #include "../DX11/Renderer/Renderer.h"
 #include "Extensions/MatrixExtension.h"
-#include "../../Insanity_Engine_Application/Resource.h"
+#include "../../Insanity_Engine_Application/ResourceFactory.h"
 #include "../DX11/RenderModule.h"
 
 #include "SDL.h"

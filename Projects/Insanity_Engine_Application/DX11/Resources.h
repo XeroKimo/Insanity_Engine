@@ -2,7 +2,7 @@
 #include "CommonInclude.h"
 #include "Insanity_Math.h"
 #include "InputLayouts.h"
-#include "../../Insanity_Engine_Application/Resource.h"
+#include "../../Insanity_Engine_Application/ResourceFactory.h"
 #include <array>
 #include <span>
 #include <variant>

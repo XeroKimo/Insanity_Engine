@@ -1,7 +1,7 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Resources.h"
-#include "../Resource.h"
+#include "../ResourceFactory.h"
 
 
 

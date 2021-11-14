@@ -1,4 +1,4 @@
-#include "Resource.h"
+#include "ResourceFactory.h"
 
 namespace InsanityEngine
 {

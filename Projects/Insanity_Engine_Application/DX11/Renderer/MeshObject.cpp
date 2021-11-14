@@ -68,3 +68,31 @@ namespace InsanityEngine::DX11::StaticMesh
     }
 
 }
+namespace InsanityEngine
+{
+    void Component<DX11::StaticMesh::MeshObject>::SetPosition(Math::Types::Vector3f position)
+    {
+        Object().data.position = position;
+    }
+
+    void Component<InsanityEngine::DX11::StaticMesh::MeshObject>::SetRotation(Math::Types::Quaternion<float> rotation)
+    {
+        Object().data.rotation = rotation;
+    }
+    void Component<InsanityEngine::DX11::StaticMesh::MeshObject>::SetScale(Math::Types::Vector3f scale)
+    {
+        Object().data.scale = scale;
+    }
+    void Component<InsanityEngine::DX11::StaticMesh::MeshObject>::Translate(Math::Types::Vector3f position)
+    {
+        SetPosition(GetPosition() + position);
+    }
+    void Component<InsanityEngine::DX11::StaticMesh::MeshObject>::Rotate(Math::Types::Quaternion<float> rotation)
+    {
+        SetRotation(GetRotation() * rotation);
+    }
+    void Component<InsanityEngine::DX11::StaticMesh::MeshObject>::Scale(Math::Types::Vector3f scale)
+    {
+        SetScale(GetScale() * scale);
+    }
+}

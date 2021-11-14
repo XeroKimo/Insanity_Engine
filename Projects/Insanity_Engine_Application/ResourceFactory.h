@@ -100,7 +100,7 @@ namespace InsanityEngine
     template <class ResourceType>
     class ResourceCreationCallback : public UnknownResourceCreationCallback
     {
-        using CallbackType = std::function<std::shared_ptr<Resource<ResourceType>>(const ResourceInitializer<ResourceType>& initializer)>;
+        using CallbackType = ResourceCreationFunction<ResourceType>;
 
     private:
         CallbackType m_callback;

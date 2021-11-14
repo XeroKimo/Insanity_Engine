@@ -1,6 +1,7 @@
 #pragma once
 #include "../Resources.h"
-#include "../../Resource.h"
+#include "../../ResourceFactory.h"
+#include "../../ComponentFactory.h"
 #include "Handle.h"
 
 namespace InsanityEngine::DX11::StaticMesh
@@ -80,3 +81,29 @@ namespace InsanityEngine::DX11::StaticMesh
         std::shared_ptr<Resource<Resources::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
     };
 }
+
+template<>
+class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::UnknownComponent, public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>
+{
+private:
+    using Base = InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>;
+
+public:
+    using Base::ManagedHandle;
+
+
+public:
+    void SetPosition(Math::Types::Vector3f position);
+    void SetRotation(Math::Types::Quaternion<float> rotation);
+    void SetScale(Math::Types::Vector3f scale);
+
+    void Translate(Math::Types::Vector3f position);
+    void Rotate(Math::Types::Quaternion<float> rotation);
+    void Scale(Math::Types::Vector3f scale);
+
+    Math::Types::Vector3f GetPosition() const { return Object().data.position; }
+    Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
+    Math::Types::Vector3f GetScale() const { return Object().data.scale; }
+
+    std::shared_ptr<Resource<InsanityEngine::DX11::Resources::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
+};

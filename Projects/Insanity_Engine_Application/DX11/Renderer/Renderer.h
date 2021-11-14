@@ -33,7 +33,7 @@ namespace InsanityEngine::DX11::StaticMesh
         Renderer(DX11::Device& device);
 
     public:
-        StaticMeshHandle CreateMesh(DX11::StaticMesh::MeshObjectData data);
+        Component<MeshObject> CreateMesh(DX11::StaticMesh::MeshObjectData data);
 
     public:
         void Update();

@@ -39,15 +39,13 @@ namespace InsanityEngine::DX11
             m_object(&object, ManagedHandleDeleter<ObjectT, RendererT>(renderer))
         {
         }
-        ManagedHandle(const ManagedHandle& other) = delete;
-        ManagedHandle(ManagedHandle&& other) noexcept = default;
 
-        ~ManagedHandle() = default;
-
-        ManagedHandle& operator=(const ManagedHandle& other) = delete;
         ManagedHandle& operator=(std::nullptr_t) { m_object = nullptr; }
-        ManagedHandle& operator=(ManagedHandle&& other) noexcept = default;
 
+        bool operator==(std::nullptr_t) const { return m_object == nullptr; }
+        bool operator!=(std::nullptr_t) const { return !((*this) == nullptr); }
+
+        operator bool() const { return ((*this) != nullptr); }
 
         void swap(ManagedHandle& other)
         {

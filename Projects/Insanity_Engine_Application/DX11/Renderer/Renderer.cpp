@@ -25,7 +25,7 @@ namespace InsanityEngine::DX11::StaticMesh
         m_inputLayouts[positionNormalUVLayout] = DX11::InputLayouts::PositionNormalUV::CreateInputLayout(m_device->GetDevice());
     }
 
-    StaticMeshHandle Renderer::CreateMesh(MeshObjectData data)
+    Component<MeshObject> Renderer::CreateMesh(MeshObjectData data)
     {
         StaticMesh::Constants::VSMesh constants{ .worldMatrix = data.GetObjectMatrix() };
 
@@ -33,7 +33,7 @@ namespace InsanityEngine::DX11::StaticMesh
         Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
 
         m_meshes.push_back(std::make_unique<StaticMesh::MeshObject>(constantBuffer, std::move(data)));
-        return StaticMeshHandle(*this, *m_meshes.back().get());
+        return Component<MeshObject>(*this, *m_meshes.back().get());
     }
 
     void Renderer::Update()

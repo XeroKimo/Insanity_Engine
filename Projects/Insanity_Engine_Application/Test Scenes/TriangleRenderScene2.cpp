@@ -2,7 +2,7 @@
 #include "../DX11/Device.h"
 #include "../DX11/Window.h"
 #include "../DX11/Renderer/Renderer.h"
-#include "../../Insanity_Engine_Application/Resource.h"
+#include "../../Insanity_Engine_Application/ResourceFactory.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 
@@ -13,11 +13,11 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static DX11::StaticMesh::StaticMeshHandle mesh;
-static DX11::StaticMesh::StaticMeshHandle mesh2;
-static DX11::StaticMesh::StaticMeshHandle mesh3;
-static DX11::StaticMesh::StaticMeshHandle mesh4;
-static DX11::StaticMesh::StaticMeshHandle mesh5;
+static Component<StaticMesh::MeshObject> mesh;
+static Component<StaticMesh::MeshObject> mesh2;
+static Component<StaticMesh::MeshObject> mesh3;
+static Component<StaticMesh::MeshObject> mesh4;
+static Component<StaticMesh::MeshObject> mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
 static std::shared_ptr<Resource<Resources::Mesh>> meshRes;
@@ -317,7 +317,7 @@ void TriangleRenderUpdate2(float dt)
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
 
-    StaticMesh::StaticMeshHandle test{ std::move(mesh) };
+    Component<StaticMesh::MeshObject> test{ std::move(mesh) };
     mesh = std::move(test);
 
     static float accumulatedTime = 0;
