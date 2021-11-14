@@ -5,7 +5,7 @@
 
 namespace InsanityEngine::DX11::StaticMesh
 {
-    MeshObjectData::MeshObjectData(std::shared_ptr<Resources::Mesh> mesh, std::shared_ptr<Resources::StaticMesh::Material> material) :
+    MeshObjectData::MeshObjectData(std::shared_ptr<Resource<Resources::Mesh>> mesh, std::shared_ptr<Resource<Resources::StaticMesh::Material>> material) :
         m_mesh(std::move(mesh)),
         m_material(std::move(material))
     {
@@ -13,13 +13,13 @@ namespace InsanityEngine::DX11::StaticMesh
         assert(m_material != nullptr);
     }
 
-    void MeshObjectData::SetMesh(std::shared_ptr<Resources::Mesh> mesh)
+    void MeshObjectData::SetMesh(std::shared_ptr<Resource<Resources::Mesh>> mesh)
     {
         m_mesh = std::move(mesh);
         assert(m_mesh != nullptr);
     }
 
-    void MeshObjectData::SetMaterial(std::shared_ptr<Resources::StaticMesh::Material> material)
+    void MeshObjectData::SetMaterial(std::shared_ptr<Resource<Resources::StaticMesh::Material>> material)
     {
         m_material = std::move(material);
         assert(m_material != nullptr);

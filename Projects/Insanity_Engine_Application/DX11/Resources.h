@@ -95,12 +95,12 @@ namespace InsanityEngine::DX11::Resources
         {
         private:
             ComPtr<ID3D11Buffer> m_constantBuffer;
-            std::shared_ptr<Shader> m_shader;
-            std::shared_ptr<Texture> m_albedo;
+            std::shared_ptr<Resource<Shader>> m_shader;
+            std::shared_ptr<Resource<Texture>> m_albedo;
             Math::Types::Vector4f m_color;
 
         public:
-            Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
+            Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Resource<Shader>> shader, std::shared_ptr<Resource<Texture>> albedo, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
             Material(const Material& other) = delete;
             Material(Material&& other) noexcept = default;
             ~Material() = default;
@@ -110,13 +110,13 @@ namespace InsanityEngine::DX11::Resources
             Material& operator=(Material&& other) noexcept = default;
 
         public:
-            void SetShader(std::shared_ptr<Shader> shader);
-            void SetAlbedo(std::shared_ptr<Texture> texture);
+            void SetShader(std::shared_ptr<Resource<Shader>> shader);
+            void SetAlbedo(std::shared_ptr<Resource<Texture>> texture);
             void SetColor(Math::Types::Vector4f color);
 
         public:
-            std::shared_ptr<Shader> GetShader() const { return m_shader; }
-            std::shared_ptr<Texture> GetAlbedo() const { return m_albedo; }
+            std::shared_ptr<Resource<Shader>> GetShader() const { return m_shader; }
+            std::shared_ptr<Resource<Texture>> GetAlbedo() const { return m_albedo; }
             Math::Types::Vector4f GetColor() const { return m_color; }
 
             ID3D11Buffer* GetConstantBuffer() const { return m_constantBuffer.Get(); }
@@ -126,7 +126,7 @@ namespace InsanityEngine::DX11::Resources
 
         };
 
-        extern StaticMesh::Material CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
+        extern StaticMesh::Material CreateMaterial(ID3D11Device* device, std::shared_ptr<Resource<Shader>> shader, std::shared_ptr<Resource<Texture>> texture, Math::Types::Vector4f color = Math::Types::Vector4f(Math::Types::Scalar(1.f)));
     }
 
     extern Shader CreateShader(ID3D11Device* device, std::wstring_view vertexShader, std::wstring_view pixelShader);

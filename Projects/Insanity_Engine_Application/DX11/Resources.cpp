@@ -125,7 +125,7 @@ namespace InsanityEngine::DX11::Resources
 
     namespace StaticMesh
     {
-        Material::Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> albedo, Vector4f color) :
+        Material::Material(ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Resource<Shader>> shader, std::shared_ptr<Resource<Texture>> albedo, Vector4f color) :
             m_constantBuffer(std::move(constantBuffer)),
             m_shader(std::move(shader)),
             m_albedo(std::move(albedo)),
@@ -136,13 +136,13 @@ namespace InsanityEngine::DX11::Resources
             assert(m_albedo != nullptr);
         }
 
-        void Material::SetShader(std::shared_ptr<Shader> shader)
+        void Material::SetShader(std::shared_ptr<Resource<Shader>> shader)
         {
             m_shader = std::move(shader);
             assert(shader != nullptr);
         }
 
-        void Material::SetAlbedo(std::shared_ptr<Texture> albedo)
+        void Material::SetAlbedo(std::shared_ptr<Resource<Texture>> albedo)
         {
             m_albedo = std::move(albedo);
             assert(m_albedo != nullptr);
@@ -154,7 +154,7 @@ namespace InsanityEngine::DX11::Resources
         }
 
 
-        Material CreateMaterial(ID3D11Device* device, std::shared_ptr<Shader> shader, std::shared_ptr<Texture> texture, Math::Types::Vector4f color)
+        Material CreateMaterial(ID3D11Device* device, std::shared_ptr<Resource<Shader>> shader, std::shared_ptr<Resource<Texture>> texture, Math::Types::Vector4f color)
         {
             ComPtr<ID3D11Buffer> constantBuffer;
             DX11::StaticMesh::Constants::PSMaterial constants{ .color = color };

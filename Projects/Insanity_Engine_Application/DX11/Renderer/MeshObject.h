@@ -1,5 +1,6 @@
 #pragma once
 #include "../Resources.h"
+#include "../../Resource.h"
 #include "Handle.h"
 
 namespace InsanityEngine::DX11::StaticMesh
@@ -13,8 +14,8 @@ namespace InsanityEngine::DX11::StaticMesh
         //static std::shared_ptr<Material> defaultMaterial;
 
     private:
-        std::shared_ptr<Resources::Mesh> m_mesh;
-        std::shared_ptr<Resources::StaticMesh::Material> m_material;
+        std::shared_ptr<Resource<Resources::Mesh>> m_mesh;
+        std::shared_ptr<Resource<Resources::StaticMesh::Material>> m_material;
 
     public:
         Math::Types::Vector3f position;
@@ -22,15 +23,15 @@ namespace InsanityEngine::DX11::StaticMesh
         Math::Types::Quaternion<float> rotation;
 
     public:
-        MeshObjectData(std::shared_ptr<Resources::Mesh> mesh, std::shared_ptr<Resources::StaticMesh::Material> material);
+        MeshObjectData(std::shared_ptr<Resource<Resources::Mesh>> mesh, std::shared_ptr<Resource<Resources::StaticMesh::Material>> material);
 
     public:
-        void SetMesh(std::shared_ptr<Resources::Mesh> mesh);
-        void SetMaterial(std::shared_ptr<Resources::StaticMesh::Material> material);
+        void SetMesh(std::shared_ptr<Resource<Resources::Mesh>> mesh);
+        void SetMaterial(std::shared_ptr<Resource<Resources::StaticMesh::Material>> material);
 
     public:
-        std::shared_ptr<Resources::Mesh> GetMesh() const { return m_mesh; }
-        std::shared_ptr<Resources::StaticMesh::Material> GetMaterial() const { return m_material; }
+        std::shared_ptr<Resource<Resources::Mesh>> GetMesh() const { return m_mesh; }
+        std::shared_ptr<Resource<Resources::StaticMesh::Material>> GetMaterial() const { return m_material; }
 
     public:
         Math::Types::Matrix4x4f GetObjectMatrix() const;
@@ -76,6 +77,6 @@ namespace InsanityEngine::DX11::StaticMesh
         Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
         Math::Types::Vector3f GetScale() const { return Object().data.scale; }
 
-        std::shared_ptr<Resources::StaticMesh::Material> GetMaterial() { return Object().data.GetMaterial(); }
+        std::shared_ptr<Resource<Resources::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
     };
 }
