@@ -1,8 +1,8 @@
 #pragma once
 #include "CommonInclude.h"
 #include "Resources.h"
-#include "../ResourceFactory.h"
-#include "../ComponentFactory.h"
+#include "../Factories/ResourceFactory.h"
+#include "../Factories/ComponentFactory.h"
 #include "Renderer/Renderer.h"
 
 
@@ -17,7 +17,7 @@ namespace InsanityEngine::DX11
     private:
         Device& m_device;
         StaticMesh::Renderer m_renderer;
-
+        ComPtr<ID3D11SamplerState> m_defaultSampler;
 
     public:
         RenderModule(ResourceFactory& resourceFactory, ComponentFactory& componentFactory, Device& device);
@@ -27,10 +27,10 @@ namespace InsanityEngine::DX11
         void Draw();
 
     public:
-        std::shared_ptr<Resource<Resources::Texture>> CreateTexture(const ResourceInitializer<Resources::Texture>& initilaizer);
-        std::shared_ptr<Resource<Resources::Mesh>> CreateMesh(const ResourceInitializer<Resources::Mesh>& initilaizer);
-        std::shared_ptr<Resource<Resources::Shader>> CreateShader(const ResourceInitializer<Resources::Shader>& initilaizer);
-
+        std::shared_ptr<Resource<Texture>> CreateTexture(const ResourceInitializer<Texture>& initilaizer);
+        std::shared_ptr<Resource<Mesh>> CreateMesh(const ResourceInitializer<Mesh>& initilaizer);
+        std::shared_ptr<Resource<Shader>> CreateShader(const ResourceInitializer<Shader>& initilaizer);
+        std::shared_ptr<Resource<StaticMesh::Material>> CreateMaterial(const ResourceInitializer<StaticMesh::Material>& initializer);
     };
 
 }

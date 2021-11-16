@@ -60,13 +60,28 @@
     <ClInclude Include="DX11\Renderer\Handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ResourceFactory.h">
+    <ClInclude Include="Factories\ResourceFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX11\RenderModule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ComponentFactory.h">
+    <ClInclude Include="Factories\ComponentFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Internal\Resources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -107,10 +122,22 @@
     <ClCompile Include="DX11\Renderer\MeshObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ResourceFactory.cpp">
+    <ClCompile Include="Factories\ResourceFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX11\RenderModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

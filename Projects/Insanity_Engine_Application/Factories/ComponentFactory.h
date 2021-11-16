@@ -20,13 +20,19 @@ namespace InsanityEngine
 
     class UnknownComponent
     {
+    public:
+        UnknownComponent() = default;
+        UnknownComponent(const UnknownComponent& other) = delete;
+        UnknownComponent(UnknownComponent&& other) noexcept = default;
+
+        UnknownComponent& operator=(const UnknownComponent& other) = delete;
+        UnknownComponent& operator=(UnknownComponent&& other) noexcept = default;
 
     };
 
     template<class T>
     class Component : UnknownComponent
     {
-
     };
 
     template<>

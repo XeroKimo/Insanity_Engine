@@ -10,9 +10,9 @@
 #include "../Test Scenes/TriangleRenderScene2.h"
 #include "../DX11/Renderer/Renderer.h"
 #include "Extensions/MatrixExtension.h"
-#include "../../Insanity_Engine_Application/ResourceFactory.h"
+#include "../Factories/ResourceFactory.h"
 #include "../DX11/RenderModule.h"
-#include "../ComponentFactory.h"
+#include "../Factories/ComponentFactory.h"
 
 #include "SDL.h"
 #include <chrono>

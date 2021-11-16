@@ -1,7 +1,11 @@
 #pragma once
-#include "../Resources.h"
-#include "../../ResourceFactory.h"
-#include "../../ComponentFactory.h"
+//#include "../Resources.h"
+#include "../Resources/Mesh.h"
+#include "../Resources/Material.h"
+#include "../Resources/Shader.h"
+#include "../Resources/Texture.h"
+#include "../../Factories/ResourceFactory.h"
+#include "../../Factories/ComponentFactory.h"
 #include "Handle.h"
 
 namespace InsanityEngine::DX11::StaticMesh
@@ -15,8 +19,8 @@ namespace InsanityEngine::DX11::StaticMesh
         //static std::shared_ptr<Material> defaultMaterial;
 
     private:
-        std::shared_ptr<Resource<Resources::Mesh>> m_mesh;
-        std::shared_ptr<Resource<Resources::StaticMesh::Material>> m_material;
+        std::shared_ptr<Resource<Mesh>> m_mesh;
+        std::shared_ptr<Resource<StaticMesh::Material>> m_material;
 
     public:
         Math::Types::Vector3f position;
@@ -24,15 +28,15 @@ namespace InsanityEngine::DX11::StaticMesh
         Math::Types::Quaternion<float> rotation;
 
     public:
-        MeshObjectData(std::shared_ptr<Resource<Resources::Mesh>> mesh, std::shared_ptr<Resource<Resources::StaticMesh::Material>> material);
+        MeshObjectData(std::shared_ptr<Resource<Mesh>> mesh, std::shared_ptr<Resource<StaticMesh::Material>> material);
 
     public:
-        void SetMesh(std::shared_ptr<Resource<Resources::Mesh>> mesh);
-        void SetMaterial(std::shared_ptr<Resource<Resources::StaticMesh::Material>> material);
+        void SetMesh(std::shared_ptr<Resource<Mesh>> mesh);
+        void SetMaterial(std::shared_ptr<Resource<StaticMesh::Material>> material);
 
     public:
-        std::shared_ptr<Resource<Resources::Mesh>> GetMesh() const { return m_mesh; }
-        std::shared_ptr<Resource<Resources::StaticMesh::Material>> GetMaterial() const { return m_material; }
+        std::shared_ptr<Resource<Mesh>> GetMesh() const { return m_mesh; }
+        std::shared_ptr<Resource<StaticMesh::Material>> GetMaterial() const { return m_material; }
 
     public:
         Math::Types::Matrix4x4f GetObjectMatrix() const;
@@ -56,30 +60,6 @@ namespace InsanityEngine::DX11::StaticMesh
         ID3D11Buffer* GetConstantBuffer() const { return m_objectConstants.Get(); }
     };
 
-
-    class MeshHandle : public ManagedHandle<MeshObject, Renderer>
-    {
-
-    public:
-        using ManagedHandle<MeshObject, Renderer>::ManagedHandle;
-
-
-
-    public:
-        void SetPosition(Math::Types::Vector3f position);
-        void SetRotation(Math::Types::Quaternion<float> rotation);
-        void SetScale(Math::Types::Vector3f scale);
-
-        void Translate(Math::Types::Vector3f position);
-        void Rotate(Math::Types::Quaternion<float> rotation);
-        void Scale(Math::Types::Vector3f scale);
- 
-        Math::Types::Vector3f GetPosition() const { return Object().data.position; }
-        Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
-        Math::Types::Vector3f GetScale() const { return Object().data.scale; }
-
-        std::shared_ptr<Resource<Resources::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
-    };
 }
 
 template<>
@@ -90,7 +70,7 @@ struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::Me
 };
 
 template<>
-class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::UnknownComponent, public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>
+class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>, public UnknownComponent
 {
 private:
     using Base = InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>;
@@ -112,5 +92,5 @@ public:
     Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
     Math::Types::Vector3f GetScale() const { return Object().data.scale; }
 
-    std::shared_ptr<Resource<InsanityEngine::DX11::Resources::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
+    std::shared_ptr<Resource<InsanityEngine::DX11::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
 };

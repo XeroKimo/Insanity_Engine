@@ -2,8 +2,8 @@
 #include "../DX11/Device.h"
 #include "../DX11/Window.h"
 #include "../DX11/Renderer/Renderer.h"
-#include "../../Insanity_Engine_Application/ResourceFactory.h"
-#include "../ComponentFactory.h"
+#include "../Factories/ResourceFactory.h"
+#include "../Factories/ComponentFactory.h"
 
 #include "Debug Classes/Exceptions/HRESULTException.h"
 
@@ -21,16 +21,16 @@ static Component<DX11::StaticMesh::MeshObject> mesh4;
 static Component<DX11::StaticMesh::MeshObject> mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
-static std::shared_ptr<Resource<Resources::Mesh>> meshRes;
-static std::shared_ptr<Resource<Resources::Texture>> tex;
-static std::shared_ptr<Resource<Resources::Texture>> tex2;
-static std::shared_ptr<Resource<Resources::Shader>> shader;
+static std::shared_ptr<Resource<Mesh>> meshRes;
+static std::shared_ptr<Resource<Texture>> tex;
+static std::shared_ptr<Resource<Texture>> tex2;
+static std::shared_ptr<Resource<Shader>> shader;
 
-static std::shared_ptr<Resource<Resources::StaticMesh::Material>> mat;
-static std::shared_ptr<Resource<Resources::StaticMesh::Material>> mat2;
-static std::shared_ptr<Resource<Resources::StaticMesh::Material>> mat3;
-static std::shared_ptr<Resource<Resources::StaticMesh::Material>> mat4;
-static std::shared_ptr<Resource<Resources::StaticMesh::Material>> mat5;
+static std::shared_ptr<Resource<StaticMesh::Material>> mat;
+static std::shared_ptr<Resource<StaticMesh::Material>> mat2;
+static std::shared_ptr<Resource<StaticMesh::Material>> mat3;
+static std::shared_ptr<Resource<StaticMesh::Material>> mat4;
+static std::shared_ptr<Resource<StaticMesh::Material>> mat5;
 
 static bool aPressed = false;
 static bool wPressed = false;
@@ -47,41 +47,41 @@ static bool ctrlPressed = false;
 void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Window& window, ResourceFactory& factory, ComponentFactory& componentFactory)
 {
 
-    D3D11_SAMPLER_DESC samplerDesc;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.BorderColor[0] = 1.0f;
-    samplerDesc.BorderColor[1] = 1.0f;
-    samplerDesc.BorderColor[2] = 1.0f;
-    samplerDesc.BorderColor[3] = 1.0f;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.MaxAnisotropy = 1;
-    samplerDesc.MipLODBias = 0;
-    samplerDesc.MinLOD = -FLT_MAX;
-    samplerDesc.MaxLOD = FLT_MAX;
+    //D3D11_SAMPLER_DESC samplerDesc;
+    //samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    //samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    //samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    //samplerDesc.BorderColor[0] = 1.0f;
+    //samplerDesc.BorderColor[1] = 1.0f;
+    //samplerDesc.BorderColor[2] = 1.0f;
+    //samplerDesc.BorderColor[3] = 1.0f;
+    //samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    //samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    //samplerDesc.MaxAnisotropy = 1;
+    //samplerDesc.MipLODBias = 0;
+    //samplerDesc.MinLOD = -FLT_MAX;
+    //samplerDesc.MaxLOD = FLT_MAX;
 
-    ComPtr<ID3D11SamplerState> samplerState;
-    HRESULT hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
-    if(FAILED(hr))
-    {
-        throw HRESULTException("Failed to create sampler state", hr);
-    }
+    //ComPtr<ID3D11SamplerState> samplerState;
+    //HRESULT hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
+    //if(FAILED(hr))
+    //{
+    //    throw HRESULTException("Failed to create sampler state", hr);
+    //}
 
-    ResourceInitializer<Resources::Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
-    shader = factory.CreateResource<Resources::Shader>(shaderData);
+    ResourceInitializer<Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
+    shader = factory.CreateResource<Shader>(shaderData);
 
 
-    tex = factory.CreateResource<Resources::Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png", samplerState });
+    tex = factory.CreateResource<Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png"});
     //tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
-    tex2 = factory.CreateResource<Resources::Texture>({ "Resources/Dank.png", L"Resources/Dank.png", samplerState });
+    tex2 = factory.CreateResource<Texture>({ "Resources/Dank.png", L"Resources/Dank.png" });
 
     auto vertices = std::to_array(
         {
-            DX11::StaticMesh::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
-            DX11::StaticMesh::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
-            DX11::StaticMesh::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
+            DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
+            DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
+            DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
         });
 
     auto indices = std::to_array<UINT>(
@@ -89,13 +89,13 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
             0, 1, 2
         });
 
-    meshRes = factory.CreateResource<Resources::Mesh>({ "Mesh", ResourceInitializer<Resources::Mesh>::StaticMeshRaw{vertices, indices} });
+    meshRes = factory.CreateResource<Mesh>({ "Mesh", ResourceInitializer<Mesh>::RawInit<InputLayouts::PositionNormalUV::VertexData>{vertices, indices} });
 
-    mat = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex));
-    mat2 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 0 ,0, 1 }));
-    mat3 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 1 ,0, 1 }));
-    mat4 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 0, 0 ,1, 1 }));
-    mat5 = std::make_shared<Resource<Resources::StaticMesh::Material>>("Test", Resources::StaticMesh::CreateMaterial(device.GetDevice(), shader, tex2, { 1, 1 ,0, 1 }));
+    mat =  factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex });
+    mat2 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 1, 0 ,0, 1 } });
+    mat3 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 0, 1 ,0, 1 } });
+    mat4 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 0, 0 ,1, 1 } });
+    mat5 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 1, 1 ,0, 1 } });
 
 
     mesh = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>( ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat) });
@@ -131,7 +131,7 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
     ComPtr<ID3D11Texture2D> depthStencilTexture;
-    hr = device.GetDevice()->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
+    HRESULT hr = device.GetDevice()->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
 
     if(FAILED(hr))
     {
@@ -324,10 +324,10 @@ void TriangleRenderUpdate2(float dt)
     static float accumulatedTime = 0;
 
 
-    mesh2.GetMaterial()->Get().SetColor(Vector4f{ 1, 0, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
-    mesh3.GetMaterial()->Get().SetColor(Vector4f{ 0, 1, 0, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh4.GetMaterial()->Get().SetColor(Vector4f{ 0, 0, 1, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh5.GetMaterial()->Get().SetColor(Vector4f{ 1, 1, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    mesh2.GetMaterial()->SetColor(Vector4f{ 1, 0, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    mesh3.GetMaterial()->SetColor(Vector4f{ 0, 1, 0, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh4.GetMaterial()->SetColor(Vector4f{ 0, 0, 1, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    mesh5.GetMaterial()->SetColor(Vector4f{ 1, 1, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
 
     mesh.SetScale((Vector3f{ 1, 1, 1 } *Vector3f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) }));
     accumulatedTime += dt;

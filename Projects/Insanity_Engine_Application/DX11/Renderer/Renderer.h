@@ -12,7 +12,6 @@ namespace InsanityEngine::DX11::StaticMesh
     class Renderer;
 
     //using CameraHandle = Handle<CameraObject>;
-    using StaticMeshHandle = StaticMesh::MeshHandle;
 
 
     class Renderer

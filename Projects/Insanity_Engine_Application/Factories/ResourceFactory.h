@@ -31,33 +31,21 @@ namespace InsanityEngine
 
 
 
-
     template<class T>
     struct ResourceInitializer;
 
-    class UnknownResource : protected std::enable_shared_from_this<UnknownResource>
+    class UnknownResource
     {
     public:
         UnknownResource(std::string_view name);
+
+        virtual ~UnknownResource() = default;
 
     private:
         std::string m_name;
 
     public:
         std::string GetName() const { return m_name; }
-    };
-
-    template<>
-    struct ResourceInitializer<UnknownResource>
-    {
-        std::string_view name;
-
-    };
-
-    template<class T>
-    struct ResourceInitializer : ResourceInitializer<UnknownResource>
-    {
-
     };
 
     template<class T>
@@ -79,6 +67,18 @@ namespace InsanityEngine
 
     };
 
+
+    template<>
+    struct ResourceInitializer<UnknownResource>
+    {
+        std::string_view name;
+    };
+
+    template<class T>
+    struct ResourceInitializer : ResourceInitializer<UnknownResource>
+    {
+        T resource;
+    };
 
     class UnknownResourceCreationCallback
     {
