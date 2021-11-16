@@ -5,6 +5,11 @@
 
 namespace InsanityEngine
 {
+    namespace DX11
+    {
+        class RenderModule;
+    }
+
     template<>
     struct ResourceInitializer<DX11::Shader> : public ResourceInitializer<UnknownResource>
     {
@@ -25,5 +30,15 @@ namespace InsanityEngine
     public:
         DX11::ComPtr<ID3D11VertexShader> GetVertexShader() const { return m_shader.vertexShader; }
         DX11::ComPtr<ID3D11PixelShader> GetPixelShader() const { return m_shader.pixelShader; }
+    };
+
+    template<>
+    class ResourceHandle<DX11::Shader> : public UserDefinedResourceHandle<DX11::Shader>
+    {
+        using Base = UserDefinedResourceHandle<DX11::Shader>;
+        friend class DX11::RenderModule;
+
+    public:
+        using Base::UserDefinedResourceHandle;
     };
 }

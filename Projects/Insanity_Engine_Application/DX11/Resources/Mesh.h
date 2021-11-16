@@ -8,6 +8,11 @@
 
 namespace InsanityEngine
 {
+    namespace DX11::StaticMesh
+    {
+        class Renderer;
+    }
+
     template<>
     struct ResourceInitializer<DX11::Mesh> : public ResourceInitializer<UnknownResource>
     {
@@ -23,19 +28,12 @@ namespace InsanityEngine
 
 
     template<>
-    class Resource<DX11::Mesh> : public UnknownResource
+    class ResourceHandle<DX11::Mesh> : public UserDefinedResourceHandle<DX11::Mesh>
     {
-    private:
-        DX11::Mesh m_mesh;
+        using Base = UserDefinedResourceHandle<DX11::Mesh>;
+        friend class DX11::StaticMesh::Renderer;
 
     public:
-        Resource(std::string_view name, DX11::Mesh mesh);
-
-    public:
-        DX11::ComPtr<ID3D11Buffer> GetVertexBuffer() const { return m_mesh.vertexBuffer; }
-        DX11::ComPtr<ID3D11Buffer> GetIndexBuffer() const { return m_mesh.indexBuffer; }
-
-        UINT GetVertexCount() const { return m_mesh.vertexCount; }
-        UINT GetIndexCount() const { return m_mesh.indexCount; }
+        using Base::UserDefinedResourceHandle;
     };
 }

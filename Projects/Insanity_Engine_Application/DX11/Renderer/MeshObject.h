@@ -65,7 +65,8 @@ namespace InsanityEngine::DX11::StaticMesh
 template<>
 struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::ComponentInitializer<InsanityEngine::UnknownComponent>
 {
-    DX11::StaticMesh::MeshObjectData data;
+    InsanityEngine::ResourceHandle<InsanityEngine::DX11::Mesh> mesh;
+    InsanityEngine::ResourceHandle<InsanityEngine::DX11::StaticMesh::Material> material;
 
 };
 
@@ -92,5 +93,5 @@ public:
     Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
     Math::Types::Vector3f GetScale() const { return Object().data.scale; }
 
-    std::shared_ptr<Resource<InsanityEngine::DX11::StaticMesh::Material>> GetMaterial() { return Object().data.GetMaterial(); }
+    ResourceHandle<InsanityEngine::DX11::StaticMesh::Material> GetMaterial() { return Object().data.GetMaterial(); }
 };

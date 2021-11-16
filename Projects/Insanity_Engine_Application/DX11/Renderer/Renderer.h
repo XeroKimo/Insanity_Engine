@@ -1,6 +1,8 @@
 #pragma once
 #include "../Window.h"
 #include "../Resources.h"
+#include "../Resources/Mesh.h"
+#include "../Resources/Material.h"
 #include "Handle.h"
 #include "Camera.h"
 #include "MeshObject.h"
@@ -33,6 +35,7 @@ namespace InsanityEngine::DX11::StaticMesh
 
     public:
         Component<MeshObject> CreateMesh(DX11::StaticMesh::MeshObjectData data);
+        Component<MeshObject> CreateMesh(ResourceHandle<Mesh> mesh, ResourceHandle<Material> material);
 
     public:
         void Update();

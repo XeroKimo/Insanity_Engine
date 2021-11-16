@@ -8,4 +8,5 @@ namespace InsanityEngine
         m_shader{ shader }
     {
     }
+
 }

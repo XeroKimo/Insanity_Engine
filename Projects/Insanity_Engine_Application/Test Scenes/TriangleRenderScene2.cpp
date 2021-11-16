@@ -21,16 +21,16 @@ static Component<DX11::StaticMesh::MeshObject> mesh4;
 static Component<DX11::StaticMesh::MeshObject> mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
-static std::shared_ptr<Resource<Mesh>> meshRes;
-static std::shared_ptr<Resource<Texture>> tex;
-static std::shared_ptr<Resource<Texture>> tex2;
-static std::shared_ptr<Resource<Shader>> shader;
+static ResourceHandle<Mesh> meshRes;
+static ResourceHandle<Texture> tex;
+static ResourceHandle<Texture> tex2;
+static ResourceHandle<Shader> shader;
 
-static std::shared_ptr<Resource<StaticMesh::Material>> mat;
-static std::shared_ptr<Resource<StaticMesh::Material>> mat2;
-static std::shared_ptr<Resource<StaticMesh::Material>> mat3;
-static std::shared_ptr<Resource<StaticMesh::Material>> mat4;
-static std::shared_ptr<Resource<StaticMesh::Material>> mat5;
+static ResourceHandle<StaticMesh::Material> mat;
+static ResourceHandle<StaticMesh::Material> mat2;
+static ResourceHandle<StaticMesh::Material> mat3;
+static ResourceHandle<StaticMesh::Material> mat4;
+static ResourceHandle<StaticMesh::Material> mat5;
 
 static bool aPressed = false;
 static bool wPressed = false;
@@ -98,11 +98,11 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     mat5 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 1, 1 ,0, 1 } });
 
 
-    mesh = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>( ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat) });
-    mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat2) });
-    mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat3) });
-    mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat4) });
-    mesh5 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>(ComponentInitializer<StaticMesh::MeshObject>{ .data = DX11::StaticMesh::MeshObjectData(meshRes,  mat5) });
+    mesh = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>( { {}, meshRes,  mat });
+    mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ {}, meshRes,  mat2 });
+    mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ {}, meshRes,  mat3 });
+    mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ {}, meshRes,  mat4 });
+    mesh5 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ {}, meshRes,  mat5 });
 
     mesh.SetPosition({ 0, 0, 2 });
     mesh2.SetPosition({ 1, 0, 2 });
@@ -324,10 +324,10 @@ void TriangleRenderUpdate2(float dt)
     static float accumulatedTime = 0;
 
 
-    mesh2.GetMaterial()->SetColor(Vector4f{ 1, 0, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
-    mesh3.GetMaterial()->SetColor(Vector4f{ 0, 1, 0, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh4.GetMaterial()->SetColor(Vector4f{ 0, 0, 1, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
-    mesh5.GetMaterial()->SetColor(Vector4f{ 1, 1, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    //mesh2.GetMaterial()->SetColor(Vector4f{ 1, 0, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
+    //mesh3.GetMaterial()->SetColor(Vector4f{ 0, 1, 0, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    //mesh4.GetMaterial()->SetColor(Vector4f{ 0, 0, 1, 1 } *Vector4f{ Scalar<float>((sin(accumulatedTime) + 1) / 2) });
+    //mesh5.GetMaterial()->SetColor(Vector4f{ 1, 1, 0, 1 } *Vector4f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) });
 
     mesh.SetScale((Vector3f{ 1, 1, 1 } *Vector3f{ Scalar<float>((cos(accumulatedTime) + 1) / 2) }));
     accumulatedTime += dt;

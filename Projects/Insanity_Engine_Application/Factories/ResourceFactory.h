@@ -64,8 +64,156 @@ namespace InsanityEngine
 
     public:
         T& Get() { return m_underlyingResource; }
+        const T& Get() const { return m_underlyingResource; }
 
     };
+
+    template<class T>
+    class ResourceHandle;
+
+
+    template<class T>
+    class UserDefinedResourceHandle
+    {
+    private:
+        template<class To, class From>
+        friend ResourceHandle<To> StaticResourceCast(const UserDefinedResourceHandle<From>& handle);
+
+        template<class To, class From>
+        friend ResourceHandle<To> DynamicResourceCast(const UserDefinedResourceHandle<From>& handle);
+
+    private:
+        std::shared_ptr<Resource<T>> m_resource;
+
+    public:
+        UserDefinedResourceHandle() = default;
+        UserDefinedResourceHandle(std::nullptr_t)
+        {
+        }
+        UserDefinedResourceHandle(std::shared_ptr<Resource<T>> resource) :
+            m_resource(resource)
+        {
+
+        }
+
+        UserDefinedResourceHandle(const ResourceHandle<T>& other) :
+            m_resource(other.m_resource)
+        {
+        }
+
+        UserDefinedResourceHandle(ResourceHandle<T> && other) noexcept :
+            m_resource(std::move(other.m_resource))
+        {
+        }
+
+        ~UserDefinedResourceHandle() = default;
+
+    public:
+        UserDefinedResourceHandle& operator=(std::nullptr_t) { m_resource = nullptr; }
+
+        UserDefinedResourceHandle& operator=(const ResourceHandle<T>&other)
+        {
+            m_resource = other.m_resource;
+        }
+        ResourceHandle<UnknownResource>& operator=(ResourceHandle<T> && other) noexcept
+        {
+            m_resource = std::move(other.m_resource);
+        }
+        bool operator==(std::nullptr_t) const { return m_resource == nullptr; }
+        bool operator!=(std::nullptr_t) const { return m_resource != nullptr; }
+
+    protected:
+        Resource<T>& GetResource() { return *m_resource; }
+        const Resource<T>& GetResource() const { return *m_resource; }
+
+        std::shared_ptr<Resource<T>> GetResourcePointer() const { return m_resource; }
+    };
+
+    template<class T>
+    class ResourceHandle : public UserDefinedResourceHandle<T>
+    {
+    public:
+        using UserDefinedResourceHandle<T>::UserDefinedResourceHandle;
+    };
+
+    template<>
+    class ResourceHandle<UnknownResource> //: public ConvertiableHandle<UnknownResource>
+    {
+        //friend class ConvertiableHandle<UnknownResource>;
+
+        template<class To>
+        friend ResourceHandle<To> StaticResourceCast(const ResourceHandle<UnknownResource>& handle);
+
+        template<class To>
+        friend ResourceHandle<To> DynamicResourceCast(const ResourceHandle<UnknownResource>& handle);
+    private:
+        std::shared_ptr<UnknownResource> m_resource;
+
+    public:
+        ResourceHandle() = default;
+        ResourceHandle(std::nullptr_t);
+
+        template<class ResourceType>
+        ResourceHandle(const ResourceHandle<ResourceType>& other) :
+            m_resource(other.m_resource)
+        {
+        }
+        template<class ResourceType>
+        ResourceHandle(std::shared_ptr<Resource<ResourceType>> resource) :
+            m_resource(resource)
+        {
+        }
+
+        template<class ResourceType>
+        ResourceHandle(ResourceHandle<ResourceType>&& other) noexcept :
+            m_resource(std::move(other.m_resource))
+        {
+        }
+
+    public:
+        ResourceHandle<UnknownResource>& operator=(std::nullptr_t);
+
+        template<class ResourceType>
+        ResourceHandle<UnknownResource>& operator=(const ResourceHandle<ResourceType>& other)
+        {
+            m_resource = other.m_resource;
+        }
+        template<class ResourceType>
+        ResourceHandle<UnknownResource>& operator=(ResourceHandle<ResourceType>&& other) noexcept
+        {
+            m_resource = std::move(other.m_resource);
+        }
+        bool operator==(std::nullptr_t) const { return m_resource == nullptr; }
+        bool operator!=(std::nullptr_t) const { return m_resource != nullptr; }
+
+        //private:
+        //    std::shared_ptr<UnknownResource> Get() const { return m_resource; }
+    };
+
+    template<class To>
+    ResourceHandle<To> StaticResourceCast(const ResourceHandle<UnknownResource>& handle)
+    {
+        return ResourceHandle<To>(std::static_pointer_cast<Resource<To>>(handle.m_resource));
+    }
+
+    template<class To, class From>
+    ResourceHandle<To> StaticResourceCast(const UserDefinedResourceHandle<From>& handle)
+    {
+        return ResourceHandle<To>(std::static_pointer_cast<Resource<To>>(handle.GetResource()));
+    }
+
+    template<class To>
+    ResourceHandle<To> DynamicResourceCast(const ResourceHandle<UnknownResource>& handle)
+    {
+        return ResourceHandle<To>(std::dynamic_pointer_cast<Resource<To>>(handle.m_resource));
+    }
+
+    template<class To, class From>
+    ResourceHandle<To> DynamicResourceCast(const UserDefinedResourceHandle<From>& handle)
+    {
+        return ResourceHandle<To>(std::dynamic_pointer_cast<Resource<To>>(handle.GetResource()));
+    }
+
 
 
     template<>
@@ -83,13 +231,13 @@ namespace InsanityEngine
     class UnknownResourceCreationCallback
     {
     public:
-        std::shared_ptr<UnknownResource> operator()(const ResourceInitializer<UnknownResource>& initializer) const
+        ResourceHandle<UnknownResource> operator()(const ResourceInitializer<UnknownResource>& initializer) const
         {
             return ForewardCreation(initializer);
         }
 
     private:
-        virtual std::shared_ptr<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const = 0;
+        virtual ResourceHandle<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const = 0;
     };
 
 
@@ -113,7 +261,7 @@ namespace InsanityEngine
         }
 
     private:
-        std::shared_ptr<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const override
+        ResourceHandle<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const override
         {
             return m_callback(static_cast<const ResourceInitializer<ResourceType>&>(initializer));
         }
@@ -123,13 +271,13 @@ namespace InsanityEngine
     class UnknownResourceGetterCallback
     {
     public:
-        std::shared_ptr<UnknownResource> operator()(std::string_view name) const
+        ResourceHandle<UnknownResource> operator()(std::string_view name) const
         {
             return ForewardGetter(name);
         }
 
     private:
-        virtual std::shared_ptr<UnknownResource> ForewardGetter(std::string_view name) const = 0;
+        virtual ResourceHandle<UnknownResource> ForewardGetter(std::string_view name) const = 0;
     };
 
 
@@ -151,7 +299,7 @@ namespace InsanityEngine
         }
 
     private:
-        std::shared_ptr<UnknownResource> ForewardGetter(std::string_view name) const override
+        ResourceHandle<UnknownResource> ForewardGetter(std::string_view name) const override
         {
             return std::invoke(m_callback, m_creator, name);
         }
@@ -189,15 +337,16 @@ namespace InsanityEngine
         }
 
         template<class ResourceType>
-        std::shared_ptr<Resource<ResourceType>> CreateResource(const ResourceInitializer<ResourceType>& initializer)
+        ResourceHandle<ResourceType> CreateResource(const ResourceInitializer<ResourceType>& initializer)
         {
-            return std::static_pointer_cast<Resource<ResourceType>>((*m_resourceCreationCallbacks[typeid(ResourceType)])(initializer));
+            return StaticResourceCast<ResourceType>((*m_resourceCreationCallbacks[typeid(ResourceType)])(initializer));
         }
 
         template<class ResourceType>
-        std::shared_ptr<Resource<ResourceType>> GetResource(std::string_view name)
+        ResourceHandle<ResourceType> GetResource(std::string_view name)
         {
-            return std::static_pointer_cast<Resource<ResourceType>>((*m_resourceGetterCallbacks[typeid(ResourceType)])(name));
+            return StaticResourceCast<ResourceType>((*m_resourceGetterCallbacks[typeid(ResourceType)])(name));
         }
     };
+
 }

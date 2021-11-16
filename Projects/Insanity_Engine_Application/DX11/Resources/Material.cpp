@@ -4,15 +4,15 @@
 namespace InsanityEngine
 {
     using namespace DX11;
-    Resource<DX11::StaticMesh::Material>::Resource(std::string_view name, DX11::StaticMesh::Material material) :
-        UnknownResource(name),
-        m_material(material)
-    {
+    //Resource<DX11::StaticMesh::Material>::Resource(std::string_view name, DX11::StaticMesh::Material material) :
+    //    UnknownResource(name),
+    //    m_underlyingResource(material)
+    //{
 
-    }
+    //}
 
-    void Resource<StaticMesh::Material>::SetColor(Math::Types::Vector4f color)
+    void ResourceHandle<StaticMesh::Material>::SetColor(Math::Types::Vector4f color)
     {
-        m_material.color = color;
+        GetResource().Get().color = color;
     }
 }

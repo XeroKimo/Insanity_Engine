@@ -15,7 +15,7 @@ namespace InsanityEngine::DX11
         resourceFactory.AddResourceCreationCallback<Shader>([&](const ResourceInitializer<Shader>& init) { return this->CreateShader(init); });
         resourceFactory.AddResourceCreationCallback<StaticMesh::Material>([&](const ResourceInitializer<StaticMesh::Material>& init) { return this->CreateMaterial(init); });
 
-        componentFactory.RegisterComponentCreationCallback<StaticMesh::MeshObject>([&](const ComponentInitializer<StaticMesh::MeshObject>& init) { return m_renderer.CreateMesh(init.data); });
+        componentFactory.RegisterComponentCreationCallback<StaticMesh::MeshObject>([&](const ComponentInitializer<StaticMesh::MeshObject>& init) { return m_renderer.CreateMesh(init.mesh, init.material); });
 
         D3D11_SAMPLER_DESC samplerDesc;
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -94,7 +94,7 @@ namespace InsanityEngine::DX11
             DX11::StaticMesh::Constants::PSMaterial constants{ .color = initializer.color };
             Helpers::CreateConstantBuffer(m_device.GetDevice(), &constantBuffer, true, constants);
 
-            StaticMesh::Material m(constantBuffer, initializer.shader, initializer.albedo, initializer.color);
+            StaticMesh::Material m(constantBuffer, initializer.shader.GetResourcePointer(), initializer.albedo.GetResourcePointer(), initializer.color);
             return std::make_shared<Resource<StaticMesh::Material>>(initializer.name, m);
     }
 }

@@ -5,6 +5,11 @@
 
 namespace InsanityEngine
 {
+    namespace DX11
+    {
+        class RenderModule;
+    }
+
     template<>
     struct ResourceInitializer<DX11::Texture> : public ResourceInitializer<UnknownResource>
     {
@@ -24,5 +29,17 @@ namespace InsanityEngine
     public:
         DX11::ComPtr<ID3D11ShaderResourceView> GetShaderResource() const { return m_texture.shaderResource; }
         DX11::ComPtr<ID3D11SamplerState> GetSamplerState() const { return m_texture.sampler; }
+    };
+
+
+
+    template<>
+    class ResourceHandle<DX11::Texture> : public UserDefinedResourceHandle<DX11::Texture>
+    {
+        using Base = UserDefinedResourceHandle<DX11::Texture>;
+        friend class DX11::RenderModule;
+
+    public:
+        using Base::UserDefinedResourceHandle;
     };
 }

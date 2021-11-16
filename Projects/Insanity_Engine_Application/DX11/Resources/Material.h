@@ -1,5 +1,7 @@
 #pragma once
 #include "../CommonInclude.h"
+#include "Shader.h"
+#include "Texture.h"
 #include "../../Factories/ResourceFactory.h"
 #include "Insanity_Math.h"
 #include <memory>
@@ -11,8 +13,10 @@ namespace InsanityEngine
         struct Texture;
         struct Shader;
 
+
         namespace StaticMesh
         {
+            class Renderer;
             struct Material
             {
                 DX11::ComPtr<ID3D11Buffer> constantBuffer;
@@ -26,28 +30,27 @@ namespace InsanityEngine
     template<>
     struct ResourceInitializer<DX11::StaticMesh::Material> : public ResourceInitializer<UnknownResource>
     {
-        std::shared_ptr<Resource<DX11::Shader>> shader;
-        std::shared_ptr<Resource<DX11::Texture>> albedo;
+        ResourceHandle<DX11::Shader> shader;
+        ResourceHandle<DX11::Texture> albedo;
         Math::Types::Vector4f color{ Math::Types::Scalar(1) };
     };
 
 
     template<>
-    class Resource<DX11::StaticMesh::Material> : public UnknownResource
+    class ResourceHandle<DX11::StaticMesh::Material> : public UserDefinedResourceHandle<DX11::StaticMesh::Material>
     {
-    private:
-        DX11::StaticMesh::Material m_material;
+        using Base = UserDefinedResourceHandle<DX11::StaticMesh::Material>;
+        friend class DX11::StaticMesh::Renderer;
 
     public:
-        Resource(std::string_view name, DX11::StaticMesh::Material material);
+        using Base::UserDefinedResourceHandle;
 
     public:
         void SetColor(Math::Types::Vector4f color);
 
-    public:
-        DX11::ComPtr<ID3D11Buffer> GetConstantBuffer() const { return m_material.constantBuffer; }
-        std::shared_ptr<Resource<DX11::Shader>> GetShader() const { return m_material.shader; }
-        std::shared_ptr<Resource<DX11::Texture>> GetAlbedo() const { return m_material.albedo; }
-        Math::Types::Vector4f GetColor() const { return m_material.color; }
+        std::shared_ptr<Resource<DX11::Shader>> GetShader() const { return GetResource().Get().shader; }
+        std::shared_ptr<Resource<DX11::Texture>> GetAlbedo() const { return GetResource().Get().albedo; }
+        Math::Types::Vector4f GetColor() const { return GetResource().Get().color; }
+
     };
 }

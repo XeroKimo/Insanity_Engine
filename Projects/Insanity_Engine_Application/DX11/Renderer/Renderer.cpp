@@ -36,6 +36,18 @@ namespace InsanityEngine::DX11::StaticMesh
         return Component<MeshObject>(*this, *m_meshes.back().get());
     }
 
+    Component<MeshObject> Renderer::CreateMesh(ResourceHandle<Mesh> mesh, ResourceHandle<Material> material)
+    {
+        MeshObjectData data(mesh.GetResourcePointer(), material.GetResourcePointer());
+        StaticMesh::Constants::VSMesh constants{ .worldMatrix = data.GetObjectMatrix() };
+
+        ComPtr<ID3D11Buffer> constantBuffer;
+        Helpers::CreateConstantBuffer(m_device->GetDevice(), &constantBuffer, true, constants);
+
+        m_meshes.push_back(std::make_unique<StaticMesh::MeshObject>(constantBuffer, std::move(data)));
+        return Component<MeshObject>(*this, *m_meshes.back().get());
+    }
+
     void Renderer::Update()
     {
         for(const auto& mesh : m_meshes)
@@ -49,11 +61,11 @@ namespace InsanityEngine::DX11::StaticMesh
             m_device->GetDeviceContext()->Unmap(mesh->GetConstantBuffer(), 0);
 
             //Material constants updated
-            m_device->GetDeviceContext()->Map(mesh->data.GetMaterial()->GetConstantBuffer().Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+            m_device->GetDeviceContext()->Map(mesh->data.GetMaterial()->Get().constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
 
-            StaticMesh::Constants::PSMaterial psConstants{ .color = mesh->data.GetMaterial()->GetColor() };
+            StaticMesh::Constants::PSMaterial psConstants{ .color = mesh->data.GetMaterial()->Get().color };
             std::memcpy(subresource.pData, &psConstants, sizeof(psConstants));
-            m_device->GetDeviceContext()->Unmap(mesh->data.GetMaterial()->GetConstantBuffer().Get(), 0);
+            m_device->GetDeviceContext()->Unmap(mesh->data.GetMaterial()->Get().constantBuffer.Get(), 0);
         }
     }
 
@@ -85,12 +97,14 @@ namespace InsanityEngine::DX11::StaticMesh
 
 void SetMaterial(const InsanityEngine::DX11::Device& device, const Resource<DX11::StaticMesh::Material>& mat)
 {
-    device.GetDeviceContext()->VSSetShader(mat.GetShader()->GetVertexShader().Get(), nullptr, 0);
-    device.GetDeviceContext()->PSSetShader(mat.GetShader()->GetPixelShader().Get(), nullptr, 0);
 
-    std::array samplers{ mat.GetAlbedo()->GetSamplerState().Get() };
-    std::array textures{ mat.GetAlbedo()->GetShaderResource().Get() };
-    std::array constantBuffers{ mat.GetConstantBuffer().Get() };
+
+    device.GetDeviceContext()->VSSetShader(mat.Get().shader->GetVertexShader().Get(), nullptr, 0);
+    device.GetDeviceContext()->PSSetShader(mat.Get().shader->GetPixelShader().Get(), nullptr, 0);
+
+    std::array samplers{ mat.Get().albedo->GetSamplerState().Get() };
+    std::array textures{ mat.Get().albedo->GetShaderResource().Get() };
+    std::array constantBuffers{ mat.Get().constantBuffer.Get() };
     device.GetDeviceContext()->PSSetSamplers(DX11::StaticMesh::Registers::PS::albedoSampler, 1, samplers.data());
     device.GetDeviceContext()->PSSetShaderResources(DX11::StaticMesh::Registers::PS::albedoTexture, 1, textures.data());
     device.GetDeviceContext()->PSSetConstantBuffers(DX11::StaticMesh::Registers::PS::materialConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
@@ -98,18 +112,18 @@ void SetMaterial(const InsanityEngine::DX11::Device& device, const Resource<DX11
 
 void SetMesh(const InsanityEngine::DX11::Device& device, const Resource<DX11::Mesh>& mesh)
 {
-    std::array vertexBuffers{ mesh.GetVertexBuffer().Get() };
+    std::array vertexBuffers{ mesh.Get().vertexBuffer.Get() };
 
     UINT stride = sizeof(DX11::InputLayouts::PositionNormalUV::VertexData);
     UINT offset = 0;
 
     device.GetDeviceContext()->IASetVertexBuffers(0, static_cast<UINT>(vertexBuffers.size()), vertexBuffers.data(), &stride, &offset);
-    device.GetDeviceContext()->IASetIndexBuffer(mesh.GetIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
+    device.GetDeviceContext()->IASetIndexBuffer(mesh.Get().indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 }
 
 void DrawMesh(const InsanityEngine::DX11::Device& device, const DX11::StaticMesh::MeshObject& mesh)
 {
     std::array constantBuffers{ mesh.GetConstantBuffer() };
     device.GetDeviceContext()->VSSetConstantBuffers(DX11::StaticMesh::Registers::VS::objectConstants, static_cast<UINT>(constantBuffers.size()), constantBuffers.data());
-    device.GetDeviceContext()->DrawIndexed(mesh.data.GetMesh()->GetIndexCount(), 0, 0);
+    device.GetDeviceContext()->DrawIndexed(mesh.data.GetMesh()->Get().indexCount, 0, 0);
 }
