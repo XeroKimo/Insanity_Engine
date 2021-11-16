@@ -8,6 +8,10 @@ namespace InsanityEngine
     namespace DX11
     {
         class RenderModule;
+        class Texture2 : public Texture
+        {
+
+        };
     }
 
     template<>
@@ -29,6 +33,11 @@ namespace InsanityEngine
     public:
         DX11::ComPtr<ID3D11ShaderResourceView> GetShaderResource() const { return m_texture.shaderResource; }
         DX11::ComPtr<ID3D11SamplerState> GetSamplerState() const { return m_texture.sampler; }
+    };
+
+    template<>
+    class Resource<DX11::Texture2> : public Resource<DX11::Texture>
+    {
     };
 
 

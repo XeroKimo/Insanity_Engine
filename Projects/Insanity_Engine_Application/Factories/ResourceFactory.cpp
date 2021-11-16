@@ -7,12 +7,12 @@ namespace InsanityEngine
     {
     }
 
-    InsanityEngine::ResourceHandle<UnknownResource>::ResourceHandle(std::nullptr_t)
-    {
-    }
-    ResourceHandle<UnknownResource>& ResourceHandle<UnknownResource>::operator=(std::nullptr_t)
-    {
-        m_resource = nullptr;
-        return *this;
-    }
+    //InsanityEngine::ResourceHandle<UnknownResource>::ResourceHandle(std::nullptr_t)
+    //{
+    //}
+    //ResourceHandle<UnknownResource>& ResourceHandle<UnknownResource>::operator=(std::nullptr_t)
+    //{
+    //    m_resource = nullptr;
+    //    return *this;
+    //}
 }

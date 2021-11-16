@@ -69,6 +69,13 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     //    throw HRESULTException("Failed to create sampler state", hr);
     //}
 
+    std::shared_ptr<Resource<Texture2>> a;
+    std::shared_ptr<UnknownResource> d = a;
+
+    static_assert(std::is_convertible_v<Resource<Texture2>*, UnknownResource*>);
+    ResourceHandle<Texture> b(a);
+    ResourceHandle<UnknownResource> c(a);
+
     ResourceInitializer<Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
     shader = factory.CreateResource<Shader>(shaderData);
 
