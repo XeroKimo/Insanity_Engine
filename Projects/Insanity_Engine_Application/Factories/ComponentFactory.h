@@ -17,31 +17,13 @@ namespace InsanityEngine
     template<class T>
     struct ComponentInitializer;
 
-
-    class UnknownComponent
-    {
-    public:
-        UnknownComponent() = default;
-        UnknownComponent(const UnknownComponent& other) = delete;
-        UnknownComponent(UnknownComponent&& other) noexcept = default;
-
-        UnknownComponent& operator=(const UnknownComponent& other) = delete;
-        UnknownComponent& operator=(UnknownComponent&& other) noexcept = default;
-
-    };
-
     template<class T>
-    class Component : UnknownComponent
-    {
-    };
-
-    template<>
-    struct ComponentInitializer<UnknownComponent>
+    class Component
     {
     };
 
     template<class T>
-    struct ComponentInitializer : ComponentInitializer<UnknownComponent>
+    struct ComponentInitializer
     {
 
     };
@@ -49,13 +31,13 @@ namespace InsanityEngine
     class UnknownComponentCreationCallback
     {
     public:
-        void operator()(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const
+        void operator()(const void* initializer, void* obj) const
         {
             return ForewardCreation(initializer, obj);
         }
 
     private:
-        virtual void ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const = 0;
+        virtual void ForewardCreation(const void*, void* obj) const = 0;
     };
 
 
@@ -79,11 +61,11 @@ namespace InsanityEngine
         }
 
     private:
-        void ForewardCreation(const ComponentInitializer<UnknownComponent>& initializer, void* obj) const override
+        void ForewardCreation(const void* initializer, void* obj) const override
         {
             std::optional<Component<ComponentType>>& opt = *reinterpret_cast<std::optional<Component<ComponentType>>*>(obj);
-
-            opt = m_callback(static_cast<const ComponentInitializer<ComponentType>&>(initializer));
+            const ComponentInitializer<ComponentType>& init = *reinterpret_cast<const ComponentInitializer<ComponentType>*>(initializer);
+            opt = m_callback(init);
         }
     };
 
@@ -110,7 +92,7 @@ namespace InsanityEngine
         Component<ComponentType> CreateComponent(const ComponentInitializer<ComponentType>& initializer)
         {
             std::optional<Component<ComponentType>> obj;
-            (*m_componentCreationCallbacks[typeid(ComponentType)])(initializer, &obj);
+            (*m_componentCreationCallbacks[typeid(ComponentType)])(&initializer, &obj);
             return std::move(obj.value());
         }
 

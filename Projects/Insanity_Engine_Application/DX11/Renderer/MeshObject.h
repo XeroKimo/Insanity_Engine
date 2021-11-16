@@ -63,7 +63,7 @@ namespace InsanityEngine::DX11::StaticMesh
 }
 
 template<>
-struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::ComponentInitializer<InsanityEngine::UnknownComponent>
+struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::MeshObject>
 {
     InsanityEngine::ResourceHandle<InsanityEngine::DX11::Mesh> mesh;
     InsanityEngine::ResourceHandle<InsanityEngine::DX11::StaticMesh::Material> material;
@@ -71,7 +71,7 @@ struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::StaticMesh::Me
 };
 
 template<>
-class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>, public UnknownComponent
+class InsanityEngine::Component<InsanityEngine::DX11::StaticMesh::MeshObject> : public InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>
 {
 private:
     using Base = InsanityEngine::DX11::ManagedHandle<InsanityEngine::DX11::StaticMesh::MeshObject, InsanityEngine::DX11::StaticMesh::Renderer>;
