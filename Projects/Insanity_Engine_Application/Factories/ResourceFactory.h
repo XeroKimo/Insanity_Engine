@@ -75,6 +75,9 @@ namespace InsanityEngine
     template<class T>
     class UserDefinedResourceHandle
     {
+        template<class Others>
+        friend class UserDefinedResourceHandle;
+
     private:
         template<class To, class From>
         friend ResourceHandle<To> StaticResourceCast(const UserDefinedResourceHandle<From>& handle);
@@ -90,18 +93,25 @@ namespace InsanityEngine
         UserDefinedResourceHandle(std::nullptr_t)
         {
         }
+
         UserDefinedResourceHandle(std::shared_ptr<Resource<T>> resource) :
             m_resource(resource)
         {
 
         }
 
-        UserDefinedResourceHandle(const ResourceHandle<T>& other) :
+        template<class Derived>
+        UserDefinedResourceHandle(const UserDefinedResourceHandle<Derived>& other) requires (std::is_convertible_v<Derived*, T*>):
             m_resource(other.m_resource)
         {
         }
 
-        UserDefinedResourceHandle(ResourceHandle<T> && other) noexcept :
+        UserDefinedResourceHandle(const UserDefinedResourceHandle<T>& other) :
+            m_resource(other.m_resource)
+        {
+        }
+
+        UserDefinedResourceHandle(UserDefinedResourceHandle<T> && other) noexcept :
             m_resource(std::move(other.m_resource))
         {
         }
@@ -111,16 +121,21 @@ namespace InsanityEngine
     public:
         UserDefinedResourceHandle& operator=(std::nullptr_t) { m_resource = nullptr; }
 
-        UserDefinedResourceHandle& operator=(const ResourceHandle<T>&other)
+        UserDefinedResourceHandle& operator=(const UserDefinedResourceHandle&other)
         {
             m_resource = other.m_resource;
+            return *this;
         }
-        ResourceHandle<UnknownResource>& operator=(ResourceHandle<T> && other) noexcept
+        UserDefinedResourceHandle& operator=(UserDefinedResourceHandle && other) noexcept
         {
             m_resource = std::move(other.m_resource);
+            return *this;
         }
         bool operator==(std::nullptr_t) const { return m_resource == nullptr; }
         bool operator!=(std::nullptr_t) const { return m_resource != nullptr; }
+
+    public:
+        bool IsValid() const { return m_resource != nullptr; }
 
     protected:
         Resource<T>& GetResource() { return *m_resource; }
