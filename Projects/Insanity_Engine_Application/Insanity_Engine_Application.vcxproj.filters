@@ -33,7 +33,7 @@
     <ClInclude Include="DX11\Resources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX11\Renderer\Camera.h">
+    <ClInclude Include="DX11\Components\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Test Scenes\TriangleRender.h">
@@ -54,10 +54,10 @@
     <ClInclude Include="DX11\Renderer\StaticMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX11\Renderer\MeshObject.h">
+    <ClInclude Include="DX11\Components\StaticMeshInstance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX11\Renderer\Handle.h">
+    <ClInclude Include="DX11\Internal\Handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Factories\ResourceFactory.h">
@@ -104,7 +104,7 @@
     <ClCompile Include="DX11\Resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX11\Renderer\Camera.cpp">
+    <ClCompile Include="DX11\Components\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Test Scenes\TriangleRender.cpp">
@@ -119,7 +119,7 @@
     <ClCompile Include="Test Scenes\TriangleRenderScene2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX11\Renderer\MeshObject.cpp">
+    <ClCompile Include="DX11\Components\StaticMeshInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Factories\ResourceFactory.cpp">

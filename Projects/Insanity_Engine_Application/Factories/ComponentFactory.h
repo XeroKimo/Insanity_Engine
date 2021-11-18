@@ -15,18 +15,10 @@ namespace InsanityEngine
 {
 
     template<class T>
+    class Component;
+
+    template<class T>
     struct ComponentInitializer;
-
-    template<class T>
-    class Component
-    {
-    };
-
-    template<class T>
-    struct ComponentInitializer
-    {
-
-    };
 
     class UnknownComponentCreationCallback
     {

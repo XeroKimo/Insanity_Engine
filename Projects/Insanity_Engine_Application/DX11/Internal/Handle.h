@@ -6,10 +6,6 @@ namespace InsanityEngine::DX11
 {
     //class Renderer;
 
-    template<class T>
-    class Handle
-    {
-    };
 
     template<class ObjectT, class RendererT>
     struct ManagedHandleDeleter
@@ -27,32 +23,33 @@ namespace InsanityEngine::DX11
     };
 
     template<class ObjectT, class RendererT>
-    class ManagedHandle : Handle<ObjectT>
+    class Handle
     {
     private:
         std::unique_ptr<ObjectT, ManagedHandleDeleter<ObjectT, RendererT>> m_object;
 
     public:
-        ManagedHandle() = default;
-        ManagedHandle(std::nullptr_t) {}
-        ManagedHandle(RendererT& renderer, ObjectT& object) :
+        Handle() = default;
+        Handle(std::nullptr_t) {}
+        Handle(RendererT& renderer, ObjectT& object) :
             m_object(&object, ManagedHandleDeleter<ObjectT, RendererT>(renderer))
         {
         }
 
-        ManagedHandle& operator=(std::nullptr_t) { m_object = nullptr; }
+        Handle& operator=(std::nullptr_t) { m_object = nullptr; }
 
         bool operator==(std::nullptr_t) const { return m_object == nullptr; }
         bool operator!=(std::nullptr_t) const { return !((*this) == nullptr); }
 
         operator bool() const { return ((*this) != nullptr); }
 
-        void swap(ManagedHandle& other)
+        void swap(Handle& other)
         {
             m_object.swap(other);
         }
 
     protected:
         ObjectT& Object() const { return *m_object; }
+        RendererT& Renderer() const { return *m_object.get_deleter().renderer; }
     };
 }

@@ -94,8 +94,8 @@
     <ClInclude Include="DX11\Resources\Shader.h" />
     <ClInclude Include="DX11\Resources\Texture.h" />
     <ClInclude Include="Factories\ComponentFactory.h" />
-    <ClInclude Include="DX11\Renderer\Handle.h" />
-    <ClInclude Include="DX11\Renderer\MeshObject.h" />
+    <ClInclude Include="DX11\Internal\Handle.h" />
+    <ClInclude Include="DX11\Components\StaticMeshInstance.h" />
     <ClInclude Include="DX11\Renderer\Renderer.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="DX11\RenderModule.h" />
@@ -107,14 +107,14 @@
     <ClInclude Include="DX11\InputLayouts.h" />
     <ClInclude Include="DX11\Resources.h" />
     <ClInclude Include="DX11\ShaderConstants.h" />
-    <ClInclude Include="DX11\Renderer\Camera.h" />
+    <ClInclude Include="DX11\Components\Camera.h" />
     <ClInclude Include="Factories\ResourceFactory.h" />
     <ClInclude Include="Test Scenes\TriangleRender.h" />
     <ClInclude Include="Test Scenes\TriangleRenderScene2.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
-    <ClCompile Include="DX11\Renderer\MeshObject.cpp" />
+    <ClCompile Include="DX11\Components\StaticMeshInstance.cpp" />
     <ClCompile Include="DX11\Renderer\Renderer.cpp" />
     <ClCompile Include="DX11\RenderModule.cpp" />
     <ClCompile Include="DX11\Resources\Material.cpp" />
@@ -126,7 +126,7 @@
     <ClCompile Include="DX11\Helpers.cpp" />
     <ClCompile Include="DX11\InputLayouts.cpp" />
     <ClCompile Include="DX11\Resources.cpp" />
-    <ClCompile Include="DX11\Renderer\Camera.cpp" />
+    <ClCompile Include="DX11\Components\Camera.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Factories\ResourceFactory.cpp" />
     <ClCompile Include="Test Scenes\TriangleRender.cpp" />

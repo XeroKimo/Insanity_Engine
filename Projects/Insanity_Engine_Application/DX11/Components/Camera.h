@@ -1,14 +1,34 @@
 #pragma once
 #include "../CommonInclude.h"
 #include "Insanity_Math.h"
-#include "Handle.h"
+#include "../Internal/Handle.h"
+#include "../../Factories/ComponentFactory.h"
+#include "../Resources/Texture.h"
 
 namespace InsanityEngine::DX11
 {
+    namespace StaticMesh
+    {
+        class Renderer;
+    }
+
     struct ClipPlane
     {
-        float Near = 1000.f;
-        float Far = 0.0003f;
+        float Near = 0.0003f; 
+        float Far = 1000.f;
+    };
+
+    struct Camera
+    {
+        ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+        ComPtr<ID3D11DepthStencilView> m_depthStencilView;
+        ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+        Math::Types::Vector3f position;
+        Math::Types::Quaternion<float> rotation;
+
+        float fov = 90;
+        ClipPlane clipPlane;
     };
 
     class CameraData
@@ -66,19 +86,16 @@ namespace InsanityEngine::DX11
 
         ID3D11Buffer* GetConstantBuffer() const { return m_cameraConstants.Get(); }
     };
-
-
-
-    //class CameraHandle : public ManagedHandle<CameraObject>
-    //{
-    //public:
-    //    using ManagedHandle<CameraObject>::ManagedHandle;
-
-    //public:
-    //    void SetPosition(Math::Types::Vector3f position);
-    //    void SetRotation(Math::Types::Quaternion<float> rotation);
-
-    //    Math::Types::Vector3f GetPosition() const { return Object().data.position; }
-    //    Math::Types::Quaternion<float> GetRotation() const { return Object().data.rotation; }
-    //};
 }
+
+template<>
+struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::Camera> 
+{
+    InsanityEngine::ResourceHandle<InsanityEngine::DX11::Texture> optionalTexture;
+};
+
+template<>
+struct InsanityEngine::Component<InsanityEngine::DX11::Camera> : public InsanityEngine::DX11::Handle<InsanityEngine::DX11::Camera, InsanityEngine::DX11::StaticMesh::Renderer>
+{
+
+};

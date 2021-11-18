@@ -11,23 +11,23 @@
 
 namespace InsanityEngine
 {
-    template<class FunctionSig, class OptClass>
-    struct FunctionPointerImpl;
+    //template<class FunctionSig, class OptClass>
+    //struct FunctionPointerImpl;
 
-    template<class RetType, class... Params>
-    struct FunctionPointerImpl<RetType(Params...), void>
-    {
-        using type = RetType(*)(Params...);
-    };
+    //template<class RetType, class... Params>
+    //struct FunctionPointerImpl<RetType(Params...), void>
+    //{
+    //    using type = RetType(*)(Params...);
+    //};
 
-    template<class RetType, class... Params, class Type>
-    struct FunctionPointerImpl<RetType(Params...), Type>
-    {
-        using type = RetType(Type::*)(Params...);
-    };
+    //template<class RetType, class... Params, class Type>
+    //struct FunctionPointerImpl<RetType(Params...), Type>
+    //{
+    //    using type = RetType(Type::*)(Params...);
+    //};
 
-    template<class FunctionSig, class OptClass = void>
-    using FunctionPointer = typename FunctionPointerImpl<FunctionSig, OptClass>::type;
+    //template<class FunctionSig, class OptClass = void>
+    //using FunctionPointer = typename FunctionPointerImpl<FunctionSig, OptClass>::type;
 
 
 
@@ -272,6 +272,10 @@ namespace InsanityEngine
         T resource;
     };
 
+
+
+    template <class ResourceType>
+    using ResourceCreationFunction = std::function<std::shared_ptr<Resource<ResourceType>>(const ResourceInitializer<ResourceType>& initializer)>;
     class UnknownResourceCreationCallback
     {
     public:
@@ -283,10 +287,6 @@ namespace InsanityEngine
     private:
         virtual ResourceHandle<UnknownResource> ForewardCreation(const ResourceInitializer<UnknownResource>& initializer) const = 0;
     };
-
-
-    template <class ResourceType>
-    using ResourceCreationFunction = std::function<std::shared_ptr<Resource<ResourceType>>(const ResourceInitializer<ResourceType>& initializer)>;
 
 
     template <class ResourceType>
@@ -312,6 +312,10 @@ namespace InsanityEngine
     };
 
 
+
+    template <class ResourceType>
+    using ResourceGetterFunction = std::function<std::shared_ptr<Resource<ResourceType>>(std::string_view name)>;
+
     class UnknownResourceGetterCallback
     {
     public:
@@ -329,7 +333,7 @@ namespace InsanityEngine
     template <class ResourceType, class CreatorType>
     class ResourceGetterCallback : public UnknownResourceGetterCallback
     {
-        using CallbackType = FunctionPointer<std::shared_ptr<Resource<ResourceType>>(std::string_view name), CreatorType>;
+        using CallbackType = ResourceGetterFunction<ResourceType>;
     private:
         CreatorType* m_creator = nullptr;
         CallbackType m_callback = nullptr;

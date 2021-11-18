@@ -12,7 +12,7 @@ namespace InsanityEngine::Math::Scalar
 
     public:
         constexpr Scalar() = default;
-        constexpr Scalar(T value) : value(value) {}
+        explicit constexpr Scalar(T value) : value(value) {}
 
 
     };

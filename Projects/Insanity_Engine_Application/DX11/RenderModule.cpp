@@ -15,7 +15,7 @@ namespace InsanityEngine::DX11
         resourceFactory.AddResourceCreationCallback<Shader>([&](const ResourceInitializer<Shader>& init) { return this->CreateShader(init); });
         resourceFactory.AddResourceCreationCallback<StaticMesh::Material>([&](const ResourceInitializer<StaticMesh::Material>& init) { return this->CreateMaterial(init); });
 
-        componentFactory.RegisterComponentCreationCallback<StaticMesh::MeshObject>([&](const ComponentInitializer<StaticMesh::MeshObject>& init) { return m_renderer.CreateMesh(init.mesh, init.material); });
+        componentFactory.RegisterComponentCreationCallback<StaticMesh::Instance>([&](const ComponentInitializer<StaticMesh::Instance>& init) { return m_renderer.CreateMesh(init.mesh, init.material); });
 
         D3D11_SAMPLER_DESC samplerDesc;
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;

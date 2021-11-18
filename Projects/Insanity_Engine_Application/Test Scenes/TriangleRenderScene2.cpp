@@ -14,11 +14,11 @@ using namespace InsanityEngine::DX11;
 using namespace InsanityEngine::Debug::Exceptions;
 using namespace InsanityEngine::Math::Types;
 
-static Component<DX11::StaticMesh::MeshObject> mesh;
-static Component<DX11::StaticMesh::MeshObject> mesh2;
-static Component<DX11::StaticMesh::MeshObject> mesh3;
-static Component<DX11::StaticMesh::MeshObject> mesh4;
-static Component<DX11::StaticMesh::MeshObject> mesh5;
+static Component<DX11::StaticMesh::Instance> mesh;
+static Component<DX11::StaticMesh::Instance> mesh2;
+static Component<DX11::StaticMesh::Instance> mesh3;
+static Component<DX11::StaticMesh::Instance> mesh4;
+static Component<DX11::StaticMesh::Instance> mesh5;
 //static DX11::StaticMesh::CameraHandle camera;
 
 static ResourceHandle<Mesh> meshRes;
@@ -47,34 +47,10 @@ static bool ctrlPressed = false;
 void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Window& window, ResourceFactory& factory, ComponentFactory& componentFactory)
 {
 
-    //D3D11_SAMPLER_DESC samplerDesc;
-    //samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    //samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    //samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    //samplerDesc.BorderColor[0] = 1.0f;
-    //samplerDesc.BorderColor[1] = 1.0f;
-    //samplerDesc.BorderColor[2] = 1.0f;
-    //samplerDesc.BorderColor[3] = 1.0f;
-    //samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    //samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    //samplerDesc.MaxAnisotropy = 1;
-    //samplerDesc.MipLODBias = 0;
-    //samplerDesc.MinLOD = -FLT_MAX;
-    //samplerDesc.MaxLOD = FLT_MAX;
-
-    //ComPtr<ID3D11SamplerState> samplerState;
-    //HRESULT hr = device.GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
-    //if(FAILED(hr))
-    //{
-    //    throw HRESULTException("Failed to create sampler state", hr);
-    //}
-
-    ResourceInitializer<Shader> shaderData{ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" };
-    shader = factory.CreateResource<Shader>(shaderData);
+    shader = factory.CreateResource<Shader>({ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" });
 
 
     tex = factory.CreateResource<Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png"});
-    //tex = std::shared_ptr<Resources::Texture>(test, &test->Get()); //std::make_shared<Resources::Texture>(Resources::CreateTexture(device.GetDevice(), L"Resources/Korone_NotLikeThis.png", samplerState));
     tex2 = factory.CreateResource<Texture>({ "Resources/Dank.png", L"Resources/Dank.png" });
 
     auto vertices = std::to_array(
@@ -98,11 +74,11 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     mat5 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 1, 1 ,0, 1 } });
 
 
-    mesh = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>( { meshRes,  mat });
-    mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ meshRes,  mat2 });
-    mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ meshRes,  mat3 });
-    mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ meshRes,  mat4 });
-    mesh5 = componentFactory.CreateComponent<DX11::StaticMesh::MeshObject>({ meshRes,  mat5 });
+    mesh = componentFactory.CreateComponent< DX11::StaticMesh::Instance>( { meshRes,  mat });
+    mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat2 });
+    mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat3 });
+    mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat4 });
+    mesh5 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat5 });
 
     mesh.SetPosition({ 0, 0, 2 });
     mesh2.SetPosition({ 1, 0, 2 });
@@ -318,7 +294,7 @@ void TriangleRenderUpdate2(float dt)
     mesh4.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh5.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
 
-    Component<DX11::StaticMesh::MeshObject> test{ std::move(mesh) };
+    Component<DX11::StaticMesh::Instance> test{ std::move(mesh) };
     mesh = std::move(test);
 
     static float accumulatedTime = 0;
