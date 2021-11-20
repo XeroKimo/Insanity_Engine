@@ -66,4 +66,21 @@ namespace InsanityEngine::DX11::Helpers
 
         return DirectX::CreateShaderResourceView(device, flippedImage.GetImage(0, 0, 0), 1, metaData, shaderResourceView);
     }
+    Math::Types::Vector2f GetTextureResolution(ID3D11RenderTargetView& renderTarget)
+    {
+        ComPtr<ID3D11Resource> resource;
+        renderTarget.GetResource(&resource);
+
+        ComPtr<ID3D11Texture2D> texture;
+        resource.As(&texture);
+
+        return GetTextureResolution(*texture.Get());
+    }
+    Math::Types::Vector2f GetTextureResolution(ID3D11Texture2D& texture)
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        texture.GetDesc(&desc);
+
+        return Math::Types::Vector2f(static_cast<float>(desc.Width), static_cast<float>(desc.Height));
+    }
 }

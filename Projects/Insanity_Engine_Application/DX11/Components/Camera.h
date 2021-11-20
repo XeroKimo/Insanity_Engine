@@ -7,6 +7,7 @@
 
 namespace InsanityEngine::DX11
 {
+    class RenderModule;
     namespace StaticMesh
     {
         class Renderer;
@@ -20,71 +21,20 @@ namespace InsanityEngine::DX11
 
     struct Camera
     {
-        ComPtr<ID3D11RenderTargetView> m_renderTargetView;
-        ComPtr<ID3D11DepthStencilView> m_depthStencilView;
-        ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+        ComPtr<ID3D11Buffer> constantBuffer;
+        ComPtr<ID3D11RenderTargetView> renderTargetView;
+        ComPtr<ID3D11DepthStencilView> depthStencilView;
+        ComPtr<ID3D11DepthStencilState> depthStencilState;
 
         Math::Types::Vector3f position;
         Math::Types::Quaternion<float> rotation;
 
         float fov = 90;
         ClipPlane clipPlane;
-    };
-
-    class CameraData
-    {
-    private:
-        template<class T>
-        using ComPtr = DX11::ComPtr<T>;
-
-
-    private:
-        ComPtr<ID3D11RenderTargetView> m_renderTargetView;
-        ComPtr<ID3D11DepthStencilView> m_depthStencilView;
-        ComPtr<ID3D11DepthStencilState> m_depthStencilState;
 
     public:
-        Math::Types::Vector3f position;
-        Math::Types::Quaternion<float> rotation;
-        float fov = 90;
-        ClipPlane clipPlane;
-        
-    public:
-        CameraData(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr, ComPtr<ID3D11DepthStencilState> depthStencilState = nullptr);
-
-    public:
-        void SetTargets(ComPtr<ID3D11RenderTargetView> renderTarget, ComPtr<ID3D11DepthStencilView> depthStencil = nullptr);
-        void SetDepthStencilState(ComPtr<ID3D11DepthStencilState> depthStencilState);
-
-    public:
-        ID3D11RenderTargetView* GetRenderTargetView() const { return m_renderTargetView.Get(); }
-        ID3D11DepthStencilView* GetDepthStencilView() const { return m_depthStencilView.Get(); }
-        ID3D11DepthStencilState* GetDepthStencilState() const { return m_depthStencilState.Get(); }
-
         Math::Types::Matrix4x4f GetViewMatrix() const;
         Math::Types::Matrix4x4f GetPerspectiveMatrix() const;
-
-        Math::Types::Vector2f GetRenderTargetResolution() const;
-    };
-
-
-    class CameraObject
-    {
-        template<class T>
-        using ComPtr = Microsoft::WRL::ComPtr<T>;
-    private:
-        ComPtr<ID3D11Buffer> m_cameraConstants;
-
-    public:
-        CameraData data;
-
-    public:
-        CameraObject(ComPtr<ID3D11Buffer> cameraConstants, CameraData&& camera);
-
-
-    public:
-
-        ID3D11Buffer* GetConstantBuffer() const { return m_cameraConstants.Get(); }
     };
 }
 
@@ -95,7 +45,22 @@ struct InsanityEngine::ComponentInitializer<InsanityEngine::DX11::Camera>
 };
 
 template<>
-struct InsanityEngine::Component<InsanityEngine::DX11::Camera> : public InsanityEngine::DX11::Handle<InsanityEngine::DX11::Camera, InsanityEngine::DX11::StaticMesh::Renderer>
+class InsanityEngine::Component<InsanityEngine::DX11::Camera> : public InsanityEngine::DX11::Handle<InsanityEngine::DX11::Camera, InsanityEngine::DX11::RenderModule>
 {
+    using Base = InsanityEngine::DX11::Handle<InsanityEngine::DX11::Camera, InsanityEngine::DX11::RenderModule>;
+public:
+    using Base::Handle;
 
+public:
+    void SetPosition(Math::Types::Vector3f position);
+    void SetRotation(Math::Types::Quaternion<float> rotation);
+
+    void Translate(Math::Types::Vector3f position);
+    void Rotate(Math::Types::Quaternion<float> rotation);
+
+    void SetClipPlane(InsanityEngine::DX11::ClipPlane plane);
+
+    Math::Types::Vector3f GetPosition() const { return Object().position; }
+    Math::Types::Quaternion<float> GetRotation() const { return Object().rotation; }
+    InsanityEngine::DX11::ClipPlane GetClipPlane() const { return Object().clipPlane; }
 };

@@ -1,7 +1,11 @@
 #include "TriangleRenderScene2.h"
 #include "../DX11/Device.h"
 #include "../DX11/Window.h"
+#include "../DX11/Components/Camera.h"
+#include "../DX11/Components/StaticMeshInstance.h"
 #include "../DX11/Renderer/Renderer.h"
+#include "../DX11/RenderModule.h"
+//#include "../DX11/Resources/
 #include "../Factories/ResourceFactory.h"
 #include "../Factories/ComponentFactory.h"
 
@@ -19,6 +23,7 @@ static Component<DX11::StaticMesh::Instance> mesh2;
 static Component<DX11::StaticMesh::Instance> mesh3;
 static Component<DX11::StaticMesh::Instance> mesh4;
 static Component<DX11::StaticMesh::Instance> mesh5;
+static Component<DX11::Camera> camera;
 //static DX11::StaticMesh::CameraHandle camera;
 
 static ResourceHandle<Mesh> meshRes;
@@ -46,9 +51,7 @@ static bool ctrlPressed = false;
 
 void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::DX11::Window& window, ResourceFactory& factory, ComponentFactory& componentFactory)
 {
-
     shader = factory.CreateResource<Shader>({ "wtf", L"Resources/Shaders/VertexShader.hlsl",  L"Resources/Shaders/PixelShader.hlsl" });
-
 
     tex = factory.CreateResource<Texture>({ "Resources/Korone_NotLikeThis.png", L"Resources/Korone_NotLikeThis.png"});
     tex2 = factory.CreateResource<Texture>({ "Resources/Dank.png", L"Resources/Dank.png" });
@@ -74,7 +77,7 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     mat5 = factory.CreateResource<StaticMesh::Material>({"Test",  shader, tex2, { 1, 1 ,0, 1 } });
 
 
-    mesh = componentFactory.CreateComponent< DX11::StaticMesh::Instance>( { meshRes,  mat });
+    mesh =  componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat });
     mesh2 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat2 });
     mesh3 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat3 });
     mesh4 = componentFactory.CreateComponent<DX11::StaticMesh::Instance>({ meshRes,  mat4 });
@@ -86,71 +89,7 @@ void TriangleRenderSetup2(InsanityEngine::DX11::Device& device, InsanityEngine::
     mesh4.SetPosition({ 0, 1, 2 });
     mesh5.SetPosition({ 0, -1, 2 });
 
-    //mesh2.GetMaterial()->color = { 1, 0 ,0, 1 };
-    //mesh3.GetMaterial()->color = { 0, 1 ,0, 1 };
-    //mesh4.GetMaterial()->color = { 0, 0 ,1, 1 };
-    //mesh5.GetMaterial()->color = { 1, 1 ,0, 1 };
-
-
-    ComPtr<ID3D11Resource> resource;
-    window.GetBackBuffer()->GetResource(&resource);
-
-    ComPtr<ID3D11Texture2D> texture;
-    resource.As(&texture);
-
-    D3D11_TEXTURE2D_DESC textureDesc = {};
-    texture->GetDesc(&textureDesc);
-
-    textureDesc.MipLevels = 0;
-    textureDesc.ArraySize = 1;
-    textureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-    ComPtr<ID3D11Texture2D> depthStencilTexture;
-    HRESULT hr = device.GetDevice()->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
-
-    if(FAILED(hr))
-    {
-        throw HRESULTException("Failed to create depth stencil texture", hr);
-    }
-
-    D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc;
-    depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    depthStencilDesc.Flags = 0;
-    depthStencilDesc.Texture2D.MipSlice = 0;
-
-    ComPtr<ID3D11DepthStencilView> depthStencilView;
-    hr = device.GetDevice()->CreateDepthStencilView(depthStencilTexture.Get(), &depthStencilDesc, &depthStencilView);
-
-    if(FAILED(hr))
-    {
-        throw HRESULTException("Failed to create depth stencil view", hr);
-    }
-
-
-    D3D11_DEPTH_STENCIL_DESC desc{};
-
-    desc.DepthEnable = true;
-    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    desc.DepthFunc = D3D11_COMPARISON_LESS;
-    desc.StencilEnable = false;
-    desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-    desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-    desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-    desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-    desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-    desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-    desc.BackFace = desc.FrontFace;
-
-    ComPtr<ID3D11DepthStencilState> depthStencilState;
-    device.GetDevice()->CreateDepthStencilState(&desc, &depthStencilState);
-
-
-    CameraData data(window.GetBackBuffer(), depthStencilView, depthStencilState);
-    data.clipPlane.Near = 0.0001f;
-    data.clipPlane.Far = 1000.f;
-    //camera = renderer.CreateCamera(data);
+    camera = componentFactory.CreateComponent<Camera>({});
 }
 void TriangleRenderInput2(SDL_Event event)
 {
@@ -246,47 +185,47 @@ void TriangleRenderUpdate2(float dt)
         axis.y() += 1;
     }
 
-    //if(!ctrlPressed)
-    //{
-    //    if(upPressed)
-    //    {
-    //        cameraDirection.z() += 1;
-    //    }
-    //    if(downPressed)
-    //    {
-    //        cameraDirection.z() -= 1;
-    //    }
-    //    if(leftPressed)
-    //    {
-    //        cameraDirection.x() -= 1;
-    //    }
-    //    if(rightPressed)
-    //    {
-    //        cameraDirection.x() += 1;
-    //    }
-    //}
-    //else
-    //{
-    //    if(upPressed)
-    //    {
-    //        cameraRotation.x() += 1;
-    //    }
-    //    if(downPressed)
-    //    {
-    //        cameraRotation.x() -= 1;
-    //    }
-    //    if(leftPressed)
-    //    {
-    //        cameraRotation.y() -= 1;
-    //    }
-    //    if(rightPressed)
-    //    {
-    //        cameraRotation.y() += 1;
-    //    }
-    //}
+    if(!ctrlPressed)
+    {
+        if(upPressed)
+        {
+            cameraDirection.z() += 1;
+        }
+        if(downPressed)
+        {
+            cameraDirection.z() -= 1;
+        }
+        if(leftPressed)
+        {
+            cameraDirection.x() -= 1;
+        }
+        if(rightPressed)
+        {
+            cameraDirection.x() += 1;
+        }
+    }
+    else
+    {
+        if(upPressed)
+        {
+            cameraRotation.x() += 1;
+        }
+        if(downPressed)
+        {
+            cameraRotation.x() -= 1;
+        }
+        if(leftPressed)
+        {
+            cameraRotation.y() -= 1;
+        }
+        if(rightPressed)
+        {
+            cameraRotation.y() += 1;
+        }
+    }
 
-    //camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
-    //camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
+    camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
+    camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
 
     mesh.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
     mesh2.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));
@@ -316,5 +255,5 @@ void TriangleRenderShutdown2()
     mesh3 = nullptr;
     mesh4 = nullptr;
     mesh5 = nullptr;
-    //camera = nullptr;
+    camera = nullptr;
 }

@@ -33,6 +33,8 @@ namespace InsanityEngine
         using Base = UserDefinedResourceHandle<DX11::Mesh>;
         friend class DX11::StaticMesh::Renderer;
 
+        template<class T>
+        friend class Component;
     public:
         using Base::UserDefinedResourceHandle;
     };

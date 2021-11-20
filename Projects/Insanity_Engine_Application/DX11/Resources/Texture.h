@@ -40,6 +40,8 @@ namespace InsanityEngine
         using Base = UserDefinedResourceHandle<DX11::Texture>;
         friend class DX11::RenderModule;
 
+        template<class T>
+        friend class Component;
     public:
         using Base::UserDefinedResourceHandle;
     };

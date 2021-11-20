@@ -4,6 +4,7 @@
 #include "DirectXTex/DirectXTex.h"
 #include <span>
 #include <string_view>
+#include <optional>
 
 namespace InsanityEngine::DX11::Helpers
 {
@@ -67,4 +68,7 @@ namespace InsanityEngine::DX11::Helpers
     }
 
     extern HRESULT CreateTextureFromFile(ID3D11Device* device, ID3D11ShaderResourceView** shaderResourceView, std::wstring_view file, DirectX::WIC_FLAGS flags);
+
+    extern Math::Types::Vector2f GetTextureResolution(ID3D11RenderTargetView& renderTarget);
+    extern Math::Types::Vector2f GetTextureResolution(ID3D11Texture2D& texture);
 }
