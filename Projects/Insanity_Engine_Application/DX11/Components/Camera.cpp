@@ -13,7 +13,7 @@ namespace InsanityEngine
 {
     Math::Types::Matrix4x4f Camera::GetViewMatrix() const
     {
-        return Math::Matrix::PositionMatrix(-position) * rotation.ToRotationMatrix();
+        return (-rotation).ToRotationMatrix() * Math::Matrix::PositionMatrix(-position);
     }
     Math::Types::Matrix4x4f Camera::GetPerspectiveMatrix() const
     {
@@ -35,6 +35,11 @@ namespace InsanityEngine
     {
         SetPosition(GetPosition() + position);
     }
+        
+    void Component<Camera>::TranslateDirectional(Math::Types::Vector3f direction)
+    {
+        SetPosition(GetPosition() + Math::Types::Vector3f(GetRotation().ToRotationMatrix() * Math::Types::Vector4f(direction, 1)));
+    }
     void Component<Camera>::Rotate(Math::Types::Quaternion<float> rotation)
     {
         SetRotation(GetRotation() * rotation);
@@ -44,4 +49,9 @@ namespace InsanityEngine
     {
         Object().clipPlane = plane;
     }
+
+    //Vector3f Component<Camera>::GetLookDirection()
+    //{
+    //    return GetRotation().ToRotationMatrix() * Vector4f(0, 0, 1, 1);
+    //}
 }

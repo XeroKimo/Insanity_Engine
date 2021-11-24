@@ -216,15 +216,15 @@ void TriangleRenderUpdate2(float dt)
         }
         if(leftPressed)
         {
-            cameraRotation.y() -= 1;
+            cameraRotation.z() -= 1;
         }
         if(rightPressed)
         {
-            cameraRotation.y() += 1;
+            cameraRotation.z() += 1;
         }
     }
 
-    camera.SetPosition(camera.GetPosition() + cameraDirection * 20.f * dt);
+    camera.TranslateDirectional(cameraDirection * 20.f * dt);
     camera.SetRotation(camera.GetRotation() * Quaternion<float>(cameraRotation, Degrees(20.f * dt)));
 
     mesh.Rotate(Quaternion<float>(Vector3f(axis, 0), Degrees<float>(90.f * dt)));

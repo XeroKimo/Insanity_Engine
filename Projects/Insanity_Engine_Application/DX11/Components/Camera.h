@@ -56,11 +56,17 @@ public:
     void SetRotation(Math::Types::Quaternion<float> rotation);
 
     void Translate(Math::Types::Vector3f position);
+    void TranslateDirectional(Math::Types::Vector3f direction);
     void Rotate(Math::Types::Quaternion<float> rotation);
 
     void SetClipPlane(InsanityEngine::DX11::ClipPlane plane);
 
-    Math::Types::Vector3f GetPosition() const { return Object().position; }
-    Math::Types::Quaternion<float> GetRotation() const { return Object().rotation; }
+    Math::Types::Vector3f GetLookDirection() const
+    {
+        return GetRotation().ToRotationMatrix() * Math::Types::Vector4f(0, 0, 1, 1);
+    }
+
+    Math::Types::Vector3f& GetPosition() const { return Object().position; }
+    Math::Types::Quaternion<float>& GetRotation() const { return Object().rotation; }
     InsanityEngine::DX11::ClipPlane GetClipPlane() const { return Object().clipPlane; }
 };
