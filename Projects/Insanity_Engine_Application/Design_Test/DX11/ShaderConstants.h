@@ -2,7 +2,7 @@
 #include "CommonInclude.h"
 #include "Insanity_Math.h"
 
-namespace InsanityEngine::DX11::StaticMesh
+namespace InsanityEngine::DX11::ShaderConstants
 {
     namespace Registers
     {
@@ -22,26 +22,23 @@ namespace InsanityEngine::DX11::StaticMesh
             inline constexpr UINT materialConstants = 2;
         }
     };
-    namespace Constants
+    struct Application
     {
-        struct Application
-        {
 
-        };
+    };
 
-        struct Camera
-        {
-            Math::Types::Matrix4x4f viewProjMatrix;
-        };
+    struct Camera
+    {
+        Math::Types::Matrix4x4f viewProjMatrix;
+    };
 
-        struct VSMesh
-        {
-            Math::Types::Matrix4x4f worldMatrix;
-        };
+    struct VSMesh
+    {
+        Math::Types::Matrix4x4f worldMatrix;
+    };
 
-        struct PSMaterial
-        {
-            Math::Types::Vector4f color;
-        };
-    }
+    struct PSMaterial
+    {
+        Math::Types::Vector4f color;
+    };
 }
