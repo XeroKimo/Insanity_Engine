@@ -48,7 +48,7 @@ namespace InsanityEngine::DX11
 
         desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        desc.DepthFunc = D3D11_COMPARISON_LESS;
+        desc.DepthFunc = D3D11_COMPARISON_GREATER;
         desc.StencilEnable = false;
         desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
         desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
@@ -97,7 +97,7 @@ namespace InsanityEngine::DX11
             rect.bottom = static_cast<LONG>(targetResolution.y());
 
             Helpers::ClearRenderTargetView(m_device.GetDeviceContext(), camera.renderTargetView.Get(), { 0, 0.3f, 0.7f, 1 });
-            m_device.GetDeviceContext()->ClearDepthStencilView(camera.depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+            m_device.GetDeviceContext()->ClearDepthStencilView(camera.depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
 
             m_device.GetDeviceContext()->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), camera.depthStencilView.Get());
             m_device.GetDeviceContext()->OMSetDepthStencilState(camera.depthStencilState.Get(), 0);

@@ -21,7 +21,7 @@ namespace InsanityEngine::DX11::StaticMesh
         ResourceHandle<Material> material;
 
         Math::Types::Vector3f position;
-        Math::Types::Vector3f scale;
+        Math::Types::Vector3f scale = Math::Types::Scalar(1.f);
         Math::Types::Quaternion<float> rotation;
     };
 
