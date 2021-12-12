@@ -1,53 +1,27 @@
 #pragma once
 #include "CommonInclude.h"
-#include "Resources.h"
-#include "../Factories/ResourceFactory.h"
-#include "../Factories/ComponentFactory.h"
-#include "Components/Camera.h"
-#include "Renderer/Renderer.h"
-
-
-
+#include "Device.h"
+#include "Insanity_Math.h"
+#include "Window.h"
+#include <string_view>
+#include <vector>
 
 namespace InsanityEngine::DX11
 {
-    class Device;
-
     class RenderModule
     {
-        template<class ObjectT, class Renderer>
-        friend struct ManagedHandleDeleter;
     private:
-        StaticMesh::Renderer m_renderer;
-        ComPtr<ID3D11SamplerState> m_defaultSampler;
-        ComPtr<ID3D11DepthStencilState> m_defaultDepthStencilState;
-        ComPtr<IDXGISwapChain4> m_swapChain;
-
-        Device& m_device;
-        Window& m_window;
-
-    private:
-        std::vector<std::unique_ptr<Camera>> m_cameras;
-
-        Camera* m_mainCamera;
+        Device m_device;
 
     public:
-        RenderModule(ResourceFactory& resourceFactory, ComponentFactory& componentFactory, Device& device, Window& window);
+        template<class RendererTy>
+        Window<RendererTy> WindowCreate(std::string_view windowName, Math::Types::Vector2f windowSize)
+        {
+            return Window<RendererTy>(m_device, windowName, windowSize);
+        }
 
     public:
-        void Update(float deltaTime);
-        void Draw();
-
-    public:
-        std::shared_ptr<Resource<Texture>> CreateTexture(const ResourceInitializer<Texture>& initilaizer);
-        std::shared_ptr<Resource<Mesh>> CreateMesh(const ResourceInitializer<Mesh>& initilaizer);
-        std::shared_ptr<Resource<Shader>> CreateShader(const ResourceInitializer<Shader>& initilaizer);
-        std::shared_ptr<Resource<StaticMesh::Material>> CreateMaterial(const ResourceInitializer<StaticMesh::Material>& initializer);
-
-        Component<Camera> CreateCamera(const ComponentInitializer<Camera>& initializer);
-
-    private:
-        void Destroy(Camera* camera);
+        ID3D11Device5& GetDevice() const { return m_device.GetDevice(); }
+        ID3D11DeviceContext4& GetDeviceContext() const { return m_device.GetDeviceContext(); }
     };
-
 }

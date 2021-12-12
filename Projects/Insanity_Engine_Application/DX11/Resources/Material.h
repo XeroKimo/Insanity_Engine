@@ -1,58 +1,40 @@
 #pragma once
+
 #include "../CommonInclude.h"
-#include "Shader.h"
 #include "Texture.h"
-#include "../../Factories/ResourceFactory.h"
+#include "Shader.h"
+#include "Wrappers/ResourceWrapper.h"
 #include "Insanity_Math.h"
-#include <memory>
+
+namespace InsanityEngine::DX11::StaticMesh
+{
+    struct Material
+    {
+        ResourceHandle<Texture> texture;
+        ResourceHandle<Shader> shader;
+        Math::Types::Vector4f color;
+    };
+
+}
 
 namespace InsanityEngine
 {
-    namespace DX11
-    {
-        struct Texture;
-        struct Shader;
-
-
-        namespace StaticMesh
-        {
-            class Renderer;
-            struct Material
-            {
-                DX11::ComPtr<ID3D11Buffer> constantBuffer;
-                std::shared_ptr<Resource<Shader>> shader;
-                std::shared_ptr<Resource<Texture>> albedo;
-                Math::Types::Vector4f color;
-            };
-        }
-    }
-
     template<>
-    struct ResourceInitializer<DX11::StaticMesh::Material> : public ResourceInitializer<UnknownResource>
+    struct Resource<DX11::StaticMesh::Material>
     {
-        ResourceHandle<DX11::Shader> shader;
-        ResourceHandle<DX11::Texture> albedo;
-        Math::Types::Vector4f color{ Math::Types::Scalar(1) };
+        DX11::StaticMesh::Material resource;
+        DX11::ComPtr<ID3D11Buffer> constantBuffer;
     };
 
-
     template<>
-    class ResourceHandle<DX11::StaticMesh::Material> : public UserDefinedResourceHandle<DX11::StaticMesh::Material>
+    class ResourceHandle<DX11::StaticMesh::Material> : public SharedResourceHandle<DX11::StaticMesh::Material>
     {
-        using Base = UserDefinedResourceHandle<DX11::StaticMesh::Material>;
-        friend class DX11::StaticMesh::Renderer;
-
-        template<class T>
-        friend class Component;
     public:
-        using Base::UserDefinedResourceHandle;
+        using SharedResourceHandle::SharedResourceHandle;
 
     public:
-        void SetColor(Math::Types::Vector4f color);
-
-        std::shared_ptr<Resource<DX11::Shader>> GetShader() const { return GetResource().Get().shader; }
-        std::shared_ptr<Resource<DX11::Texture>> GetAlbedo() const { return GetResource().Get().albedo; }
-        Math::Types::Vector4f GetColor() const { return GetResource().Get().color; }
-
+        ResourceHandle<DX11::Texture> GetTexture() const { return GetUnderlyingResource()->resource.texture; }
+        ResourceHandle<DX11::Shader> GetShader() const { return GetUnderlyingResource()->resource.shader; }
+        Math::Types::Vector4f GetColor() const { return GetUnderlyingResource()->resource.color;        }
     };
 }

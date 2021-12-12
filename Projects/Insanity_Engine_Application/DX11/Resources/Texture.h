@@ -1,48 +1,34 @@
 #pragma once
 #include "../CommonInclude.h"
-#include "../Internal/Resources.h"
-#include "../../Factories/ResourceFactory.h"
+#include "Wrappers/ResourceWrapper.h"
+#include <memory>
+
+namespace InsanityEngine::DX11
+{
+    class Renderer;
+
+    struct Texture
+    {
+        ComPtr<ID3D11ShaderResourceView> shaderResource;
+        //ComPtr<ID3D11SamplerState> samplerState;
+    };
+}
 
 namespace InsanityEngine
 {
-    namespace DX11
-    {
-        class RenderModule;
-
-    }
-
     template<>
-    struct ResourceInitializer<DX11::Texture> : public ResourceInitializer<UnknownResource>
+    struct Resource<DX11::Texture>
     {
-        std::wstring_view textureName;
+
+        DX11::Texture texture;
+
+        //ID3D11SamplerState& GetSamplerState() const { return *m_texture.samplerState.Get(); }
     };
 
-
     template<>
-    class Resource<DX11::Texture> : public UnknownResource
+    class ResourceHandle<DX11::Texture> : public SharedResourceHandle<DX11::Texture>
     {
-    private:
-        DX11::Texture m_texture;
-
     public:
-        Resource(std::string_view name, DX11::Texture texture);
-
-    public:
-        DX11::ComPtr<ID3D11ShaderResourceView> GetShaderResource() const { return m_texture.shaderResource; }
-        DX11::ComPtr<ID3D11SamplerState> GetSamplerState() const { return m_texture.sampler; }
-    };
-
-
-
-    template<>
-    class ResourceHandle<DX11::Texture> : public UserDefinedResourceHandle<DX11::Texture>
-    {
-        using Base = UserDefinedResourceHandle<DX11::Texture>;
-        friend class DX11::RenderModule;
-
-        template<class T>
-        friend class Component;
-    public:
-        using Base::UserDefinedResourceHandle;
+        using SharedResourceHandle::SharedResourceHandle;
     };
 }

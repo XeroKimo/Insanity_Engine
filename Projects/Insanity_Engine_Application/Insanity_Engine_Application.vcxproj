@@ -88,36 +88,36 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Design_Test\Application\Application.h" />
-    <ClInclude Include="Design_Test\DX11\CommonInclude.h" />
-    <ClInclude Include="Design_Test\DX11\Components\Camera.h" />
-    <ClInclude Include="Design_Test\DX11\Components\RendererComponent.h" />
-    <ClInclude Include="Design_Test\DX11\Components\StaticMeshInstance.h" />
-    <ClInclude Include="Design_Test\DX11\Device.h" />
-    <ClInclude Include="Design_Test\DX11\Helpers.h" />
-    <ClInclude Include="Design_Test\DX11\InputLayouts.h" />
-    <ClInclude Include="Design_Test\DX11\Renderer.h" />
-    <ClInclude Include="Design_Test\DX11\RenderModule.h" />
-    <ClInclude Include="Design_Test\DX11\Resources\Material.h" />
-    <ClInclude Include="Design_Test\DX11\Resources\Mesh.h" />
-    <ClInclude Include="Design_Test\DX11\Resources\Shader.h" />
-    <ClInclude Include="Design_Test\DX11\Resources\Texture.h" />
-    <ClInclude Include="Design_Test\DX11\ShaderConstants.h" />
-    <ClInclude Include="Design_Test\DX11\Window.h" />
+    <ClInclude Include="Application\Application.h" />
+    <ClInclude Include="DX11\CommonInclude.h" />
+    <ClInclude Include="DX11\Components\Camera.h" />
+    <ClInclude Include="DX11\Components\RendererComponent.h" />
+    <ClInclude Include="DX11\Components\StaticMeshInstance.h" />
+    <ClInclude Include="DX11\Device.h" />
+    <ClInclude Include="DX11\Helpers.h" />
+    <ClInclude Include="DX11\InputLayouts.h" />
+    <ClInclude Include="DX11\Renderer.h" />
+    <ClInclude Include="DX11\RenderModule.h" />
+    <ClInclude Include="DX11\Resources\Material.h" />
+    <ClInclude Include="DX11\Resources\Mesh.h" />
+    <ClInclude Include="DX11\Resources\Shader.h" />
+    <ClInclude Include="DX11\Resources\Texture.h" />
+    <ClInclude Include="DX11\ShaderConstants.h" />
+    <ClInclude Include="DX11\Window.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Design_Test\Application\Application.cpp" />
-    <ClCompile Include="Design_Test\DX11\Components\Camera.cpp" />
-    <ClCompile Include="Design_Test\DX11\Components\StaticMeshInstance.cpp" />
-    <ClCompile Include="Design_Test\DX11\Device.cpp" />
-    <ClCompile Include="Design_Test\DX11\Helpers.cpp" />
-    <ClCompile Include="Design_Test\DX11\InputLayouts.cpp" />
-    <ClCompile Include="Design_Test\DX11\Renderer.cpp" />
-    <ClCompile Include="Design_Test\DX11\Resources\Material.cpp" />
-    <ClCompile Include="Design_Test\DX11\Resources\Mesh.cpp" />
-    <ClCompile Include="Design_Test\DX11\Resources\Shader.cpp" />
-    <ClCompile Include="Design_Test\DX11\Resources\Texture.cpp" />
+    <ClCompile Include="Application\Application.cpp" />
+    <ClCompile Include="DX11\Components\Camera.cpp" />
+    <ClCompile Include="DX11\Components\StaticMeshInstance.cpp" />
+    <ClCompile Include="DX11\Device.cpp" />
+    <ClCompile Include="DX11\Helpers.cpp" />
+    <ClCompile Include="DX11\InputLayouts.cpp" />
+    <ClCompile Include="DX11\Renderer.cpp" />
+    <ClCompile Include="DX11\Resources\Material.cpp" />
+    <ClCompile Include="DX11\Resources\Mesh.cpp" />
+    <ClCompile Include="DX11\Resources\Shader.cpp" />
+    <ClCompile Include="DX11\Resources\Texture.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +133,24 @@
     <ProjectReference Include="..\SDL2-2.0.16\Project\SDL2.vcxproj">
       <Project>{97701317-01e3-3c9b-aba8-553d0f3e4eaa}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Dank.PNG" />
+    <Image Include="Resources\Korone_NotLikeThis.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\PixelShader.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\VertexShader.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

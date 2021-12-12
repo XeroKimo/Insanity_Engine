@@ -1,110 +1,83 @@
 #include "Application.h"
-#include "Vector.h"
-
-#include "../DX11/Window.h"
-#include "../DX11/Device.h"
-#include "../DX11/Helpers.h"
-#include "../DX11/ShaderConstants.h"
-#include "../DX11/Resources.h"
-#include "../Test Scenes/TriangleRender.h"
-#include "../Test Scenes/TriangleRenderScene2.h"
-#include "../DX11/Renderer/Renderer.h"
-#include "Extensions/MatrixExtension.h"
-#include "../Factories/ResourceFactory.h"
 #include "../DX11/RenderModule.h"
-#include "../Factories/ComponentFactory.h"
-
-#include "SDL.h"
-#include <chrono>
-
-using namespace InsanityEngine;
-using namespace InsanityEngine::Math::Types;
-
+#include "../DX11/Renderer.h"
+#include "../DX11/Components/StaticMeshInstance.h"
 
 namespace InsanityEngine::Application
 {
-    Application::Application(DX11::Device& device, DX11::Window& window, DX11::RenderModule& renderer, ResourceFactory& factory, ComponentFactory& componentFactory) :
-        m_device(device),
-        m_window(window),
-        m_renderer(renderer),
-        m_factory(factory),
-        m_componentFactory(componentFactory)
+    class ApplicationDrawer : public DX11::DrawCallbacks
     {
+        Component<DX11::Camera> m_camera;
+    public:
+        void OnBinded(DX11::Renderer& renderer) override
+        {
+            m_camera = renderer.CreateCamera();
+            m_camera.data.position.z() = -5;
+        }
+        void OnUpdate(DX11::Renderer& renderer)
+        {
+            renderer.UpdateCameraData(m_camera);
+        }
 
-    }
+        void OnDraw(DX11::Renderer& renderer) override
+        {
+            renderer.ClearCameraBuffer(m_camera, { 0, 0.3f, 0.7f, 1 });
+            renderer.RenderMeshes(m_camera);
+        }
+        void OnUnbinded(DX11::Renderer& renderer) override
+        {
 
-    int Application::Run()
+        }
+    };
+
+
+    using namespace Math::Types;
+
+    int Run()
     {
-        
-        TriangleRenderSetup2(m_device, m_window, m_factory, m_componentFactory);
-        //TriangleRenderSetup(m_device, m_window);
+        DX11::RenderModule renderModule;
+        DX11::Window<DX11::Renderer> window = renderModule.WindowCreate<DX11::Renderer>("Test window", { 1280, 720 });
 
-        std::chrono::time_point previous = std::chrono::steady_clock::now();
-        std::chrono::time_point now = previous;
+        auto vertices = std::to_array(
+            {
+                DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(-0.5f, -0.5f, 0), Vector3f(), Vector2f(0, 0) },
+                DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(0, 0.5f, 0), Vector3f(), Vector2f(0.5f, 1) },
+                DX11::InputLayouts::PositionNormalUV::VertexData{ Vector3f(0.5f, -0.5f, 0), Vector3f(), Vector2f(1, 0) }
+            });
+
+        auto indices = std::to_array<UINT>(
+            {
+                0, 1, 2
+            });
+
+        ApplicationDrawer drawer;
+        window.GetRenderer().SetDrawer(drawer);
+
+        ResourceHandle<DX11::Mesh> mesh = window.GetRenderer().CreateStaticMesh(vertices, indices);
+        ResourceHandle<DX11::Shader> shader = window.GetRenderer().CreateShader(L"Resources/Shaders/VertexShader.hlsl", L"Resources/Shaders/PixelShader.hlsl");
+        ResourceHandle<DX11::Texture> texture = window.GetRenderer().CreateTexture(L"Resources/Korone_NotLikeThis.png");
+        ResourceHandle<DX11::StaticMesh::Material> material = window.GetRenderer().CreateMaterial(texture, shader);
+
+        ComponentHandle<DX11::StaticMesh::Instance> instance = window.GetRenderer().Create(mesh, material);
+
+
+
         SDL_Event event;
-
-        m_window.clearColor = { 0, 0.3f, 0.7f, 1 };
-
-        while(m_running)
+        while(true)
         {
             if(SDL_PollEvent(&event))
             {
-                TriangleRenderInput2(event);
-                //TriangleRenderInput(event);
-
                 if(event.type == SDL_EventType::SDL_QUIT)
-                    m_running = false;
-
+                    break;
             }
             else
             {
-                previous = std::exchange(now, std::chrono::steady_clock::now());
-                float delta = std::chrono::duration<float>(now - previous).count();
 
-                TriangleRenderUpdate2(delta);
-                m_renderer.Update(delta);
-
-                m_renderer.Draw();
-                m_window.Present();
+                window.GetRenderer().Update();
+                window.GetRenderer().Draw();
             }
         }
 
-        TriangleRenderShutdown2();
-
         return 0;
-    }
-
-    void Application::Quit()
-    {
-        m_running = false;
-    }
-
-
-    int RunApplication()
-    {
-        int retVal = 0;
-        SDL_Init(SDL_INIT_VIDEO);
-
-        try
-        {
-            ResourceFactory resourceFactory;
-            ComponentFactory componentFactory;
-
-            DX11::Device device;
-            DX11::Window window{ "Insanity Engine", { 1280.f, 720.f }, device };
-            DX11::RenderModule renderModule{ resourceFactory, componentFactory, device, window };
-
-
-            Application app(device, window, renderModule, resourceFactory, componentFactory);
-            app.Run();
-        }
-        catch(std::exception e)
-        {
-            retVal = 1;
-        }
-
-        SDL_Quit();
-
-        return retVal;
     }
 }

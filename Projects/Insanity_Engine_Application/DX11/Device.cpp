@@ -20,15 +20,15 @@ namespace InsanityEngine::DX11
 
         D3D_FEATURE_LEVEL levels = D3D_FEATURE_LEVEL_11_1;
         HRESULT hr = D3D11CreateDevice(
-            nullptr, 
-            D3D_DRIVER_TYPE_HARDWARE, 
-            nullptr, 
-            flags, 
-            &levels, 
-            1, 
-            D3D11_SDK_VERSION, 
-            tempDevice.GetAddressOf(), 
-            nullptr, 
+            nullptr,
+            D3D_DRIVER_TYPE_HARDWARE,
+            nullptr,
+            flags,
+            &levels,
+            1,
+            D3D11_SDK_VERSION,
+            tempDevice.GetAddressOf(),
+            nullptr,
             tempDeviceContext.GetAddressOf());
 
         if(FAILED(hr))

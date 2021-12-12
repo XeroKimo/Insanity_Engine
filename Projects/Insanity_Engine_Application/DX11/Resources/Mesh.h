@@ -1,41 +1,40 @@
 #pragma once
 #include "../CommonInclude.h"
-#include "../Internal/Resources.h"
-#include "../../Factories/ResourceFactory.h"
-#include "../InputLayouts.h"
-#include <variant>
-#include <span>
+#include "Wrappers/ResourceWrapper.h"
+#include <memory>
+
+namespace InsanityEngine::DX11
+{
+    struct Mesh
+    {
+        ComPtr<ID3D11Buffer> vertexBuffer;
+        ComPtr<ID3D11Buffer> indexBuffer;
+
+        UINT vertexCount = 0;
+        UINT indexCount = 0;
+    };
+}
+
 
 namespace InsanityEngine
 {
-    namespace DX11::StaticMesh
-    {
-        class Renderer;
-    }
-
     template<>
-    struct ResourceInitializer<DX11::Mesh> : public ResourceInitializer<UnknownResource>
+    struct Resource<DX11::Mesh> 
     {
-        template<class VertexType>
-        struct RawInit
-        {
-            std::span<VertexType> vertices;
-            std::span<UINT> indices;
-        };
-
-        std::variant<RawInit<DX11::InputLayouts::PositionNormalUV::VertexData>> data;
+        DX11::Mesh resource;
     };
 
-
     template<>
-    class ResourceHandle<DX11::Mesh> : public UserDefinedResourceHandle<DX11::Mesh>
+    class ResourceHandle<DX11::Mesh> : public SharedResourceHandle<DX11::Mesh>
     {
-        using Base = UserDefinedResourceHandle<DX11::Mesh>;
-        friend class DX11::StaticMesh::Renderer;
-
-        template<class T>
-        friend class Component;
     public:
-        using Base::UserDefinedResourceHandle;
+        using SharedResourceHandle::SharedResourceHandle;
+
+
+    public:
+        //ID3D11Buffer& GetVertexBuffer() const { return *GetUnderlyingResource()->resource.vertexBuffer.Get(); }
+        //ID3D11Buffer& GetIndexBuffer() const { return  *GetUnderlyingResource()->resource.indexBuffer.Get(); }
+        UINT GetVertexCount() const { return GetUnderlyingResource()->resource.vertexCount; }
+        UINT GetIndexCount() const  { return GetUnderlyingResource()->resource.indexCount; }
     };
 }

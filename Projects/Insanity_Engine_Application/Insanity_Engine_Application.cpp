@@ -1,8 +1,7 @@
 // Insanity_Engine_Application.cpp : Defines the entry point for the application.
 //
 
-//#include "Application/Application.h"
-#include "Design_Test/Application/Application.h"
+#include "Application/Application.h"
 #include "SDL_config_windows.h"
 #include "SDL.h"
 #include <exception>
