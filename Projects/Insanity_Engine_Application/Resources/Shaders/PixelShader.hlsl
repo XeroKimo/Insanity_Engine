@@ -7,20 +7,20 @@ struct VertexOutput
 	float4 uv : TEXCOORD;
 };
 
-Texture2D tex : register(t0);
-SamplerState sam : register(s0);
+Texture2D albedoTexture : register(t0);
+SamplerState albedoSampler : register(s0);
 
-cbuffer ApplicationConstants : register(b0)
+cbuffer Application : register(b0)
 {
 
 }
 
-cbuffer ObjectConstants : register(b1)
+cbuffer MaterialConstants : register(b2)
 {
 	float4 color;
 }
 
 float4 main(VertexOutput input) : SV_TARGET
 {
-	return tex.Sample(sam, input.uv.xy * 2);
+	return albedoTexture.Sample(albedoSampler, input.uv.xy * 2) * color;
 }

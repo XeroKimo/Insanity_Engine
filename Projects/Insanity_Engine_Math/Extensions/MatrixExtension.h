@@ -23,4 +23,9 @@ namespace InsanityEngine::Math::Matrix
 
     extern Types::Matrix4x4f OrthographicProjectionLH(Types::Vector2f resolution, float zNear, float zFar);
     extern Types::Matrix4x4f OrthographicProjectionRH(Types::Vector2f resolution, float zNear, float zFar);
+
+    extern Types::Matrix4x4f ViewProjectionMatrix(const Types::Matrix4x4f& view, const Types::Matrix4x4f& projection);
+    extern Types::Matrix4x4f WorldViewProjectionMatrix(const Types::Matrix4x4f& world, const Types::Matrix4x4f& view, const Types::Matrix4x4f& projection);
+
+    extern Types::Matrix4x4f ScaleRotateTransformMatrix(const Types::Matrix4x4f& scale, const Types::Matrix4x4f& rotate, const Types::Matrix4x4f& transform);
 }

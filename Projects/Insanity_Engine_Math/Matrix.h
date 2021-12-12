@@ -279,7 +279,7 @@ namespace InsanityEngine::Math
             constexpr Vector(const Vector& other) = default;
             constexpr Vector(Vector&& other) noexcept = default;
 
-            explicit constexpr Vector(const data_t& data) : data(data) {}
+            constexpr Vector(const data_t& data) : data(data) {}
 
             template<Concepts::Arithmetic ConversionT>
             constexpr Vector(Scalar<ConversionT> scalar) { std::fill(data.begin(), data.end(), static_cast<value_type>(scalar.value)); }

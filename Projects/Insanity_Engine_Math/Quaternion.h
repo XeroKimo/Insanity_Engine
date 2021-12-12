@@ -87,6 +87,13 @@ namespace InsanityEngine::Math::Quaternion
 
             return *this;
         }
+        constexpr Quaternion operator-() const
+        {
+            Quaternion copy;
+            copy.data = data;
+            copy.w() *= -1;
+            return copy;
+        }
         //constexpr Quaternion& operator/=(const Quaternion& rh)
         //{
         //    //std::transform(data.begin(), data.end(), rh.data.begin(), data.begin(), std::minus{});
@@ -155,41 +162,21 @@ namespace InsanityEngine::Math::Quaternion
             };
         }
 
-        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
+        //Referenced equations https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
         Vector<value_type, 3> ToEulerRadians() const
         {
-            value_type yTest = x() * y() + z() * w();
-            if(yTest >= 0.5f)
+            value_type yValue = 2 * (w() * y() - z() * x());
+            return
             {
-                return
-                {
-                    -2 * atan2(x(), w()),
-                    Constants::pi<value_type> / 2,
-                    0
-                };
-            }
-            else if(yTest <= -0.5f)
-            {
-                return
-                {
-                   -2 * atan2(x(), w()),
-                   -Constants::pi<value_type> / 2,
-                   0
-                };
-            }
-            else
-            {
-                return
-                {
-                    atan2(2 * y() * w() - 2 * x() * z(), 1 - 2 * y() * y() - 2 * z() * z()),
-                    asin(yTest * 2),
-                    atan2(2 * x() * w() - 2 * y() * z(), 1 - 2 * x() * x() - 2 * z() * z())
-                };
-            }
+                -std::atan2(2 * (w() * x() + y() * z()), 1 - 2 * (x() * x() + y() * y())),
+                (std::abs(yValue) >= 1) ?  std::copysign(Math::Constants::pi<value_type> / 2, yValue) : -std::asin(yValue),
+                -std::atan2(2 * (w() * z() + y() * x()),  1 - 2 * (z() * z() + y() * y()))
+            };      
         }
 
-        //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        Matrix<float, 4, 4> ToMatrix() const
+        //Referenced equations https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/code/index.htm
+        //The matrix form of the quaternion, if you're looking to make an actually rotation matrix, use ToRotationMatrix()
+        Matrix<value_type, 4, 4> ToMatrix() const
         {
             return
             {
@@ -202,7 +189,8 @@ namespace InsanityEngine::Math::Quaternion
 
 
         //Referenced equations https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-        Matrix<float, 4, 4> ToRotationMatrix() const
+        //Creates a Rotation Matrix from the quaternion, if you're looking to view the matrix form of the quaternion, use ToMatrix()
+        Matrix<value_type, 4, 4> ToRotationMatrix() const
         {
             Matrix<float, 4, 4> lh =
             {

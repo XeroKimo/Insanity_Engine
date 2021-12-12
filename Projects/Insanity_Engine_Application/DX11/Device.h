@@ -17,7 +17,7 @@ namespace InsanityEngine::DX11
 
 
     public:
-        ID3D11Device5* GetDevice() const { return m_device.Get(); }
-        ID3D11DeviceContext4* GetDeviceContext() const { return m_deviceContext.Get(); }
+        ID3D11Device5& GetDevice() const { return *m_device.Get(); }
+        ID3D11DeviceContext4& GetDeviceContext() const { return *m_deviceContext.Get(); }
     };
 }

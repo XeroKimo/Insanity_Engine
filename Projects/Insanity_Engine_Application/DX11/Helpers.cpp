@@ -30,7 +30,7 @@ namespace InsanityEngine::DX11::Helpers
         return device->CreateBuffer(&bufferDesc, &data, buffer);
     }
 
-    HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, UINT bufferSize, const void* startingData, bool isDynamic)
+    HRESULT CreateConstantBuffer(ID3D11Device* device, ID3D11Buffer** buffer, UINT bufferSize, bool isDynamic, const void* startingData)
     {
         D3D11_BUFFER_DESC bufferDesc{};
         bufferDesc.ByteWidth = (bufferSize + 15) & ~15;
@@ -45,7 +45,7 @@ namespace InsanityEngine::DX11::Helpers
         data.SysMemPitch = 0;
         data.SysMemSlicePitch = 0;
 
-        return device->CreateBuffer(&bufferDesc, &data, buffer);
+        return device->CreateBuffer(&bufferDesc, (startingData != nullptr) ? &data : nullptr, buffer);
     }
 
     HRESULT CreateTextureFromFile(ID3D11Device* device, ID3D11ShaderResourceView** shaderResourceView, std::wstring_view file, DirectX::WIC_FLAGS flags)
@@ -65,5 +65,22 @@ namespace InsanityEngine::DX11::Helpers
             return hr;
 
         return DirectX::CreateShaderResourceView(device, flippedImage.GetImage(0, 0, 0), 1, metaData, shaderResourceView);
+    }
+    Math::Types::Vector2f GetTextureResolution(ID3D11RenderTargetView& renderTarget)
+    {
+        ComPtr<ID3D11Resource> resource;
+        renderTarget.GetResource(&resource);
+
+        ComPtr<ID3D11Texture2D> texture;
+        resource.As(&texture);
+
+        return GetTextureResolution(*texture.Get());
+    }
+    Math::Types::Vector2f GetTextureResolution(ID3D11Texture2D& texture)
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        texture.GetDesc(&desc);
+
+        return Math::Types::Vector2f(static_cast<float>(desc.Width), static_cast<float>(desc.Height));
     }
 }

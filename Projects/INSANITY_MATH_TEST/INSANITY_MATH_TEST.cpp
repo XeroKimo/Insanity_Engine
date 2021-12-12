@@ -543,5 +543,49 @@ namespace INSANITYMATHTEST
             Assert::IsTrue(Quaternion<float>(Degrees<float>(), Degrees<float>(45.f), Degrees<float>()) == Quaternion<float>({ 0, 1, 0 }, Degrees<float>(45.f)));
             Assert::IsTrue(Quaternion<float>(Degrees<float>(), Degrees<float>(), Degrees<float>(45.f)) == Quaternion<float>({ 0, 0, 1 }, Degrees<float>(45.f)));
         }
+
+        TEST_METHOD(QuaternionEulerValues)
+        {
+            Quaternion<float> xPos;
+            Quaternion<float> xNeg;
+
+            Quaternion<float> yPos;
+            Quaternion<float> yNeg;
+
+            Quaternion<float> zPos;
+            Quaternion<float> zNeg;
+
+            constexpr float rotation = 30;
+
+            xPos *= Quaternion<float>(Vector3f{ 1, 0, 0 }, Degreesf(rotation));
+            xNeg *= Quaternion<float>(Vector3f{ 1, 0, 0 }, Degreesf(-rotation));
+
+            yPos *= Quaternion<float>(Vector3f{ 0, 1, 0 }, Degreesf(rotation));
+            yNeg *= Quaternion<float>(Vector3f{ 0, 1, 0 }, Degreesf(-rotation));
+
+            zPos *= Quaternion<float>(Vector3f{ 0, 0, 1 }, Degreesf(rotation));
+            zNeg *= Quaternion<float>(Vector3f{ 0, 0, 1 }, Degreesf(-rotation));
+
+
+
+            std::stringstream stream;
+
+            auto vec = xPos.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+            vec = xNeg.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+
+            vec = yPos.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+            vec = yNeg.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+
+            vec = zPos.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+            vec = zNeg.ToEulerDegrees();
+            stream << vec.x() << ", " << vec.y() << ", " << vec.z() << "\n";
+
+            Logger::WriteMessage(stream.str().c_str());
+        }
     };
 }

@@ -18,6 +18,12 @@
     <ClInclude Include="Debug Classes\Exceptions\HRESULTException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Wrappers\ResourceWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\ComponentWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Debug Classes\Exceptions\HRESULTException.cpp">

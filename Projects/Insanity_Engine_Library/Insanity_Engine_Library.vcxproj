@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debug Classes\Exceptions\HRESULTException.h" />
+    <ClInclude Include="Wrappers\ComponentWrapper.h" />
+    <ClInclude Include="Wrappers\ResourceWrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Debug Classes\Exceptions\HRESULTException.cpp" />

@@ -15,28 +15,55 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX11\Renderer\StaticMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Application\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Application\Window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DX11\Device.h">
+    <ClInclude Include="DX11\RenderModule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX11\CommonInclude.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DX11\Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Resources\Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\Components\StaticMeshInstance.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\InputLayouts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="DX11\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX11\Mesh.h">
+    <ClInclude Include="DX11\ShaderConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Camera.h">
+    <ClInclude Include="DX11\Components\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Test Scenes\TriangleRender.h">
+    <ClInclude Include="DX11\Components\RendererComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX11\ResourceRegistry.h">
@@ -53,24 +80,44 @@
     <ClCompile Include="DX11\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application\Window.cpp">
+    <ClCompile Include="DX11\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Resources\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Components\StaticMeshInstance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\InputLayouts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX11\Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX11\Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Test Scenes\TriangleRender.cpp">
+    <ClCompile Include="DX11\Components\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resources\Shaders\VertexShader.hlsl" />
+    <Image Include="Resources\Korone_NotLikeThis.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\Dank.PNG">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
     <FxCompile Include="Resources\Shaders\PixelShader.hlsl" />
+    <FxCompile Include="Resources\Shaders\VertexShader.hlsl" />
   </ItemGroup>
 </Project>
