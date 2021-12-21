@@ -12,12 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rendering\Backends\DX11\Common_Include.h" />
-    <ClInclude Include="Rendering\Backends\DX11\Helpers.h" />
-    <ClInclude Include="Rendering\Backends\DX11\Texture.h" />
-    <ClInclude Include="Rendering\Format.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Rendering\Backends\DX11\Helpers.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
