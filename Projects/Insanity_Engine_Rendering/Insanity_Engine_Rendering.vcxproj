@@ -12,6 +12,28 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rendering\Backends\DX11\Common_Include.h" />
+    <ClInclude Include="Rendering\Backends\DX11\DX11Texture.h" />
+    <ClInclude Include="Rendering\Backends\DX11\Helpers.h" />
+    <ClInclude Include="Rendering\Texture.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Rendering\Backends\DX11\Helpers.cpp" />
+    <ClCompile Include="Rendering\Backends\DX11\DX11Texture.cpp" />
+    <ClCompile Include="Rendering\Texture.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Library\Insanity_Engine_Library.vcxproj">
+      <Project>{f6df85cf-537e-4882-aebc-2a0b52aef187}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Math\Insanity_Engine_Math.vcxproj">
+      <Project>{83ddfcd4-19d0-4022-99f0-0009f8f706d7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\SDL2-2.0.16\Project\SDL2.vcxproj">
+      <Project>{97701317-01e3-3c9b-aba8-553d0f3e4eaa}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -65,6 +87,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -87,6 +110,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
