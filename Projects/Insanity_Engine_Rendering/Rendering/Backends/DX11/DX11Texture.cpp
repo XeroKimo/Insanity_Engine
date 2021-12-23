@@ -11,15 +11,12 @@ namespace InsanityEngine::Rendering::DX11
     {
     }
 
-    Vector3ui Texture::GetTextureDimensions() const
+    Vector3ui Texture::GetSize() const
     {
         if(m_resourceView == nullptr)
             return {};
 
-        ComPtr<ID3D11Resource> resource;
-        m_resourceView->GetResource(&resource);
-
-        return Helpers::Rendering::DX11::GetTextureDimensions(*resource.Get());
+        return Helpers::Rendering::DX11::GetTextureSize(*m_resourceView.Get());
     }
 
 }

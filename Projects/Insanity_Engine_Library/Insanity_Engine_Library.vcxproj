@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debug Classes\Exceptions\HRESULTException.h" />
+    <ClInclude Include="Utils\Expected.h" />
     <ClInclude Include="Wrappers\ComponentWrapper.h" />
     <ClInclude Include="Wrappers\ResourceWrapper.h" />
   </ItemGroup>

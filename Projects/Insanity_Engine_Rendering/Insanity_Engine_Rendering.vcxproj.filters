@@ -27,6 +27,9 @@
     <ClInclude Include="Rendering\Backends\DX11\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Rendering\RenderingModule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rendering\Backends\DX11\DX11Texture.cpp">

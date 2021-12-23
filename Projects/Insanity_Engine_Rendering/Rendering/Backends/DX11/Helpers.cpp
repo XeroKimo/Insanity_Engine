@@ -3,7 +3,30 @@
 namespace  InsanityEngine::Rendering::DX11
 {
     using namespace Math::Types;
-    Vector3ui GetTextureDimensions(ID3D11Resource& resource)
+
+    Utils::Expected<ComPtr<ID3D11ShaderResourceView>, HRESULT> CreateTexture(ID3D11Device& device, std::wstring_view fileName, DirectX::WIC_FLAGS flags)
+    {
+        DirectX::TexMetadata metaData;
+        DirectX::ScratchImage scratchImage;
+        HRESULT hr = DirectX::LoadFromWICFile(fileName.data(), flags, &metaData, scratchImage);
+
+        if(FAILED(hr))
+            return Utils::Unexpected(hr);
+
+        const DirectX::Image* image = scratchImage.GetImage(0, 0, 0);
+        DirectX::ScratchImage flippedImage;
+        hr = DirectX::FlipRotate(*image, DirectX::TEX_FR_FLAGS::TEX_FR_FLIP_VERTICAL, flippedImage);
+
+        if(FAILED(hr))
+            return Utils::Unexpected(hr);
+
+        ComPtr<ID3D11ShaderResourceView> texture; 
+        DirectX::CreateShaderResourceView(&device, flippedImage.GetImage(0, 0, 0), 1, metaData, texture.GetAddressOf());
+
+        return texture;
+    }
+
+    Vector3ui GetTextureSize(ID3D11Resource& resource)
     {
         D3D11_RESOURCE_DIMENSION dimension;
         resource.GetType(&dimension);
@@ -40,5 +63,13 @@ namespace  InsanityEngine::Rendering::DX11
         }
 
         return Vector3ui();
+    }
+
+    Vector3ui GetTextureSize(ID3D11View& view)
+    {
+        ComPtr<ID3D11Resource> resource;
+        view.GetResource(resource.GetAddressOf());
+
+        return GetTextureSize(*resource.Get());
     }
 }

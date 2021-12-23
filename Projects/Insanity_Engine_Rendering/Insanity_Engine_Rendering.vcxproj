@@ -14,6 +14,7 @@
     <ClInclude Include="Rendering\Backends\DX11\Common_Include.h" />
     <ClInclude Include="Rendering\Backends\DX11\DX11Texture.h" />
     <ClInclude Include="Rendering\Backends\DX11\Helpers.h" />
+    <ClInclude Include="Rendering\RenderingModule.h" />
     <ClInclude Include="Rendering\Texture.h" />
   </ItemGroup>
   <ItemGroup>

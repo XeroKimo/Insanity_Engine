@@ -15,7 +15,7 @@ namespace InsanityEngine::Rendering::DX11
 
     public:
         
-        Math::Types::Vector3ui GetTextureDimensions() const;
+        Math::Types::Vector3ui GetSize() const;
 
         ID3D11ShaderResourceView1& GetResourceView() const { return *m_resourceView.Get(); }
     };
