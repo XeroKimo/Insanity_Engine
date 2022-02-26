@@ -89,43 +89,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
-    <ClInclude Include="DX11\CommonInclude.h" />
-    <ClInclude Include="DX11\Components\Camera.h" />
-    <ClInclude Include="DX11\Components\RendererComponent.h" />
-    <ClInclude Include="DX11\Components\StaticMeshInstance.h" />
-    <ClInclude Include="DX11\Device.h" />
-    <ClInclude Include="DX11\Helpers.h" />
-    <ClInclude Include="DX11\InputLayouts.h" />
-    <ClInclude Include="DX11\Renderer.h" />
-    <ClInclude Include="DX11\RenderModule.h" />
-    <ClInclude Include="DX11\Resources\Material.h" />
-    <ClInclude Include="DX11\Resources\Mesh.h" />
-    <ClInclude Include="DX11\Resources\Shader.h" />
-    <ClInclude Include="DX11\Resources\Texture.h" />
-    <ClInclude Include="DX11\ShaderConstants.h" />
-    <ClInclude Include="DX11\Window.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
-    <ClCompile Include="DX11\Components\Camera.cpp" />
-    <ClCompile Include="DX11\Components\StaticMeshInstance.cpp" />
-    <ClCompile Include="DX11\Device.cpp" />
-    <ClCompile Include="DX11\Helpers.cpp" />
-    <ClCompile Include="DX11\InputLayouts.cpp" />
-    <ClCompile Include="DX11\Renderer.cpp" />
-    <ClCompile Include="DX11\Resources\Material.cpp" />
-    <ClCompile Include="DX11\Resources\Mesh.cpp" />
-    <ClCompile Include="DX11\Resources\Shader.cpp" />
-    <ClCompile Include="DX11\Resources\Texture.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Insanity_Engine_Library\Insanity_Engine_Library.vcxproj">
-      <Project>{f6df85cf-537e-4882-aebc-2a0b52aef187}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Insanity_Engine_Math\Insanity_Engine_Math.vcxproj">
       <Project>{83ddfcd4-19d0-4022-99f0-0009f8f706d7}</Project>
