@@ -90,6 +90,7 @@
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
+    <ClInclude Include="Rendering\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
@@ -104,6 +105,9 @@
     </ProjectReference>
     <ProjectReference Include="..\SDL2-2.0.16\Project\SDL2.vcxproj">
       <Project>{97701317-01e3-3c9b-aba8-553d0f3e4eaa}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\TypedD3D\TypedD3D12.vcxproj">
+      <Project>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
