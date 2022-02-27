@@ -40,6 +40,52 @@ namespace InsanityEngine::Rendering::D3D12
         m_drawCallback->Draw(*this);
     }
 
+    void Renderer::ResizeBuffers(Math::Types::Vector2ui size)
+    {
+        Reset();
+
+        DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*swapChain.Get());
+        swapChain->ResizeBuffers(frameCount, size.x(), size.y(), desc.Format, desc.Flags);
+        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *swapChain.Get(), *m_swapChainDescriptorHeap.Get());
+    }
+
+    void Renderer::SetFullscreen(bool fullscreen)
+    {
+        BOOL isFullscreen;
+        swapChain->GetFullscreenState(&isFullscreen, nullptr);
+        if(static_cast<bool>(isFullscreen) == fullscreen)
+            return;
+
+        Reset();
+
+        DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*swapChain.Get());
+        swapChain->SetFullscreenState(fullscreen, nullptr);
+        swapChain->ResizeBuffers(frameCount, desc.Width, desc.Height, desc.Format, desc.Flags);
+        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *swapChain.Get(), *m_swapChainDescriptorHeap.Get());
+    }
+
+    void Renderer::SetWindowSize(Math::Types::Vector2ui size)
+    {
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = TypedD3D::Helpers::Common::GetDescription(*swapChain.Get());
+        DXGI_MODE_DESC modeDesc 
+        {
+                .Width = size.x(),
+                .Height = size.y(),
+                .RefreshRate {},
+                .Format = swapChainDesc.Format,
+                .ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
+                .Scaling = DXGI_MODE_SCALING_UNSPECIFIED
+        };
+        HRESULT hr = swapChain->ResizeTarget(&modeDesc);
+    }
+
+    bool Renderer::IsFullscreen()
+    {
+        BOOL isFullscreen;
+        swapChain->GetFullscreenState(&isFullscreen, nullptr);
+        return isFullscreen;
+    }
+
     void Renderer::SignalQueue()
     {
         FrameData& currentFrame = m_frames[swapChain->GetCurrentBackBufferIndex()];
@@ -78,6 +124,17 @@ namespace InsanityEngine::Rendering::D3D12
         TypedD3D::D3D12::DescriptorHandle::CPU_RTV handle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         handle.Ptr() += stride * swapChain->GetCurrentBackBufferIndex();
         return handle;
+    }
+
+    void Renderer::Reset()
+    {
+        TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.Get(), *m_mainFence.Get(), m_mainFenceWaitValue);
+        m_mainFenceWaitValue = 0;
+        for(FrameData& data : m_frames)
+        {
+            data.idleAllocatorIndex = 0;
+            data.fenceWaitValue = 0;
+        }
     }
 
     void DefaultDraw::Initialize(Renderer& renderer)

@@ -1,5 +1,6 @@
 #pragma once
 #include "TypedD3D.h"
+#include "Insanity_Math.h"
 
 namespace InsanityEngine::Rendering
 {
@@ -9,9 +10,14 @@ namespace InsanityEngine::Rendering
     {
     private:
         virtual void Draw() = 0;
+        virtual void ResizeBuffers(Math::Types::Vector2ui size) = 0;
+        virtual void SetFullscreen(bool fullscreen) = 0;
+        virtual void SetWindowSize(Math::Types::Vector2ui size) = 0;
 
     public:
         friend class PolymorphicRenderer;
+
+        virtual bool IsFullscreen() = 0;
     };
 
     namespace D3D12
@@ -50,6 +56,12 @@ namespace InsanityEngine::Rendering
             ~Renderer();
         private:
             void Draw() final;
+            void ResizeBuffers(Math::Types::Vector2ui size) final;
+            void SetFullscreen(bool fullscreen) final;
+            void SetWindowSize(Math::Types::Vector2ui size) final;
+
+        public:
+            bool IsFullscreen();
 
         public:
             void SignalQueue();
@@ -61,8 +73,10 @@ namespace InsanityEngine::Rendering
                 m_mainQueue->ExecuteCommandLists(commandLists);
             }
             TypedD3D::D3D12::CommandAllocator::Direct GetAllocator();
-
             TypedD3D::D3D12::DescriptorHandle::CPU_RTV GetBackBufferHandle();
+
+        private:
+            void Reset();
         };
 
         class DrawCallback
@@ -97,6 +111,11 @@ namespace InsanityEngine::Rendering
 
     public:
         void Draw() { m_renderer->Draw(); } 
+        void ResizeBuffers(Math::Types::Vector2ui size) { m_renderer->ResizeBuffers(size); }
+        void SetFullscreen(bool fullscreen) { m_renderer->SetFullscreen(fullscreen); }
+        void SetWindowSize(Math::Types::Vector2ui size) { m_renderer->SetWindowSize(size); }
+        bool IsFullscreen() { return m_renderer->IsFullscreen(); }
+
     };
 
 }

@@ -33,6 +33,55 @@ namespace InsanityEngine::Application
                 {
                     if(event.type == SDL_EventType::SDL_QUIT)
                         break;
+                    else if(event.type == SDL_WINDOWEVENT)
+                    {
+                        if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+                        {
+                            window.GetRenderer().ResizeBuffers({ event.window.data1, event.window.data2 });
+                        }
+                    }
+                    else if(event.type == SDL_EventType::SDL_KEYDOWN)
+                    {
+                        if(event.key.repeat == 0 && event.key.state == SDL_PRESSED)
+                        {
+                            if(event.key.keysym.sym == SDL_KeyCode::SDLK_1)
+                            {
+                                SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
+                                window.GetRenderer().SetFullscreen(false);
+                            }
+                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_2)
+                            {
+                                SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
+                                window.GetRenderer().SetFullscreen(true);
+                            }
+                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_3)
+                            {
+                                if(!window.GetRenderer().IsFullscreen())
+                                {
+                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
+                                    window.GetRenderer().SetWindowSize({ 1280, 720 });
+                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
+                                }
+                                else
+                                {
+                                    window.GetRenderer().SetWindowSize({ 1280, 720 });
+                                }
+                            }
+                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_4)
+                            {
+                                if(!window.GetRenderer().IsFullscreen())
+                                {
+                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
+                                    window.GetRenderer().SetWindowSize({ 1600, 900 });
+                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
+                                }
+                                else
+                                {
+                                    window.GetRenderer().SetWindowSize({ 1600, 900 });
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {

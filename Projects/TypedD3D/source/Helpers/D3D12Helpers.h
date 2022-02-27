@@ -234,8 +234,8 @@ namespace TypedD3D::Helpers::D3D12
     Utils::Expected<Microsoft::WRL::ComPtr<DebugTy>, HRESULT> GetDebugInterface()
     {
         if constexpr(std::same_as<DebugTy, ID3D12Debug>)
-            return Helpers::COM::IIDToObjectForwardFunction<ID3D12Debug>(&D3D12GetDebugInterface).GetValue();
+            return Helpers::COM::IIDToObjectForwardFunction<ID3D12Debug>(&D3D12GetDebugInterface);
         else
-            return Helpers::COM::Cast<DebugTy>(GetDebugInterface<ID3D12Debug>());
+            return Helpers::COM::Cast<DebugTy>(GetDebugInterface<ID3D12Debug>().GetValue());
     }
 }
