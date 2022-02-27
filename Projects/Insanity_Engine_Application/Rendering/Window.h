@@ -1,15 +1,19 @@
 #pragma once
 #include "SDL.h"
+#include "SDL_syswm.h"
 #include "Insanity_Math.h"
 #include <memory>
 #include <string_view>
+#include <any>
+#include <Windows.h>
 
 namespace InsanityEngine::Rendering
 {
     class WindowInterface
     {
     public:
-        virtual Math::Types::Vector2i GetWindowSize() const = 0;
+        virtual Math::Types::Vector2i GetSize() const = 0;
+        virtual std::any GetHandle() const = 0;
     };
 
     struct NullRenderer 
@@ -33,7 +37,7 @@ namespace InsanityEngine::Rendering
             InsanityEngine::Math::Types::Vector2i windowPosition, 
             InsanityEngine::Math::Types::Vector2i windowSize, 
             Uint32 flags,
-            RendererParams... params) :
+            RendererParams&&... params) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(), 
                 windowPosition.x(), 
@@ -47,13 +51,21 @@ namespace InsanityEngine::Rendering
         }
 
     public:
-        Math::Types::Vector2i GetWindowSize() const final
+        Math::Types::Vector2i GetSize() const final
         {
             Math::Types::Vector2i windowSize;
 
             SDL_GetWindowSize(m_windowHandle.get(), &windowSize.x(), &windowSize.y());
 
             return windowSize;
+        }
+
+        std::any GetHandle() const final
+        {
+            SDL_SysWMinfo info;
+            SDL_VERSION(&info.version);
+            SDL_GetWindowWMInfo(m_windowHandle.get(), &info);
+            return info.info.win.window;
         }
 
     public:

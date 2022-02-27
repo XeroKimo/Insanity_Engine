@@ -603,7 +603,7 @@ namespace TypedD3D::D3D12
                 Utils::Expected<ComPtr<ID3D12GraphicsCommandList>, HRESULT> cl = Helpers::D3D12::CreateCommandList(InternalGetDevice(), type, flags, nodeMask);
 
                 if(!cl.HasValue())
-                    return cl.GetError();
+                    return Utils::Unexpected(cl.GetError());
 
                 return CommandList::CommandList_t<type, ID3D12GraphicsCommandList>(cl.GetValue());
             }
