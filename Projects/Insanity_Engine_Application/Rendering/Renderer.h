@@ -7,9 +7,11 @@ namespace InsanityEngine::Rendering
 
     class RendererInterface
     {
-        friend class PolymorphicRenderer;
     private:
         virtual void Draw() = 0;
+
+    public:
+        friend class PolymorphicRenderer;
     };
 
     namespace D3D12
@@ -19,33 +21,48 @@ namespace InsanityEngine::Rendering
         class Renderer : public RendererInterface
         {
         private:
-            struct Frame
+            struct FrameData
             {
                 size_t idleAllocatorIndex = 0;
                 std::vector<TypedD3D::D3D12::CommandAllocator::Direct> allocators;
-                UINT64 fenceValue;
+                UINT64 fenceWaitValue;
             };
 
         public:
             TypedD3D::D3D12::Device5 device;
-            TypedD3D::D3D12::CommandQueue::Direct mainQueue;
+
+        private:
+            TypedD3D::D3D12::CommandQueue::Direct m_mainQueue;
+
+        public:
             Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain;
             
         private:
+            TypedD3D::D3D12::DescriptorHeap::RTV m_swapChainDescriptorHeap;
+
             Microsoft::WRL::ComPtr<ID3D12Fence> m_mainFence;
-            std::vector<Frame> m_frames;
+            UINT64 m_mainFenceWaitValue = 0;
+            std::vector<FrameData> m_frames;
             DrawCallback* m_drawCallback;
 
         public:
             Renderer(WindowInterface& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, DrawCallback& drawCallback);
-
+            ~Renderer();
         private:
             void Draw() final;
 
         public:
             void SignalQueue();
-            void WaitForNextFrame();
+            void WaitForCurrentFrame();
+
+            template<size_t Extents>
+            void ExecuteCommandLists(std::span<TypedD3D::D3D12::CommandList::Direct, Extents> commandLists)
+            {
+                m_mainQueue->ExecuteCommandLists(commandLists);
+            }
             TypedD3D::D3D12::CommandAllocator::Direct GetAllocator();
+
+            TypedD3D::D3D12::DescriptorHandle::CPU_RTV GetBackBufferHandle();
         };
 
         class DrawCallback
