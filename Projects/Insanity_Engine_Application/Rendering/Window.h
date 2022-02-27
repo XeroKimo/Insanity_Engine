@@ -6,14 +6,20 @@
 
 namespace InsanityEngine::Rendering
 {
+    class WindowInterface
+    {
+    public:
+        virtual Math::Types::Vector2i GetWindowSize() const = 0;
+    };
+
     struct NullRenderer 
     {
     public:
-        NullRenderer(SDL_Window& window) {}
+        NullRenderer(WindowInterface& window) {}
     };
 
     template<class Renderer>
-    class Window
+    class Window : public WindowInterface
     {
         using WindowHandle = std::unique_ptr<SDL_Window, decltype([](SDL_Window* w) { SDL_DestroyWindow(w); })>;
 
@@ -35,9 +41,19 @@ namespace InsanityEngine::Rendering
                 windowSize.x(), 
                 windowSize.y(), 
                 flags)),
-            m_renderer(*m_windowHandle, params...)
+            m_renderer(*static_cast<WindowInterface*>(this), params...)
         {
 
+        }
+
+    public:
+        Math::Types::Vector2i GetWindowSize() const final
+        {
+            Math::Types::Vector2i windowSize;
+
+            SDL_GetWindowSize(m_windowHandle.get(), &windowSize.x(), &windowSize.y());
+
+            return windowSize;
         }
 
     public:

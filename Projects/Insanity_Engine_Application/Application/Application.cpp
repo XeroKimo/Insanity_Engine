@@ -3,9 +3,9 @@
 
 namespace InsanityEngine::Application
 {
-    int Run()
+    int Run(const Settings& settings)
     {
-        Rendering::DefaultWindow window("Insanity Engine", { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED }, { 1280, 720 }, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+        Rendering::DefaultWindow window(settings.applicationName, { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED }, settings.windowResolution, SDL_WINDOW_SHOWN);
 
         SDL_Event event;
         while(true)
