@@ -5,6 +5,85 @@
 namespace InsanityEngine::Rendering
 {
     static constexpr UINT frameCount = 2;
+
+    Window::DirectX11::DirectX11(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext) :
+        m_device(device),
+        m_deviceContext(deviceContext),
+        m_swapChain(TypedD3D::Helpers::DXGI::SwapChain::CreateFlipDiscard<IDXGISwapChain4>(
+            factory,
+            *m_device.Get(),
+            std::any_cast<HWND>(window.GetWindowHandle()),
+            DXGI_FORMAT_R8G8B8A8_UNORM,
+            frameCount,
+            DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
+            false).GetValue())
+    {
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+    }
+
+    Window::DirectX11::~DirectX11()
+    {
+        m_deviceContext->Flush();
+        SetFullscreen(false);
+    }
+
+
+    void Window::DirectX11::ResizeBuffers(Math::Types::Vector2ui size)
+    {
+        m_deviceContext->Flush();
+
+        m_backBuffer->Release();
+
+        DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
+        m_swapChain->ResizeBuffers(frameCount, size.x(), size.y(), desc.Format, desc.Flags);
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+    }
+
+    void Window::DirectX11::SetFullscreen(bool fullscreen)
+    {
+        if(IsFullscreen() == fullscreen)
+            return;
+
+        m_deviceContext->Flush();
+
+        m_backBuffer->Release();
+
+        DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
+        m_swapChain->SetFullscreenState(fullscreen, nullptr);
+        m_swapChain->ResizeBuffers(frameCount, desc.Width, desc.Height, desc.Format, desc.Flags);
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+    }
+
+    void Window::DirectX11::SetWindowSize(Math::Types::Vector2ui size)
+    {
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
+        DXGI_MODE_DESC modeDesc
+        {
+                .Width = size.x(),
+                .Height = size.y(),
+                .RefreshRate {},
+                .Format = swapChainDesc.Format,
+                .ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
+                .Scaling = DXGI_MODE_SCALING_UNSPECIFIED
+        };
+        HRESULT hr = m_swapChain->ResizeTarget(&modeDesc);
+    }
+
+    bool Window::DirectX11::IsFullscreen() const
+    {
+        BOOL isFullscreen;
+        m_swapChain->GetFullscreenState(&isFullscreen, nullptr);
+        return isFullscreen;
+    }
+
+    void Window::DirectX11::Present()
+    {
+        m_swapChain->Present(1, 0);
+    }
+
+
+
+
     Window::DirectX12::DirectX12(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device) :
         m_device(device),
         m_mainQueue(device->CreateCommandQueue<D3D12_COMMAND_LIST_TYPE_DIRECT>(
@@ -155,6 +234,117 @@ namespace InsanityEngine::Rendering
         }
     }
 
+
+    struct Vertex
+    {
+        float x;
+        float y;
+        float z;
+    };
+
+    namespace D3D11
+    {
+            DefaultDraw::DefaultDraw(Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext) :
+                m_device(device),
+                m_deviceContext(deviceContext)
+            {
+
+            }
+
+            void DefaultDraw::Initialize(Window::DirectX11& renderer)
+            {
+                using Microsoft::WRL::ComPtr;
+                ComPtr<ID3DBlob> vertexBlob;
+                ComPtr<ID3DBlob> errorBlob;
+                HRESULT hr = D3DCompileFromFile(L"Default_Resources/VertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &vertexBlob, &errorBlob);
+                if(FAILED(hr))
+                {
+                    char* message = static_cast<char*>(errorBlob->GetBufferPointer());
+                    std::unique_ptr<wchar_t[]> messageT = std::make_unique<wchar_t[]>(errorBlob->GetBufferSize());
+                    MultiByteToWideChar(CP_ACP, MB_COMPOSITE, message, static_cast<int>(errorBlob->GetBufferSize()), messageT.get(), static_cast<int>(errorBlob->GetBufferSize()));
+                    //MessageBox(handle, messageT.get(), L"Error", MB_OK);
+                    return;
+                }
+                m_device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), nullptr, &m_vertexShader);
+
+                ComPtr<ID3DBlob> pixelBlob;
+                hr = D3DCompileFromFile(L"Default_Resources/PixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &pixelBlob, nullptr);
+                if(FAILED(hr))
+                    return;
+
+                m_device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr, &m_pixelShader);
+
+                std::array<D3D11_INPUT_ELEMENT_DESC, 1> inputLayout
+                {
+                    D3D11_INPUT_ELEMENT_DESC
+                    {
+                        .SemanticName = "POSITION",
+                        .SemanticIndex = 0,
+                        .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                        .InputSlot = 0,
+                        .AlignedByteOffset = 0,
+                        .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+                        .InstanceDataStepRate = 0
+                    }
+                };
+
+                m_device->CreateInputLayout(inputLayout.data(), static_cast<UINT>(inputLayout.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &m_inputLayout);
+
+                auto vertices = std::to_array<Vertex>(
+                    {
+                        { -0.5f, -0.5f, 0 },
+                        {  0.0f,  0.5f, 0 },
+                        {  0.5f, -0.5f, 0 },
+                    });
+
+                D3D11_BUFFER_DESC bufferDesc{};
+                bufferDesc.ByteWidth = static_cast<UINT>(vertices.size() * sizeof(Vertex));
+                bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+                bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+                bufferDesc.CPUAccessFlags = 0;
+                bufferDesc.MiscFlags = 0;
+                bufferDesc.StructureByteStride = 0;
+
+                D3D11_SUBRESOURCE_DATA data;
+                data.pSysMem = vertices.data();
+                data.SysMemPitch = 0;
+                data.SysMemSlicePitch = 0;
+
+                m_device->CreateBuffer(&bufferDesc, &data, &m_vertexBuffer);
+            }
+
+            void DefaultDraw::Draw(Window::DirectX11& renderer)
+            {
+                D3D11_VIEWPORT viewport = {};
+                viewport.Width = static_cast<float>(renderer.GetWindowSize().x());
+                viewport.Height = static_cast<float>(renderer.GetWindowSize().y());
+                viewport.MaxDepth = 1;
+                viewport.MinDepth = 0;
+
+                D3D11_RECT rect = {};
+                rect.right = renderer.GetWindowSize().x();
+                rect.bottom = renderer.GetWindowSize().y();
+
+                m_deviceContext->ClearRenderTargetView(&renderer.GetBackBufferResource(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }).data());
+                ID3D11RenderTargetView* targets[] = { &renderer.GetBackBufferResource() };
+                m_deviceContext->OMSetRenderTargets(1, targets, nullptr);
+                m_deviceContext->RSSetViewports(1, &viewport);
+                m_deviceContext->RSSetScissorRects(1, &rect);
+                m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+                m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+                m_deviceContext->IASetInputLayout(m_inputLayout.Get());
+                m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+                UINT stride = sizeof(Vertex);
+                UINT offset = 0;
+
+                m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+                m_deviceContext->Draw(3, 0);
+
+                renderer.Present();
+            }
+    }
     namespace D3D12
     {
         DefaultDraw::DefaultDraw(TypedD3D::D3D12::Device5 device) :
@@ -162,15 +352,6 @@ namespace InsanityEngine::Rendering
             m_commandList(device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
         {
         }
-
-
-
-        struct Vertex
-        {
-            float x;
-            float y;
-            float z;
-        };
 
         void DefaultDraw::Initialize(Window::DirectX12& renderer)
         {
@@ -413,4 +594,5 @@ namespace InsanityEngine::Rendering
             renderer.WaitForCurrentFrame();
         }
     }
+
 }

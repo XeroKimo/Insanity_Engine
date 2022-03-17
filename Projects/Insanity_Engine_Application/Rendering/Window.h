@@ -3,6 +3,7 @@
 #include "SDL_syswm.h"
 #include "Insanity_Math.h"
 #include "TypedD3D.h"
+#include <d3d11_4.h>
 #include <memory>
 #include <string_view>
 #include <any>
@@ -48,6 +49,36 @@ namespace InsanityEngine::Rendering
             void SetFullscreen(bool fullscreen) {}
             void SetWindowSize(Math::Types::Vector2ui size) final {}
             bool IsFullscreen() const final {}
+        };
+
+        class DirectX11 : public BackEnd
+        {
+        private:
+            Microsoft::WRL::ComPtr<ID3D11Device5> m_device;
+            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> m_deviceContext;
+            Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swapChain;
+            Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_backBuffer;
+
+        public:
+            DirectX11(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext);
+            ~DirectX11();
+
+        private:
+            void ResizeBuffers(Math::Types::Vector2ui size) final;
+            void SetFullscreen(bool fullscreen) final;
+            void SetWindowSize(Math::Types::Vector2ui size) final;
+
+        public:
+            bool IsFullscreen() const final;
+            Math::Types::Vector2ui GetWindowSize() const
+            {
+                auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
+                return { description.Width, description.Height };
+            }
+
+        public:
+            ID3D11RenderTargetView& GetBackBufferResource() const { return *m_backBuffer.Get(); }
+            void Present();
         };
 
         class DirectX12 : public BackEnd
@@ -112,6 +143,26 @@ namespace InsanityEngine::Rendering
 
     private:
         template<class DrawCallback>
+        class DirectX11Renderer : public DirectX11
+        {
+            DrawCallback m_drawCallback;
+
+        public:
+            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, DrawCallback drawCallback) :
+                DirectX11(window, factory, device, deviceContext),
+                m_drawCallback(std::move(drawCallback))
+            {
+                m_drawCallback.Initialize(*this);
+            }
+
+        private:
+            void Draw() final
+            {
+                m_drawCallback.Draw(*this);
+            }
+        };
+
+        template<class DrawCallback>
         class DirectX12Renderer : public DirectX12
         {
             DrawCallback m_drawCallback;
@@ -139,6 +190,26 @@ namespace InsanityEngine::Rendering
         std::unique_ptr<BackEnd> m_backEnd = nullptr;
 
     public:
+        template<class DrawCallback>
+        Window(std::string_view title,
+            InsanityEngine::Math::Types::Vector2i windowPosition,
+            InsanityEngine::Math::Types::Vector2i windowSize,
+            Uint32 flags,
+            IDXGIFactory2& factory,
+            Microsoft::WRL::ComPtr<ID3D11Device5> device,
+            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
+            DrawCallback&& drawCallback) :
+            m_windowHandle(SDL_CreateWindow(
+                title.data(),
+                windowPosition.x(),
+                windowPosition.y(),
+                windowSize.x(),
+                windowSize.y(),
+                flags)),
+            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallback>(drawCallback)))
+        {
+
+        }
         template<class DrawCallback>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
@@ -188,6 +259,25 @@ namespace InsanityEngine::Rendering
         }
     };
 
+    namespace D3D11
+    {
+        struct DefaultDraw
+        {
+            Microsoft::WRL::ComPtr<ID3D11Device5> m_device;
+            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> m_deviceContext;
+            Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
+            Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
+            Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+            Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
+
+        public:
+            DefaultDraw(Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext);
+
+        public:
+            void Initialize(Window::DirectX11& renderer);
+            void Draw(Window::DirectX11& renderer);
+        };
+    }
 
     namespace D3D12
     {

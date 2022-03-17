@@ -9,20 +9,50 @@ namespace InsanityEngine::Application
         using Microsoft::WRL::ComPtr;
         ComPtr<ID3D12DebugDevice2> debugDevice;
         {
-            ComPtr<IDXGIFactory7> factory = TypedD3D::Helpers::DXGI::Factory::Create<IDXGIFactory7>(TypedD3D::Helpers::DXGI::Factory::CreationFlags::None).GetValue();
-            ComPtr<ID3D12Debug3> debug = TypedD3D::Helpers::D3D12::GetDebugInterface<ID3D12Debug3>().GetValue();
-            debug->EnableDebugLayer();
-            TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
-            debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
+            Rendering::Window window = [&]() 
+            {
+                ComPtr<IDXGIFactory7> factory = TypedD3D::Helpers::DXGI::Factory::Create<IDXGIFactory7>(TypedD3D::Helpers::DXGI::Factory::CreationFlags::None).GetValue();
+                ComPtr<ID3D12Debug3> debug = TypedD3D::Helpers::D3D12::GetDebugInterface<ID3D12Debug3>().GetValue();
+                debug->EnableDebugLayer();
 
-            Rendering::Window window(
-                settings.applicationName,
-                { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
-                settings.windowResolution,
-                SDL_WINDOW_SHOWN,
-                *factory.Get(),
-                device,
-                Rendering::D3D12::DefaultDraw(device));
+                bool dx12 = true;
+
+                if(dx12)
+                {
+                    TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
+                    debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
+
+                    return Rendering::Window(
+                        settings.applicationName,
+                        { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
+                        settings.windowResolution,
+                        SDL_WINDOW_SHOWN,
+                        *factory.Get(),
+                        device,
+                        Rendering::D3D12::DefaultDraw(device));
+                }
+                else
+                {
+                    Microsoft::WRL::ComPtr<ID3D11Device> tempDevice;
+                    Microsoft::WRL::ComPtr<ID3D11DeviceContext> tempDeviceContext;
+                    D3D_FEATURE_LEVEL levels = D3D_FEATURE_LEVEL_11_1;
+                    D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, &levels, 1, D3D11_SDK_VERSION, &tempDevice, nullptr, &tempDeviceContext);
+
+                    Microsoft::WRL::ComPtr<ID3D11Device5> device = TypedD3D::Helpers::COM::Cast<ID3D11Device5>(tempDevice);
+                    Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext = TypedD3D::Helpers::COM::Cast<ID3D11DeviceContext4>(tempDeviceContext);
+
+                    return Rendering::Window(
+                        settings.applicationName,
+                        { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
+                        settings.windowResolution,
+                        SDL_WINDOW_SHOWN,
+                        *factory.Get(),
+                        device,
+                        deviceContext,
+                        Rendering::D3D11::DefaultDraw(device, deviceContext));
+                }
+
+            }();
 
             SDL_Event event;
             while(true)
