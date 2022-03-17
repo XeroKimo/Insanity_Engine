@@ -115,7 +115,9 @@ namespace InsanityEngine::Application
                 }
             }
         }
-        debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+
+        if(debugDevice)
+            debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
 
         return 0;
     }
