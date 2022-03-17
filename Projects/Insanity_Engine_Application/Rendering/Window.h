@@ -2,6 +2,7 @@
 #include "SDL.h"
 #include "SDL_syswm.h"
 #include "Insanity_Math.h"
+#include "TypedD3D.h"
 #include <memory>
 #include <string_view>
 #include <any>
@@ -9,72 +10,192 @@
 
 namespace InsanityEngine::Rendering
 {
-    class WindowInterface
+    class Window
     {
     public:
-        virtual Math::Types::Vector2i GetSize() const = 0;
-        virtual std::any GetHandle() const = 0;
-    };
+        class BackEnd
+        {
+            friend class Window;
 
-    struct NullRenderer 
-    {
-    public:
-        NullRenderer(WindowInterface& window) {}
-    };
+        public:
+            virtual ~BackEnd() = default;
 
-    template<class Renderer>
-    class Window : public WindowInterface
-    {
-        using WindowHandle = std::unique_ptr<SDL_Window, decltype([](SDL_Window* w) { SDL_DestroyWindow(w); })>;
+        private:
+            virtual void Draw() = 0;
+            virtual void ResizeBuffers(Math::Types::Vector2ui size) = 0;
+            virtual void SetFullscreen(bool fullscreen) = 0;
+            virtual void SetWindowSize(Math::Types::Vector2ui size) = 0;
+
+        public:
+            virtual bool IsFullscreen() const = 0;
+        };
+
+        class Null : public BackEnd
+        {
+        private:
+            Window* m_window;
+
+        public:
+            Null(Window& window) :
+                m_window(&window)
+            {
+
+            }
+
+        private:
+            void Draw() final {}
+            void ResizeBuffers(Math::Types::Vector2ui size) final {}
+            void SetFullscreen(bool fullscreen) {}
+            void SetWindowSize(Math::Types::Vector2ui size) final {}
+            bool IsFullscreen() const final {}
+        };
+
+        class DirectX12 : public BackEnd
+        {
+        private:
+            struct FrameData
+            {
+                size_t idleAllocatorIndex = 0;
+                std::vector<TypedD3D::D3D12::CommandAllocator::Direct> allocators;
+                UINT64 fenceWaitValue;
+            };
+
+        private:
+            TypedD3D::D3D12::Device5 m_device;
+            TypedD3D::D3D12::CommandQueue::Direct m_mainQueue;
+            Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swapChain;
+            TypedD3D::D3D12::DescriptorHeap::RTV m_swapChainDescriptorHeap;
+            Microsoft::WRL::ComPtr<ID3D12Fence> m_mainFence;
+            UINT64 m_mainFenceWaitValue = 0;
+            std::vector<FrameData> m_frameData;
+
+        public:
+            DirectX12(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device);
+            ~DirectX12();
+
+        private:
+            void ResizeBuffers(Math::Types::Vector2ui size) final;
+            void SetFullscreen(bool fullscreen) final;
+            void SetWindowSize(Math::Types::Vector2ui size) final;
+
+        public:
+            bool IsFullscreen() const final;
+
+        public:
+            void SignalQueue();
+            void WaitForCurrentFrame();
+            void Present();
+
+            template<size_t Extents>
+            void ExecuteCommandLists(std::span<TypedD3D::D3D12::CommandList::Direct, Extents> commandLists)
+            {
+                m_mainQueue->ExecuteCommandLists(commandLists);
+            }
+
+            TypedD3D::D3D12::CommandAllocator::Direct CreateOrGetAllocator();
+            TypedD3D::D3D12::DescriptorHandle::CPU_RTV GetBackBufferHandle();
+            Microsoft::WRL::ComPtr<ID3D12Resource> GetBackBufferResource();
+
+        public:
+            UINT GetCurrentBackBufferIndex() const;
+            UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
+            UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
+
+        private:
+            void Reset();
+        };
+
+    private:
+        template<class DrawCallback>
+        class DirectX12Renderer : public DirectX12
+        {
+            DrawCallback m_drawCallback;
+
+        public:
+            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, DrawCallback drawCallback) :
+                DirectX12(window, factory, device),
+                m_drawCallback(std::move(drawCallback))
+            {
+
+            }
+
+        private:
+            void Draw() final
+            {
+                m_drawCallback.Draw(*this);
+            }
+        };
+
+    private:
+        using WindowHandle = std::unique_ptr<SDL_Window, decltype([](SDL_Window* w) { SDL_DestroyWindow(w); })> ;
 
     private:
         WindowHandle m_windowHandle;
-        Renderer m_renderer;
+        std::unique_ptr<BackEnd> m_backEnd = nullptr;
 
     public:
-        template<class... RendererParams>
-        Window(std::string_view title, 
-            InsanityEngine::Math::Types::Vector2i windowPosition, 
-            InsanityEngine::Math::Types::Vector2i windowSize, 
+        template<class DrawCallback>
+        Window(std::string_view title,
+            InsanityEngine::Math::Types::Vector2i windowPosition,
+            InsanityEngine::Math::Types::Vector2i windowSize,
             Uint32 flags,
-            RendererParams&&... params) :
+            IDXGIFactory2& factory,
+            TypedD3D::D3D12::Device5 device,
+            DrawCallback&& drawCallback) :
             m_windowHandle(SDL_CreateWindow(
-                title.data(), 
-                windowPosition.x(), 
-                windowPosition.y(), 
-                windowSize.x(), 
-                windowSize.y(), 
+                title.data(),
+                windowPosition.x(),
+                windowPosition.y(),
+                windowSize.x(),
+                windowSize.y(),
                 flags)),
-            m_renderer(*static_cast<WindowInterface*>(this), params...)
+            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallback>(drawCallback)))
         {
 
         }
 
     public:
-        Math::Types::Vector2i GetSize() const final
+        void HandleEvent(const SDL_Event& event);
+        void Draw() { m_backEnd->Draw(); }
+        void SetFullscreen(bool fullscreen) 
         {
-            Math::Types::Vector2i windowSize;
-
-            SDL_GetWindowSize(m_windowHandle.get(), &windowSize.x(), &windowSize.y());
-
-            return windowSize;
+            m_backEnd->SetFullscreen(fullscreen); 
+        }
+        void SetWindowSize(Math::Types::Vector2ui size) 
+        { 
+            m_backEnd->SetWindowSize(size); 
         }
 
-        std::any GetHandle() const final
+        bool IsFullscreen() const
         {
-            SDL_SysWMinfo info;
-            SDL_VERSION(&info.version);
-            SDL_GetWindowWMInfo(m_windowHandle.get(), &info);
-            return info.info.win.window;
+            return m_backEnd->IsFullscreen();
         }
 
     public:
         SDL_Window& GetWindow() { return *m_windowHandle; }
         const SDL_Window& GetWindow() const { return *m_windowHandle; }
-
-        Renderer& GetRenderer() { return m_renderer; }
-        const Renderer& GetRenderer() const { return m_renderer; }
+        HWND GetWindowHandle() const 
+        {    
+            SDL_SysWMinfo info;
+            SDL_VERSION(&info.version);
+            SDL_GetWindowWMInfo(m_windowHandle.get(), &info);
+            return info.info.win.window;
+        }
     };
 
-    using DefaultWindow = Window<NullRenderer>;
+
+    namespace D3D12
+    {
+        struct DefaultDraw
+        {
+            TypedD3D::D3D12::Device5 m_device;
+            TypedD3D::D3D12::CommandList::Direct5 m_commandList;
+
+        public:
+            DefaultDraw(TypedD3D::D3D12::Device5 device);
+
+        public:
+            void Draw(Window::DirectX12& renderer);
+        };
+    }
 }

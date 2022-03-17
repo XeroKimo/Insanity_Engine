@@ -91,13 +91,12 @@
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
-    <ClInclude Include="Rendering\Renderer.h" />
     <ClInclude Include="Rendering\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
-    <ClCompile Include="Rendering\Renderer.cpp" />
+    <ClCompile Include="Rendering\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

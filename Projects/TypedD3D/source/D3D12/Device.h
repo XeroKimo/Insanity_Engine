@@ -825,7 +825,7 @@ namespace TypedD3D::D3D12
             }
 
         public:
-            DeviceInterface<Device<Ty>, Ty>* GetInterrface() { return this; }
+            DeviceInterface<Device<Ty>, Ty>* GetInterface() { return this; }
             DeviceInterface<Device<Ty>, Ty>* operator->() { return this; }
 
             template<class Ty2>
