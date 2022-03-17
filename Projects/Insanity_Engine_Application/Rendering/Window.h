@@ -80,6 +80,11 @@ namespace InsanityEngine::Rendering
 
         public:
             bool IsFullscreen() const final;
+            Math::Types::Vector2ui GetWindowSize() const 
+            { 
+                auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
+                return { description.Width, description.Height };
+            }
 
         public:
             void SignalQueue();
@@ -116,7 +121,7 @@ namespace InsanityEngine::Rendering
                 DirectX12(window, factory, device),
                 m_drawCallback(std::move(drawCallback))
             {
-
+                m_drawCallback.Initialize(*this);
             }
 
         private:
@@ -191,10 +196,15 @@ namespace InsanityEngine::Rendering
             TypedD3D::D3D12::Device5 m_device;
             TypedD3D::D3D12::CommandList::Direct5 m_commandList;
 
+            Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
+            TypedD3D::D3D12::PipelineState::Graphics m_pipelineState;
+            Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+
         public:
             DefaultDraw(TypedD3D::D3D12::Device5 device);
 
         public:
+            void Initialize(Window::DirectX12& renderer);
             void Draw(Window::DirectX12& renderer);
         };
     }
