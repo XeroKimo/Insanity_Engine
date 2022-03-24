@@ -15,9 +15,7 @@ namespace InsanityEngine::Application
                 ComPtr<ID3D12Debug3> debug = TypedD3D::Helpers::D3D12::GetDebugInterface<ID3D12Debug3>().GetValue();
                 debug->EnableDebugLayer();
 
-                bool dx12 = true;
-
-                if(dx12)
+                if(settings.renderAPI == Rendering::RenderAPI::DX12)
                 {
                     TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
                     debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
@@ -53,7 +51,7 @@ namespace InsanityEngine::Application
                 }
 
             }();
-
+            Rendering::D3D12::DefaultDraw* draw = window.GetRenderer<Rendering::D3D12::DefaultDraw>();
             SDL_Event event;
             while(true)
             {
@@ -110,7 +108,7 @@ namespace InsanityEngine::Application
                     }
                 }
                 else
-                {
+                {   
                     window.Draw();
                 }
             }

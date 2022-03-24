@@ -1,5 +1,6 @@
 #pragma once
 #include "Insanity_Math.h"
+#include "../Rendering/Device.h"
 #include <string>
 
 namespace InsanityEngine::Application
@@ -8,5 +9,6 @@ namespace InsanityEngine::Application
     {
         std::string applicationName;
         Math::Types::Vector2i windowResolution;
+        Rendering::RenderAPI renderAPI;
     };
 }

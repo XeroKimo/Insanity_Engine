@@ -26,6 +26,7 @@ namespace InsanityEngine::Rendering
             virtual void ResizeBuffers(Math::Types::Vector2ui size) = 0;
             virtual void SetFullscreen(bool fullscreen) = 0;
             virtual void SetWindowSize(Math::Types::Vector2ui size) = 0;
+            virtual std::any GetRenderer() = 0;
 
         public:
             virtual bool IsFullscreen() const = 0;
@@ -160,6 +161,8 @@ namespace InsanityEngine::Rendering
             {
                 m_drawCallback.Draw(*this);
             }
+
+            std::any GetRenderer() final { return &m_drawCallback; }
         };
 
         template<class DrawCallback>
@@ -180,6 +183,8 @@ namespace InsanityEngine::Rendering
             {
                 m_drawCallback.Draw(*this);
             }
+
+            std::any GetRenderer() final { return &m_drawCallback; }
         };
 
     private:
@@ -210,6 +215,7 @@ namespace InsanityEngine::Rendering
         {
 
         }
+
         template<class DrawCallback>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
@@ -232,11 +238,14 @@ namespace InsanityEngine::Rendering
 
     public:
         void HandleEvent(const SDL_Event& event);
+
         void Draw() { m_backEnd->Draw(); }
+
         void SetFullscreen(bool fullscreen) 
         {
             m_backEnd->SetFullscreen(fullscreen); 
         }
+
         void SetWindowSize(Math::Types::Vector2ui size) 
         { 
             m_backEnd->SetWindowSize(size); 
@@ -245,6 +254,15 @@ namespace InsanityEngine::Rendering
         bool IsFullscreen() const
         {
             return m_backEnd->IsFullscreen();
+        }
+
+        template<class Ty>
+        Ty* GetRenderer() const
+        {
+            std::any renderer = m_backEnd->GetRenderer();
+            if(renderer.type() == typeid(Ty*))
+                return std::any_cast<Ty*>(renderer);
+            return nullptr;
         }
 
     public:
@@ -296,6 +314,16 @@ namespace InsanityEngine::Rendering
         public:
             void Initialize(Window::DirectX12& renderer);
             void Draw(Window::DirectX12& renderer);
+        };
+
+        struct NullDraw
+        {
+        public:
+            NullDraw() = default;
+
+        public:
+            void Initialize(Window::DirectX12& renderer) {}
+            void Draw(Window::DirectX12& renderer) {}
         };
     }
 }

@@ -27,7 +27,6 @@ namespace InsanityEngine::Rendering
         SetFullscreen(false);
     }
 
-
     void Window::DirectX11::ResizeBuffers(Math::Types::Vector2ui size)
     {
         m_deviceContext->Flush();
@@ -244,11 +243,11 @@ namespace InsanityEngine::Rendering
 
     namespace D3D11
     {
+
             DefaultDraw::DefaultDraw(Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext) :
                 m_device(device),
                 m_deviceContext(deviceContext)
             {
-
             }
 
             void DefaultDraw::Initialize(Window::DirectX11& renderer)
