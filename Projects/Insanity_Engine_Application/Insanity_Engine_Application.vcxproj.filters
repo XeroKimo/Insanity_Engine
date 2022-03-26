@@ -58,5 +58,7 @@
     <FxCompile Include="Resources\Shaders\VertexShader.hlsl" />
     <FxCompile Include="Default_Resources\PixelShader.hlsl" />
     <FxCompile Include="Default_Resources\VertexShader.hlsl" />
+    <FxCompile Include="Resources\Shaders\2DPixelShader.hlsl" />
+    <FxCompile Include="Resources\Shaders\2DVertexShader.hlsl" />
   </ItemGroup>
 </Project>
