@@ -10,10 +10,16 @@ struct VertexOutput
 	float2 uv : TEXCOORD;
 };
 
+cbuffer Camera : register(b0)
+{
+	float4x4 projectionMatrix;
+}
+
+
 VertexOutput main(VertexInput input)
 {
 	VertexOutput output;
-	output.position = float4(input.position, 0, 1);
+	output.position = mul(float4(input.position, 1, 1), projectionMatrix);
 	output.uv = float2(input.uv);
 	return output;
 }
