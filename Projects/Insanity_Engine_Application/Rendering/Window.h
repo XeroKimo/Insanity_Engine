@@ -137,6 +137,7 @@ namespace InsanityEngine::Rendering
             UINT GetCurrentBackBufferIndex() const;
             UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
             UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
+            DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get()); }
 
         private:
             void Reset();

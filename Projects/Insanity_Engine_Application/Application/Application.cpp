@@ -43,6 +43,103 @@ namespace InsanityEngine::Application
         D3D12_SUBRESOURCE_DATA data;
     };
 
+    class ConstantBuffer
+    {
+    private:
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;
+        char* m_begin;
+        char* m_current;
+        char* m_end;
+
+    public:
+        ConstantBuffer() = default;
+        ConstantBuffer(TypedD3D::D3D12::Device device, UINT64 size) :
+            m_buffer(device->CreateCommittedResource(
+                CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+                D3D12_HEAP_FLAG_NONE,
+                CD3DX12_RESOURCE_DESC::Buffer((size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) & (~(D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT - 1))),
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr).GetValue())
+        {
+            void* begin;
+            m_buffer->Map(0, nullptr, &begin);
+            m_current = m_begin = reinterpret_cast<char*>(begin);
+            m_end = m_begin + m_buffer->GetDesc().Width + D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+        }
+
+        ConstantBuffer(const ConstantBuffer& other) = delete;
+        ConstantBuffer(ConstantBuffer&& other) noexcept = default;
+
+        ~ConstantBuffer()
+        {
+            if(m_buffer)
+                m_buffer->Unmap(0, nullptr);
+        }
+
+        ConstantBuffer& operator=(const ConstantBuffer& other) = delete;
+        ConstantBuffer& operator=(ConstantBuffer&& other) noexcept
+        {
+            if(m_buffer)
+            {
+                m_buffer->Unmap(0, nullptr);
+            }
+
+            m_buffer = std::move(other.m_buffer);
+            m_begin = std::move(other.m_begin);
+            m_current = std::move(other.m_current);
+            m_end = std::move(other.m_end);
+
+            return *this;
+        }
+
+    public:
+        D3D12_GPU_VIRTUAL_ADDRESS push_back(const void* data, UINT64 size)
+        {
+            std::memcpy(m_current, data, size);
+            D3D12_GPU_VIRTUAL_ADDRESS address = m_buffer->GetGPUVirtualAddress() + (m_current - m_begin);
+            Advance(m_current, size);
+            return address;
+        }
+
+        template<class Ty>
+        D3D12_GPU_VIRTUAL_ADDRESS emplace_back(const Ty& data)
+        {
+            return push_back(&data, sizeof(Ty));
+        }
+
+        void clear()
+        {
+            //std::memset(m_begin, 0, m_current - m_begin);
+            m_current = m_begin;
+        }
+
+        void resize(TypedD3D::D3D12::Device device, UINT64 size)
+        {
+            if(m_buffer)
+            {
+                m_buffer->Unmap(0, nullptr);
+            }
+
+            m_buffer = device->CreateCommittedResource(
+                CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+                D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+                CD3DX12_RESOURCE_DESC::Buffer((size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) & (~D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)),
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr).GetValue();
+
+            void* begin;
+            m_buffer->Map(0, nullptr, &begin);
+            m_current = m_begin = reinterpret_cast<char*>(begin);
+            m_end = m_begin + m_buffer->GetDesc().Width + D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+        }
+
+    private:
+        void Advance(char* data, UINT64 size)
+        {
+            data += (size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) & (~D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+        }
+    };
+
     GPUTransferData CreateTextureTransferData(TypedD3D::D3D12::Device5 device, const DirectX::Image& texture)
     {
         using Microsoft::WRL::ComPtr;
@@ -172,7 +269,9 @@ namespace InsanityEngine::Application
         Microsoft::WRL::ComPtr<ID3D12Resource> m_oTexture;
         TypedD3D::D3D12::DescriptorHeap::CBV_SRV_UAV m_textures;
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> m_cameraMatrix;
+        std::vector<ConstantBuffer> m_constantBuffer; 
+        Math::Types::Matrix4x4f m_projectionMatrix;
+        D3D12_GPU_VIRTUAL_ADDRESS m_cameraMatrix;
 
 
     public:
@@ -185,6 +284,9 @@ namespace InsanityEngine::Application
     public:
         void Initialize(Rendering::Window::DirectX12& renderer)
         {
+            for(size_t i = 0; i < renderer.GetSwapChainDescription().BufferCount; i++)
+                m_constantBuffer.push_back(ConstantBuffer(m_device, 0));
+
             D3D12_DESCRIPTOR_RANGE range
             {
                 .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
@@ -428,20 +530,9 @@ namespace InsanityEngine::Application
             m_device->CreateSampler(samplerDesc, m_sampler->GetCPUDescriptorHandleForHeapStart());
 
 
-            m_cameraMatrix = m_device->CreateCommittedResource(
-                CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-                D3D12_HEAP_FLAG_NONE,
-                CD3DX12_RESOURCE_DESC::Buffer(sizeof(Math::Types::Matrix4x4f)),
-                D3D12_RESOURCE_STATE_GENERIC_READ,
-                nullptr).GetValue();
 
             Math::Types::Vector2f windowSize = renderer.GetWindowSize();
-            Math::Types::Matrix4x4f projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * (windowSize.x() / windowSize.y()), 5 } , 0.0001f, 1000.f);
-
-            void* data;
-            m_cameraMatrix->Map(0, nullptr, &data);
-            std::memcpy(data, &projectionMatrix, sizeof(projectionMatrix));
-            m_cameraMatrix->Unmap(0, nullptr);
+            m_projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * (windowSize.x() / windowSize.y()), 5 } , 0.0001f, 1000.f);
 
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexTransfer.uploadBuffer.Get(), 0, 0, 1, &vertexTransfer.data);
@@ -481,6 +572,8 @@ namespace InsanityEngine::Application
         {
             using Microsoft::WRL::ComPtr;
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
+            m_constantBuffer[renderer.GetCurrentBackBufferIndex()].clear();
+            m_cameraMatrix = m_constantBuffer[renderer.GetCurrentBackBufferIndex()].emplace_back(m_projectionMatrix);
 
             ComPtr<ID3D12Resource> backBuffer = renderer.GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -528,7 +621,7 @@ namespace InsanityEngine::Application
             auto GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
             m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
             m_commandList->SetGraphicsRootDescriptorTable(1, m_sampler->GetGPUDescriptorHandleForHeapStart().Data());
-            m_commandList->SetGraphicsRootConstantBufferView(2, m_cameraMatrix->GetGPUVirtualAddress());
+            m_commandList->SetGraphicsRootConstantBufferView(2, m_cameraMatrix);
             m_commandList->DrawInstanced(6, 1, 0, 0);
 
             GPUHandle.Ptr() += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
