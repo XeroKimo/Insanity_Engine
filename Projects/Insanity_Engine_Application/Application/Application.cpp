@@ -715,6 +715,13 @@ namespace InsanityEngine::Application
         Math::Types::Vector2f halfDimensions;
     };
 
+    enum class TileType
+    {
+        None,
+        X,
+        O
+    };
+
     class TicTacToeGame
     {
     private:
@@ -722,6 +729,7 @@ namespace InsanityEngine::Application
         TicTacToeManager* m_ticTacToe;
         int m_turn = 0;
         std::array<ClickBox, 9> m_clickBoxes;
+        std::array<TileType, 9> m_tileTypes;
 
     public:
         TicTacToeGame(Rendering::Window& window, TicTacToeManager& ticTacToe) :
@@ -753,12 +761,12 @@ namespace InsanityEngine::Application
                         Math::Types::Vector4f mouseWorldPosition = Math::Vector::ScreenToWorldPosition({ event.button.x, event.button.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_ticTacToe->projectionMatrix, 0, 0, 0);
                         size_t boardPosIndex = GetBoardPositionIndex(mouseWorldPosition);
 
-                        if(boardPosIndex < m_clickBoxes.size())
+                        if(boardPosIndex < m_clickBoxes.size() && m_tileTypes[boardPosIndex] == TileType::None)
                         {
                             m_ticTacToe->tiles[m_turn].position = m_clickBoxes[boardPosIndex].position;
                             m_ticTacToe->tiles[m_turn].textureResourceOffset = (m_turn % 2) + 1;
                             m_ticTacToe->tiles[m_turn].draw = true;
-
+                            m_tileTypes[boardPosIndex] = TileType(m_ticTacToe->tiles[m_turn].textureResourceOffset);
                             m_turn++;
                         }
                     }

@@ -4,5 +4,5 @@
 
 namespace InsanityEngine::Math::Vector
 {
-    Types::Vector4f ScreenToWorldPosition(Types::Vector2f position, Types::Vector2f screenResolution, const Types::Matrix4x4f& viewMatrix, const Types::Matrix4x4f& projectionMatrix, float depthMin, float depthMax, float depth);
+    Types::Vector3f ScreenToWorldPosition(Types::Vector2f position, Types::Vector2f screenResolution, const Types::Matrix4x4f& viewMatrix, const Types::Matrix4x4f& projectionMatrix, float depthMin, float depthMax, float depth);
 }
