@@ -821,9 +821,9 @@ namespace InsanityEngine::Application
 
             for(size_t i = 0; i < 3; i++)
             {
-                if(m_tileTypes[i * 3] == m_tileTypes[i + 1 * 3] &&
+                if(m_tileTypes[i] == m_tileTypes[i + 1 * 3] &&
                     m_tileTypes[i + 1 * 3] == m_tileTypes[i + 2 * 3] &&
-                    m_tileTypes[i * 3] != TileType::None)
+                    m_tileTypes[i] != TileType::None)
                     return true;
             }
 
