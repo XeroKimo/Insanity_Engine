@@ -3,6 +3,7 @@
 #include "DirectXTex/DirectXTex.h"
 #include "d3dx12.h"
 #include "Extensions/MatrixExtension.h"
+#include "Extensions/VectorExtension.h"
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 
@@ -57,7 +58,7 @@ namespace InsanityEngine::Application
             m_buffer(device->CreateCommittedResource(
                 CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAG_NONE,
-                CD3DX12_RESOURCE_DESC::Buffer((size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) & (~(D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT - 1))),
+                CD3DX12_RESOURCE_DESC::Buffer((size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)& (~(D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT - 1))),
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr).GetValue())
         {
@@ -268,6 +269,8 @@ namespace InsanityEngine::Application
         std::array<Sprite, 9> tiles;
         Sprite board;
         Sprite mouseDebug;
+
+        Math::Types::Matrix4x4f projectionMatrix;
     };
 
     struct TicTacToeDraw
@@ -286,7 +289,6 @@ namespace InsanityEngine::Application
         TypedD3D::D3D12::DescriptorHeap::CBV_SRV_UAV m_textures;
 
         std::vector<ConstantBuffer> m_constantBuffer;
-        Math::Types::Matrix4x4f m_projectionMatrix;
         D3D12_GPU_VIRTUAL_ADDRESS m_cameraMatrix;
 
         std::unique_ptr<TicTacToeManager> m_ticTacToe;
@@ -300,10 +302,9 @@ namespace InsanityEngine::Application
             int i = 0;
             for(Sprite& sprite : m_ticTacToe->tiles)
             {
-                sprite.position.x() += i;
-                sprite.scale /= 3;
-                i++;
+                sprite.draw = false;
             }
+            m_ticTacToe->board.scale *= 3;
             m_ticTacToe->board.textureResourceOffset = 0;
             manager = m_ticTacToe.get();
         }
@@ -569,7 +570,7 @@ namespace InsanityEngine::Application
 
 
             Math::Types::Vector2f windowSize = renderer.GetWindowSize();
-            m_projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * (windowSize.x() / windowSize.y()), 5 }, 0.0001f, 1000.f);
+            m_ticTacToe->projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 4 * (windowSize.x() / windowSize.y()), 4 }, 0.0001f, 1000.f);
 
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexTransfer.uploadBuffer.Get(), 0, 0, 1, &vertexTransfer.data);
@@ -611,7 +612,7 @@ namespace InsanityEngine::Application
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             ConstantBuffer& currentConstantBuffer = m_constantBuffer[renderer.GetCurrentBackBufferIndex()];
             currentConstantBuffer.clear();
-            m_cameraMatrix = currentConstantBuffer.emplace_back(m_projectionMatrix);
+            m_cameraMatrix = currentConstantBuffer.emplace_back(m_ticTacToe->projectionMatrix);
 
             for(Sprite& sprite : m_ticTacToe->tiles)
             {
@@ -708,15 +709,87 @@ namespace InsanityEngine::Application
         }
     };
 
-    void HandleEvent(const SDL_Event& event)
+    struct ClickBox
     {
+        Math::Types::Vector2f position;
+        Math::Types::Vector2f halfDimensions;
+    };
 
-    }
-
-    void Update()
+    class TicTacToeGame
     {
+    private:
+        Rendering::Window* m_window;
+        TicTacToeManager* m_ticTacToe;
+        int m_turn = 0;
+        std::array<ClickBox, 9> m_clickBoxes;
 
-    }
+    public:
+        TicTacToeGame(Rendering::Window& window, TicTacToeManager& ticTacToe) :
+            m_window(&window),
+            m_ticTacToe(&ticTacToe)
+        {
+            for(int y = -1, i = 0; y <= 1; y++)
+            {
+                for(int x = -1; x <= 1; x++, i++)
+                {
+                    m_clickBoxes[i].position = { x, y };
+                    m_clickBoxes[i].halfDimensions = { 0.5f, 0.5f };
+                }
+            }
+        }
+
+    public:
+        void HandleEvent(const SDL_Event& event)
+        {
+            switch(event.type)
+            {
+            case SDL_EventType::SDL_MOUSEBUTTONDOWN:
+            {
+                if(event.button.button == SDL_BUTTON_LEFT)
+                {
+                    if(m_turn < m_ticTacToe->tiles.size())
+                    {
+                        Math::Types::Vector2f windowSize = m_window->GetWindowSize();
+                        Math::Types::Vector4f mouseWorldPosition = Math::Vector::ScreenToWorldPosition({ event.button.x, event.button.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_ticTacToe->projectionMatrix, 0, 0, 0);
+                        size_t boardPosIndex = GetBoardPositionIndex(mouseWorldPosition);
+
+                        if(boardPosIndex < m_clickBoxes.size())
+                        {
+                            m_ticTacToe->tiles[m_turn].position = m_clickBoxes[boardPosIndex].position;
+                            m_ticTacToe->tiles[m_turn].textureResourceOffset = (m_turn % 2) + 1;
+                            m_ticTacToe->tiles[m_turn].draw = true;
+
+                            m_turn++;
+                        }
+                    }
+                }
+            }
+            break;
+            case SDL_EventType::SDL_MOUSEMOTION:
+            {
+                Math::Types::Vector2f windowSize = m_window->GetWindowSize();
+                m_ticTacToe->mouseDebug.position = Math::Vector::ScreenToWorldPosition({ event.motion.x, event.motion.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_ticTacToe->projectionMatrix, 0, 0, 0);
+            }
+            break;
+            }
+        }
+
+    private:
+        size_t GetBoardPositionIndex(Math::Types::Vector2f position)
+        {
+            for(size_t i = 0; i < m_clickBoxes.size(); i++)
+            {
+                const Math::Types::Vector2f minPosition = m_clickBoxes[i].position - m_clickBoxes[i].halfDimensions;
+                const Math::Types::Vector2f maxPosition = m_clickBoxes[i].position + m_clickBoxes[i].halfDimensions;
+                if(position.x() >= minPosition.x() && position.x() < maxPosition.x() &&
+                    position.y() >= minPosition.y() && position.y() < maxPosition.y())
+                {
+                    return i;
+                }
+            }
+            return m_clickBoxes.size();
+        }
+    };
 
 
     int Run(const Settings& settings)
@@ -739,15 +812,7 @@ namespace InsanityEngine::Application
                 device,
                 TicTacToeDraw(device, ticTacToe) };
 
-            Math::Types::Matrix4x4f inverseTest
-            {
-                1, 1, 1, -1,
-                1, 1, -1, 1,
-                1, -1, 1, 1,
-                -1, 1, 1, 1
-            };
-            float det = Math::Matrix::Determinant(inverseTest);
-            Math::Types::Matrix4x4f inverseTest2 = Math::Matrix::Inverse(inverseTest);
+            TicTacToeGame game{ window, *ticTacToe };
 
             SDL_Event event;
             while(true)
@@ -758,7 +823,8 @@ namespace InsanityEngine::Application
                         break;
 
                     window.HandleEvent(event);
-                    static bool trackMouse = false;
+                    game.HandleEvent(event);
+
                     switch(event.type)
                     {
                     case SDL_EventType::SDL_KEYDOWN:
@@ -800,61 +866,12 @@ namespace InsanityEngine::Application
                                     window.SetWindowSize({ 1600, 900 });
                                 }
                             }
-                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_a)
-                            {
-                                trackMouse = true;;
-                            }
                         }
                         break;
-                    case SDL_EventType::SDL_MOUSEMOTION:
-                    {
-                        //if(trackMouse)
-                        {
-                            Math::Types::Vector2ui windowSize = window.GetWindowSize();
-                            ticTacToe->mouseDebug.position.x() = event.motion.x;
-                            ticTacToe->mouseDebug.position.y() = windowSize.y() - event.motion.y;
-                            ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
-                            ticTacToe->mouseDebug.position *= 2;
-                            ticTacToe->mouseDebug.position.x() -= 1;
-                            ticTacToe->mouseDebug.position.y() -= 1;
-                            auto matrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * ((float)windowSize.x() / (float)windowSize.y()), 5 }, 0.0001f, 1000.f);
-                            auto matrix2 = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 , 5 }, 0.0001f, 1000.f);
-                            auto det = Math::Matrix::Determinant(matrix);
-                            auto det2 = Math::Matrix::Determinant(matrix2);
-                            auto inv = Math::Matrix::Inverse(matrix);
-                            auto inv2 = Math::Matrix::Inverse(matrix2);
-
-                            auto test = matrix * inv;
-                            Math::Types::Vector4f mousePos = inv * Math::Types::Vector4f(ticTacToe->mouseDebug.position, 0, 1);
-                            Math::Types::Vector4f mousePos2 = inv2 * Math::Types::Vector4f(ticTacToe->mouseDebug.position, 0, 1);
-                            //mousePos.x() *= 2;
-                            ticTacToe->mouseDebug.position = mousePos;
-
-                            //ticTacToe->mouseDebug.position.x() -= windowSize.x() / 2;
-                            //ticTacToe->mouseDebug.position.y() -= windowSize.y() / 2;
-
-                            //ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
-                            trackMouse = false;
-
-                            //ticTacToe->mouseDebug.position.x() = event.motion.x;
-                            //ticTacToe->mouseDebug.position.y() = windowSize.y() - event.motion.y;
-                            //ticTacToe->mouseDebug.position.x() -= windowSize.x() / 2;
-                            //ticTacToe->mouseDebug.position.y() -= windowSize.y() / 2;
-
-                            //ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
-                            //ticTacToe->mouseDebug.position *= 10;
-                            //trackMouse = false;
-                        }
-                    }
-                    break;
                     }
                 }
                 else
                 {
-                    for(Sprite& sprite : ticTacToe->tiles)
-                    {
-                        sprite.draw = false;
-                    }
                     window.Draw();
                 }
             }

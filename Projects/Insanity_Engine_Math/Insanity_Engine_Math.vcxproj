@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Extensions\MatrixExtension.h" />
+    <ClInclude Include="Extensions\VectorExtension.h" />
     <ClInclude Include="Insanity_Math.h" />
     <ClInclude Include="MathConcepts.h" />
     <ClInclude Include="Matrix.h" />
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ClCompile Include="Build.cpp" />
     <ClCompile Include="Extensions\MatrixExtension.cpp" />
+    <ClCompile Include="Extensions\VectorExtension.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

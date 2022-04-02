@@ -39,12 +39,18 @@
     <ClInclude Include="Quaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Extensions\VectorExtension.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Build.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Extensions\MatrixExtension.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Extensions\VectorExtension.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
