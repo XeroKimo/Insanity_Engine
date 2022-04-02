@@ -730,6 +730,7 @@ namespace InsanityEngine::Application
         int m_turn = 0;
         std::array<ClickBox, 9> m_clickBoxes;
         std::array<TileType, 9> m_tileTypes;
+        bool gameEnded = false;
 
     public:
         TicTacToeGame(Rendering::Window& window, TicTacToeManager& ticTacToe) :
@@ -755,19 +756,26 @@ namespace InsanityEngine::Application
             {
                 if(event.button.button == SDL_BUTTON_LEFT)
                 {
-                    if(m_turn < m_ticTacToe->tiles.size())
+                    if(gameEnded)
+                        ResetGame();
+                    else
                     {
-                        Math::Types::Vector2f windowSize = m_window->GetWindowSize();
-                        Math::Types::Vector4f mouseWorldPosition = Math::Vector::ScreenToWorldPosition({ event.button.x, event.button.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_ticTacToe->projectionMatrix, 0, 0, 0);
-                        size_t boardPosIndex = GetBoardPositionIndex(mouseWorldPosition);
-
-                        if(boardPosIndex < m_clickBoxes.size() && m_tileTypes[boardPosIndex] == TileType::None)
+                        if(m_turn < m_ticTacToe->tiles.size())
                         {
-                            m_ticTacToe->tiles[m_turn].position = m_clickBoxes[boardPosIndex].position;
-                            m_ticTacToe->tiles[m_turn].textureResourceOffset = (m_turn % 2) + 1;
-                            m_ticTacToe->tiles[m_turn].draw = true;
-                            m_tileTypes[boardPosIndex] = TileType(m_ticTacToe->tiles[m_turn].textureResourceOffset);
-                            m_turn++;
+                            Math::Types::Vector2f windowSize = m_window->GetWindowSize();
+                            Math::Types::Vector4f mouseWorldPosition = Math::Vector::ScreenToWorldPosition({ event.button.x, event.button.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_ticTacToe->projectionMatrix, 0, 0, 0);
+                            size_t boardPosIndex = GetBoardPositionIndex(mouseWorldPosition);
+
+                            if(boardPosIndex < m_clickBoxes.size() && m_tileTypes[boardPosIndex] == TileType::None)
+                            {
+                                m_ticTacToe->tiles[m_turn].position = m_clickBoxes[boardPosIndex].position;
+                                m_ticTacToe->tiles[m_turn].textureResourceOffset = (m_turn % 2) + 1;
+                                m_ticTacToe->tiles[m_turn].draw = true;
+                                m_tileTypes[boardPosIndex] = TileType(m_ticTacToe->tiles[m_turn].textureResourceOffset);
+                                m_turn++;
+
+                                gameEnded = CheckGameFinish();
+                            }
                         }
                     }
                 }
@@ -796,6 +804,45 @@ namespace InsanityEngine::Application
                 }
             }
             return m_clickBoxes.size();
+        }
+
+        bool CheckGameFinish()
+        {
+            if(m_turn >= m_tileTypes.size())
+                return true;
+
+            for(size_t i = 0; i < 3; i++)
+            {
+                if(m_tileTypes[i * 3] == m_tileTypes[i * 3 + 1] &&
+                    m_tileTypes[i * 3 + 1] == m_tileTypes[i * 3 + 2] &&
+                    m_tileTypes[i * 3] != TileType::None)
+                    return true;
+            }
+
+            for(size_t i = 0; i < 3; i++)
+            {
+                if(m_tileTypes[i * 3] == m_tileTypes[i + 1 * 3] &&
+                    m_tileTypes[i + 1 * 3] == m_tileTypes[i + 2 * 3] &&
+                    m_tileTypes[i * 3] != TileType::None)
+                    return true;
+            }
+
+            return (m_tileTypes[0] == m_tileTypes[1 + 3] && m_tileTypes[1 + 3] == m_tileTypes[2 + 6] && m_tileTypes[0] != TileType::None) ||
+                (m_tileTypes[0 + 6] == m_tileTypes[1 + 3] && m_tileTypes[1 + 3] == m_tileTypes[2] && m_tileTypes[2] != TileType::None);
+        }
+
+        void ResetGame()
+        {
+            for(Sprite& sprite : m_ticTacToe->tiles)
+            {
+                sprite.draw = false;
+            }
+            for(TileType& type : m_tileTypes)
+            {
+                type = TileType::None;
+            }
+            m_turn = 0;
+            gameEnded = false;
         }
     };
 
