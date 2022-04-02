@@ -134,9 +134,9 @@ namespace InsanityEngine::Application
         }
 
     private:
-        void Advance(char* data, UINT64 size)
+        void Advance(char*& data, UINT64 size)
         {
-            data += (size + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) & (~D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+            data += (size + D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) & (~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1));
         }
     };
 
@@ -254,6 +254,22 @@ namespace InsanityEngine::Application
         Math::Types::Vector2f UV;
     };
 
+    struct Sprite
+    {
+        bool draw = true;
+        Math::Types::Vector3f position;
+        Math::Types::Vector3f scale = Math::Types::Scalar(1);
+        D3D12_GPU_VIRTUAL_ADDRESS objectConstantBuffer;
+        UINT textureResourceOffset = 0;
+    };
+
+    struct TicTacToeManager
+    {
+        std::array<Sprite, 9> tiles;
+        Sprite board;
+        Sprite mouseDebug;
+    };
+
     struct TicTacToeDraw
     {
         TypedD3D::D3D12::Device5 m_device;
@@ -269,16 +285,27 @@ namespace InsanityEngine::Application
         Microsoft::WRL::ComPtr<ID3D12Resource> m_oTexture;
         TypedD3D::D3D12::DescriptorHeap::CBV_SRV_UAV m_textures;
 
-        std::vector<ConstantBuffer> m_constantBuffer; 
+        std::vector<ConstantBuffer> m_constantBuffer;
         Math::Types::Matrix4x4f m_projectionMatrix;
         D3D12_GPU_VIRTUAL_ADDRESS m_cameraMatrix;
 
+        std::unique_ptr<TicTacToeManager> m_ticTacToe;
 
     public:
-        TicTacToeDraw(TypedD3D::D3D12::Device5 device) :
+        TicTacToeDraw(TypedD3D::D3D12::Device5 device, TicTacToeManager*& manager) :
             m_device(device),
-            m_commandList(m_device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
+            m_commandList(m_device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
+            m_ticTacToe(std::make_unique<TicTacToeManager>())
         {
+            int i = 0;
+            for(Sprite& sprite : m_ticTacToe->tiles)
+            {
+                sprite.position.x() += i;
+                sprite.scale /= 3;
+                i++;
+            }
+            m_ticTacToe->board.textureResourceOffset = 0;
+            manager = m_ticTacToe.get();
         }
 
     public:
@@ -331,6 +358,16 @@ namespace InsanityEngine::Application
                         .Descriptor
                         {
                             .ShaderRegister = 0,
+                            .RegisterSpace = 0
+                        },
+                        .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX
+                    },
+                    D3D12_ROOT_PARAMETER
+                    {
+                        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                        .Descriptor
+                        {
+                            .ShaderRegister = 1,
                             .RegisterSpace = 0
                         },
                         .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX
@@ -516,12 +553,12 @@ namespace InsanityEngine::Application
 
             D3D12_SAMPLER_DESC samplerDesc
             {
-                .Filter = D3D12_FILTER_MIN_MAG_MIP_POINT,
+                .Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR,
                 .AddressU = D3D12_TEXTURE_ADDRESS_MODE::D3D12_TEXTURE_ADDRESS_MODE_WRAP,
                 .AddressV = D3D12_TEXTURE_ADDRESS_MODE::D3D12_TEXTURE_ADDRESS_MODE_WRAP,
                 .AddressW = D3D12_TEXTURE_ADDRESS_MODE::D3D12_TEXTURE_ADDRESS_MODE_WRAP,
                 .MipLODBias = 0,
-                .MaxAnisotropy = 0,
+                .MaxAnisotropy = 16,
                 .ComparisonFunc = D3D12_COMPARISON_FUNC_GREATER,
                 .BorderColor = { 1, 1, 1, 1 },
                 .MinLOD = 0,
@@ -532,7 +569,7 @@ namespace InsanityEngine::Application
 
 
             Math::Types::Vector2f windowSize = renderer.GetWindowSize();
-            m_projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * (windowSize.x() / windowSize.y()), 5 } , 0.0001f, 1000.f);
+            m_projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * (windowSize.x() / windowSize.y()), 5 }, 0.0001f, 1000.f);
 
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexTransfer.uploadBuffer.Get(), 0, 0, 1, &vertexTransfer.data);
@@ -572,8 +609,19 @@ namespace InsanityEngine::Application
         {
             using Microsoft::WRL::ComPtr;
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
-            m_constantBuffer[renderer.GetCurrentBackBufferIndex()].clear();
-            m_cameraMatrix = m_constantBuffer[renderer.GetCurrentBackBufferIndex()].emplace_back(m_projectionMatrix);
+            ConstantBuffer& currentConstantBuffer = m_constantBuffer[renderer.GetCurrentBackBufferIndex()];
+            currentConstantBuffer.clear();
+            m_cameraMatrix = currentConstantBuffer.emplace_back(m_projectionMatrix);
+
+            for(Sprite& sprite : m_ticTacToe->tiles)
+            {
+                if(sprite.draw)
+                {
+                    sprite.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(sprite.position) * Math::Matrix::ScaleMatrix(sprite.scale));
+                }
+            }
+            m_ticTacToe->board.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe->board.position) * Math::Matrix::ScaleMatrix(m_ticTacToe->board.scale));
+            m_ticTacToe->mouseDebug.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe->mouseDebug.position) * Math::Matrix::ScaleMatrix(m_ticTacToe->mouseDebug.scale));
 
             ComPtr<ID3D12Resource> backBuffer = renderer.GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -618,18 +666,34 @@ namespace InsanityEngine::Application
             m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             m_commandList->IASetVertexBuffers(0, std::span(&vertexBufferView, 1));
             m_commandList->SetDescriptorHeaps(m_textures, m_sampler);
-            auto GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
-            m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
+
             m_commandList->SetGraphicsRootDescriptorTable(1, m_sampler->GetGPUDescriptorHandleForHeapStart().Data());
             m_commandList->SetGraphicsRootConstantBufferView(2, m_cameraMatrix);
+
+
+            auto GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
+            UINT64 incrementSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            GPUHandle.Ptr() += m_ticTacToe->board.textureResourceOffset * incrementSize;
+            m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
+            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe->board.objectConstantBuffer);
             m_commandList->DrawInstanced(6, 1, 0, 0);
 
-            GPUHandle.Ptr() += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
-            m_commandList->DrawInstanced(6, 1, 0, 0);
+            for(Sprite& sprite : m_ticTacToe->tiles)
+            {
+                if(sprite.draw)
+                {
+                    auto GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
+                    GPUHandle.Ptr() += sprite.textureResourceOffset * incrementSize;
+                    m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
+                    m_commandList->SetGraphicsRootConstantBufferView(3, sprite.objectConstantBuffer);
+                    m_commandList->DrawInstanced(6, 1, 0, 0);
+                }
+            }
 
-            GPUHandle.Ptr() += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
+            GPUHandle.Ptr() += m_ticTacToe->mouseDebug.textureResourceOffset * incrementSize;
             m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
+            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe->mouseDebug.objectConstantBuffer);
             m_commandList->DrawInstanced(6, 1, 0, 0);
 
             barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
@@ -644,6 +708,15 @@ namespace InsanityEngine::Application
         }
     };
 
+    void HandleEvent(const SDL_Event& event)
+    {
+
+    }
+
+    void Update()
+    {
+
+    }
 
 
     int Run(const Settings& settings)
@@ -656,7 +729,7 @@ namespace InsanityEngine::Application
             debug->EnableDebugLayer();
             TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
             debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
-
+            TicTacToeManager* ticTacToe;
             Rendering::Window window{
                 settings.applicationName,
                 { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
@@ -664,7 +737,17 @@ namespace InsanityEngine::Application
                 SDL_WINDOW_SHOWN,
                 *factory.Get(),
                 device,
-                TicTacToeDraw(device) };
+                TicTacToeDraw(device, ticTacToe) };
+
+            Math::Types::Matrix4x4f inverseTest
+            {
+                1, 1, 1, -1,
+                1, 1, -1, 1,
+                1, -1, 1, 1,
+                -1, 1, 1, 1
+            };
+            float det = Math::Matrix::Determinant(inverseTest);
+            Math::Types::Matrix4x4f inverseTest2 = Math::Matrix::Inverse(inverseTest);
 
             SDL_Event event;
             while(true)
@@ -675,7 +758,7 @@ namespace InsanityEngine::Application
                         break;
 
                     window.HandleEvent(event);
-
+                    static bool trackMouse = false;
                     switch(event.type)
                     {
                     case SDL_EventType::SDL_KEYDOWN:
@@ -717,12 +800,61 @@ namespace InsanityEngine::Application
                                     window.SetWindowSize({ 1600, 900 });
                                 }
                             }
+                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_a)
+                            {
+                                trackMouse = true;;
+                            }
                         }
                         break;
+                    case SDL_EventType::SDL_MOUSEMOTION:
+                    {
+                        //if(trackMouse)
+                        {
+                            Math::Types::Vector2ui windowSize = window.GetWindowSize();
+                            ticTacToe->mouseDebug.position.x() = event.motion.x;
+                            ticTacToe->mouseDebug.position.y() = windowSize.y() - event.motion.y;
+                            ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
+                            ticTacToe->mouseDebug.position *= 2;
+                            ticTacToe->mouseDebug.position.x() -= 1;
+                            ticTacToe->mouseDebug.position.y() -= 1;
+                            auto matrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 * ((float)windowSize.x() / (float)windowSize.y()), 5 }, 0.0001f, 1000.f);
+                            auto matrix2 = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 5 , 5 }, 0.0001f, 1000.f);
+                            auto det = Math::Matrix::Determinant(matrix);
+                            auto det2 = Math::Matrix::Determinant(matrix2);
+                            auto inv = Math::Matrix::Inverse(matrix);
+                            auto inv2 = Math::Matrix::Inverse(matrix2);
+
+                            auto test = matrix * inv;
+                            Math::Types::Vector4f mousePos = inv * Math::Types::Vector4f(ticTacToe->mouseDebug.position, 0, 1);
+                            Math::Types::Vector4f mousePos2 = inv2 * Math::Types::Vector4f(ticTacToe->mouseDebug.position, 0, 1);
+                            //mousePos.x() *= 2;
+                            ticTacToe->mouseDebug.position = mousePos;
+
+                            //ticTacToe->mouseDebug.position.x() -= windowSize.x() / 2;
+                            //ticTacToe->mouseDebug.position.y() -= windowSize.y() / 2;
+
+                            //ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
+                            trackMouse = false;
+
+                            //ticTacToe->mouseDebug.position.x() = event.motion.x;
+                            //ticTacToe->mouseDebug.position.y() = windowSize.y() - event.motion.y;
+                            //ticTacToe->mouseDebug.position.x() -= windowSize.x() / 2;
+                            //ticTacToe->mouseDebug.position.y() -= windowSize.y() / 2;
+
+                            //ticTacToe->mouseDebug.position /= Math::Types::Vector3f(windowSize, 1);
+                            //ticTacToe->mouseDebug.position *= 10;
+                            //trackMouse = false;
+                        }
+                    }
+                    break;
                     }
                 }
                 else
                 {
+                    for(Sprite& sprite : ticTacToe->tiles)
+                    {
+                        sprite.draw = false;
+                    }
                     window.Draw();
                 }
             }

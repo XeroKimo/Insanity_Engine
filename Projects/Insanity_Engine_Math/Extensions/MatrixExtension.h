@@ -28,4 +28,7 @@ namespace InsanityEngine::Math::Matrix
     extern Types::Matrix4x4f WorldViewProjectionMatrix(const Types::Matrix4x4f& world, const Types::Matrix4x4f& view, const Types::Matrix4x4f& projection);
 
     extern Types::Matrix4x4f ScaleRotateTransformMatrix(const Types::Matrix4x4f& scale, const Types::Matrix4x4f& rotate, const Types::Matrix4x4f& transform);
+
+    float Determinant(const Types::Matrix4x4f& matrix);
+    Types::Matrix4x4f Inverse(const Types::Matrix4x4f& matrix);
 }
