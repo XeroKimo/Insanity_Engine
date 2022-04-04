@@ -291,22 +291,21 @@ namespace InsanityEngine::Application
         std::vector<ConstantBuffer> m_constantBuffer;
         D3D12_GPU_VIRTUAL_ADDRESS m_cameraMatrix;
 
-        std::unique_ptr<TicTacToeManager> m_ticTacToe;
+        TicTacToeManager m_ticTacToe;
 
     public:
         TicTacToeDraw(TypedD3D::D3D12::Device5 device, TicTacToeManager*& manager) :
             m_device(device),
-            m_commandList(m_device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
-            m_ticTacToe(std::make_unique<TicTacToeManager>())
+            m_commandList(m_device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
         {
             int i = 0;
-            for(Sprite& sprite : m_ticTacToe->tiles)
+            for(Sprite& sprite : m_ticTacToe.tiles)
             {
                 sprite.draw = false;
             }
-            m_ticTacToe->board.scale *= 3;
-            m_ticTacToe->board.textureResourceOffset = 0;
-            manager = m_ticTacToe.get();
+            m_ticTacToe.board.scale *= 3;
+            m_ticTacToe.board.textureResourceOffset = 0;
+            manager = &m_ticTacToe;
         }
 
     public:
@@ -570,7 +569,7 @@ namespace InsanityEngine::Application
 
 
             Math::Types::Vector2f windowSize = renderer.GetWindowSize();
-            m_ticTacToe->projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 4 * (windowSize.x() / windowSize.y()), 4 }, 0.0001f, 1000.f);
+            m_ticTacToe.projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 4 * (windowSize.x() / windowSize.y()), 4 }, 0.0001f, 1000.f);
 
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexTransfer.uploadBuffer.Get(), 0, 0, 1, &vertexTransfer.data);
@@ -612,17 +611,17 @@ namespace InsanityEngine::Application
             m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
             ConstantBuffer& currentConstantBuffer = m_constantBuffer[renderer.GetCurrentBackBufferIndex()];
             currentConstantBuffer.clear();
-            m_cameraMatrix = currentConstantBuffer.emplace_back(m_ticTacToe->projectionMatrix);
+            m_cameraMatrix = currentConstantBuffer.emplace_back(m_ticTacToe.projectionMatrix);
 
-            for(Sprite& sprite : m_ticTacToe->tiles)
+            for(Sprite& sprite : m_ticTacToe.tiles)
             {
                 if(sprite.draw)
                 {
                     sprite.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(sprite.position) * Math::Matrix::ScaleMatrix(sprite.scale));
                 }
             }
-            m_ticTacToe->board.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe->board.position) * Math::Matrix::ScaleMatrix(m_ticTacToe->board.scale));
-            m_ticTacToe->mouseDebug.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe->mouseDebug.position) * Math::Matrix::ScaleMatrix(m_ticTacToe->mouseDebug.scale));
+            m_ticTacToe.board.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.board.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.board.scale));
+            m_ticTacToe.mouseDebug.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.mouseDebug.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.mouseDebug.scale));
 
             ComPtr<ID3D12Resource> backBuffer = renderer.GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -674,12 +673,12 @@ namespace InsanityEngine::Application
 
             auto GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
             UINT64 incrementSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            GPUHandle.Ptr() += m_ticTacToe->board.textureResourceOffset * incrementSize;
+            GPUHandle.Ptr() += m_ticTacToe.board.textureResourceOffset * incrementSize;
             m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
-            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe->board.objectConstantBuffer);
+            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe.board.objectConstantBuffer);
             m_commandList->DrawInstanced(6, 1, 0, 0);
 
-            for(Sprite& sprite : m_ticTacToe->tiles)
+            for(Sprite& sprite : m_ticTacToe.tiles)
             {
                 if(sprite.draw)
                 {
@@ -692,9 +691,9 @@ namespace InsanityEngine::Application
             }
 
             GPUHandle = m_textures->GetGPUDescriptorHandleForHeapStart();
-            GPUHandle.Ptr() += m_ticTacToe->mouseDebug.textureResourceOffset * incrementSize;
+            GPUHandle.Ptr() += m_ticTacToe.mouseDebug.textureResourceOffset * incrementSize;
             m_commandList->SetGraphicsRootDescriptorTable(0, GPUHandle.Data());
-            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe->mouseDebug.objectConstantBuffer);
+            m_commandList->SetGraphicsRootConstantBufferView(3, m_ticTacToe.mouseDebug.objectConstantBuffer);
             m_commandList->DrawInstanced(6, 1, 0, 0);
 
             barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
@@ -865,7 +864,9 @@ namespace InsanityEngine::Application
                 SDL_WINDOW_SHOWN,
                 *factory.Get(),
                 device,
-                TicTacToeDraw(device, ticTacToe) };
+                Rendering::RendererTag<TicTacToeDraw>(),
+                device,
+                ticTacToe };
 
             TicTacToeGame game{ window, *ticTacToe };
 

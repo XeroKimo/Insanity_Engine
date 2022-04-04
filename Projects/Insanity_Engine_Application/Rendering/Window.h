@@ -11,6 +11,9 @@
 
 namespace InsanityEngine::Rendering
 {
+    template<class DrawCallback>
+    struct RendererTag {};
+
     class Window
     {
     public:
@@ -116,7 +119,7 @@ namespace InsanityEngine::Rendering
         public:
             bool IsFullscreen() const final;
             Math::Types::Vector2ui GetWindowSize() const final
-            { 
+            {
                 auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
                 return { description.Width, description.Height };
             }
@@ -153,9 +156,10 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, DrawCallback drawCallback) :
+            template<class... Params>
+            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, Params&&... params) :
                 DirectX11(window, factory, device, deviceContext),
-                m_drawCallback(std::move(drawCallback))
+                m_drawCallback(std::forward<Params>(params)...)
             {
                 m_drawCallback.Initialize(*this);
             }
@@ -175,9 +179,10 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, DrawCallback drawCallback) :
+            template<class... Params>
+            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, Params&&... params) :
                 DirectX12(window, factory, device),
-                m_drawCallback(std::move(drawCallback))
+                m_drawCallback(std::forward<Params>(params)...)
             {
                 m_drawCallback.Initialize(*this);
             }
@@ -192,50 +197,52 @@ namespace InsanityEngine::Rendering
         };
 
     private:
-        using WindowHandle = std::unique_ptr<SDL_Window, decltype([](SDL_Window* w) { SDL_DestroyWindow(w); })> ;
+        using WindowHandle = std::unique_ptr < SDL_Window, decltype([](SDL_Window* w) { SDL_DestroyWindow(w); }) > ;
 
     private:
         WindowHandle m_windowHandle;
         std::unique_ptr<BackEnd> m_backEnd = nullptr;
 
     public:
-        template<class DrawCallback>
+        template<class DrawCallback, class... DrawCallbackParams>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             Microsoft::WRL::ComPtr<ID3D11Device5> device,
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
-            DrawCallback&& drawCallback) :
+            RendererTag<DrawCallback> tag,
+            DrawCallbackParams&&... params) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
-            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallback>(drawCallback)))
+                windowFlags)),
+            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallbackParams>(params)...))
         {
 
         }
 
-        template<class DrawCallback>
+        template<class DrawCallback, class... DrawCallbackParams>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             TypedD3D::D3D12::Device5 device,
-            DrawCallback&& drawCallback) :
+            RendererTag<DrawCallback> tag,
+            DrawCallbackParams&&... params) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
-            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallback>(drawCallback)))
+                windowFlags)),
+            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallbackParams>(params)...))
         {
 
         }
@@ -245,14 +252,14 @@ namespace InsanityEngine::Rendering
 
         void Draw() { m_backEnd->Draw(); }
 
-        void SetFullscreen(bool fullscreen) 
+        void SetFullscreen(bool fullscreen)
         {
-            m_backEnd->SetFullscreen(fullscreen); 
+            m_backEnd->SetFullscreen(fullscreen);
         }
 
-        void SetWindowSize(Math::Types::Vector2ui size) 
-        { 
-            m_backEnd->SetWindowSize(size); 
+        void SetWindowSize(Math::Types::Vector2ui size)
+        {
+            m_backEnd->SetWindowSize(size);
         }
 
         bool IsFullscreen() const
@@ -277,8 +284,8 @@ namespace InsanityEngine::Rendering
     public:
         SDL_Window& GetWindow() { return *m_windowHandle; }
         const SDL_Window& GetWindow() const { return *m_windowHandle; }
-        HWND GetWindowHandle() const 
-        {    
+        HWND GetWindowHandle() const
+        {
             SDL_SysWMinfo info;
             SDL_VERSION(&info.version);
             SDL_GetWindowWMInfo(m_windowHandle.get(), &info);
