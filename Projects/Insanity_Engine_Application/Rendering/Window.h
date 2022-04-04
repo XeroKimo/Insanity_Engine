@@ -99,6 +99,7 @@ namespace InsanityEngine::Rendering
             };
 
         private:
+            Window* m_window;
             TypedD3D::D3D12::Device5 m_device;
             TypedD3D::D3D12::CommandQueue::Direct m_mainQueue;
             Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swapChain;
@@ -144,6 +145,7 @@ namespace InsanityEngine::Rendering
             UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
             UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
             DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get()); }
+            Window& GetWindow() const { return *m_window; }
 
         private:
             void Reset();

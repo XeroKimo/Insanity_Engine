@@ -84,6 +84,7 @@ namespace InsanityEngine::Rendering
 
 
     Window::DirectX12::DirectX12(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device) :
+        m_window(&window),
         m_device(device),
         m_mainQueue(device->CreateCommandQueue<D3D12_COMMAND_LIST_TYPE_DIRECT>(
             D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
@@ -226,6 +227,9 @@ namespace InsanityEngine::Rendering
     {
         if(event.type == SDL_WINDOWEVENT)
         {
+            if(event.window.windowID != SDL_GetWindowID(m_windowHandle.get()))
+                return;
+
             if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
                 m_backEnd->ResizeBuffers({ event.window.data1, event.window.data2 });
