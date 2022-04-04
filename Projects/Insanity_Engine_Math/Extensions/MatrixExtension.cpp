@@ -158,4 +158,184 @@ namespace InsanityEngine::Math::Matrix
     {
         return transform * rotate * scale;
     }
+
+    float Determinant(const Types::Matrix4x4f& matrix)
+    {
+        float a1 = matrix(0, 0) * (matrix(1, 1) * matrix(2, 2) * matrix(3, 3)
+            + matrix(1, 2) * matrix(2, 3) * matrix(3, 1)
+            + matrix(1, 3) * matrix(2, 1) * matrix(3, 2)
+            - matrix(1, 3) * matrix(2, 2) * matrix(3, 1)
+            - matrix(1, 2) * matrix(2, 1) * matrix(3, 3)
+            - matrix(1, 1) * matrix(2, 3) * matrix(3, 2));
+
+        float a2 = matrix(1, 0) * (matrix(0, 1) * matrix(2, 2) * matrix(3, 3)
+            + matrix(0, 2) * matrix(2, 3) * matrix(3, 1)
+            + matrix(0, 3) * matrix(2, 1) * matrix(3, 2)
+            - matrix(0, 3) * matrix(2, 2) * matrix(3, 1)
+            - matrix(0, 2) * matrix(2, 1) * matrix(3, 3)
+            - matrix(0, 1) * matrix(2, 3) * matrix(3, 2));
+
+        float a3 = matrix(2, 0) * (matrix(0, 1) * matrix(1, 2) * matrix(3, 3)
+            + matrix(0, 2) * matrix(1, 3) * matrix(3, 1)
+            + matrix(0, 3) * matrix(1, 1) * matrix(3, 2)
+            - matrix(0, 3) * matrix(1, 2) * matrix(3, 1)
+            - matrix(0, 2) * matrix(1, 1) * matrix(3, 3)
+            - matrix(0, 1) * matrix(1, 3) * matrix(3, 2));
+
+        float a4 = matrix(3, 0) * (matrix(0, 1) * matrix(1, 2) * matrix(2, 3)
+            + matrix(0, 2) * matrix(1, 3) * matrix(2, 1)
+            + matrix(0, 3) * matrix(1, 1) * matrix(2, 2)
+            - matrix(0, 3) * matrix(1, 2) * matrix(2, 1)
+            - matrix(0, 2) * matrix(1, 1) * matrix(2, 3)
+            - matrix(0, 1) * matrix(1, 3) * matrix(2, 2));
+
+        return a1 - a2 + a3 - a4;
+    }
+
+    Types::Matrix4x4f Inverse(const Types::Matrix4x4f& matrix)
+    {
+        Matrix4x4f adjugate;
+
+        adjugate(0, 0) = 
+            matrix(1, 1) * matrix(2, 2) * matrix(3, 3) +
+            matrix(1, 2) * matrix(2, 3) * matrix(3, 1) +
+            matrix(1, 3) * matrix(2, 1) * matrix(3, 2) -
+            matrix(1, 3) * matrix(2, 2) * matrix(3, 1) -
+            matrix(1, 2) * matrix(2, 1) * matrix(3, 3) -
+            matrix(1, 1) * matrix(2, 3) * matrix(3, 2);
+
+        adjugate(0, 1) = 
+            matrix(0, 1) * matrix(2, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(2, 3) * matrix(3, 1) +
+            matrix(0, 3) * matrix(2, 1) * matrix(3, 2) -
+            matrix(0, 3) * matrix(2, 2) * matrix(3, 1) -
+            matrix(0, 2) * matrix(2, 1) * matrix(3, 3) -
+            matrix(0, 1) * matrix(2, 3) * matrix(3, 2);
+
+        adjugate(0, 2) = 
+            matrix(0, 1) * matrix(1, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(3, 1) +
+            matrix(0, 3) * matrix(1, 1) * matrix(3, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(3, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(3, 3) -
+            matrix(0, 1) * matrix(1, 3) * matrix(3, 2);
+
+        adjugate(0, 3) = 
+            matrix(0, 1) * matrix(1, 2) * matrix(2, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(2, 1) +
+            matrix(0, 3) * matrix(1, 1) * matrix(2, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(2, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(2, 3) -
+            matrix(0, 1) * matrix(1, 3) * matrix(2, 2);
+
+        adjugate(1, 0) = 
+            matrix(0, 1) * matrix(2, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(2, 3) * matrix(3, 1) +
+            matrix(0, 3) * matrix(2, 1) * matrix(3, 2) -
+            matrix(0, 3) * matrix(2, 2) * matrix(3, 1) -
+            matrix(0, 2) * matrix(2, 1) * matrix(3, 3) -
+            matrix(0, 1) * matrix(2, 3) * matrix(3, 2);
+
+        adjugate(1, 1) = 
+            matrix(0, 0) * matrix(2, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(2, 3) * matrix(3, 0) +
+            matrix(0, 3) * matrix(2, 0) * matrix(3, 2) -
+            matrix(0, 3) * matrix(2, 2) * matrix(3, 0) -
+            matrix(0, 2) * matrix(2, 0) * matrix(3, 3) -
+            matrix(0, 0) * matrix(2, 3) * matrix(3, 2);
+
+        adjugate(1, 2) = 
+            matrix(0, 0) * matrix(2, 1) * matrix(3, 3) +
+            matrix(0, 1) * matrix(2, 3) * matrix(3, 0) +
+            matrix(0, 3) * matrix(2, 0) * matrix(3, 1) -
+            matrix(0, 3) * matrix(2, 1) * matrix(3, 0) -
+            matrix(0, 1) * matrix(2, 0) * matrix(3, 3) -
+            matrix(0, 0) * matrix(2, 3) * matrix(3, 1);
+
+        adjugate(1, 3) = 
+            matrix(0, 0) * matrix(2, 1) * matrix(3, 2) +
+            matrix(0, 1) * matrix(2, 2) * matrix(3, 0) +
+            matrix(0, 2) * matrix(2, 0) * matrix(3, 1) -
+            matrix(0, 2) * matrix(2, 1) * matrix(3, 0) -
+            matrix(0, 1) * matrix(2, 0) * matrix(3, 2) -
+            matrix(0, 0) * matrix(2, 2) * matrix(3, 1);
+
+        adjugate(2, 0) = 
+            matrix(0, 1) * matrix(1, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(3, 1) +
+            matrix(0, 3) * matrix(1, 1) * matrix(3, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(3, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(3, 3) -
+            matrix(0, 1) * matrix(1, 3) * matrix(3, 2);
+
+        adjugate(2, 1) = 
+            matrix(0, 0) * matrix(1, 2) * matrix(3, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(3, 0) +
+            matrix(0, 3) * matrix(1, 0) * matrix(3, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(3, 0) -
+            matrix(0, 2) * matrix(1, 0) * matrix(3, 3) -
+            matrix(0, 0) * matrix(1, 3) * matrix(3, 2);
+
+        adjugate(2, 2) = 
+            matrix(0, 0) * matrix(1, 1) * matrix(3, 3) +
+            matrix(0, 1) * matrix(1, 3) * matrix(3, 0) +
+            matrix(0, 3) * matrix(1, 0) * matrix(3, 1) -
+            matrix(0, 3) * matrix(1, 1) * matrix(3, 0) -
+            matrix(0, 1) * matrix(1, 0) * matrix(3, 3) -
+            matrix(0, 0) * matrix(1, 3) * matrix(3, 1);
+
+        adjugate(2, 3) = 
+            matrix(0, 0) * matrix(1, 1) * matrix(3, 2) +
+            matrix(0, 1) * matrix(1, 2) * matrix(3, 0) +
+            matrix(0, 2) * matrix(1, 0) * matrix(3, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(3, 0) -
+            matrix(0, 1) * matrix(1, 0) * matrix(3, 2) -
+            matrix(0, 0) * matrix(1, 2) * matrix(3, 1);
+
+        adjugate(3, 0) = 
+            matrix(0, 1) * matrix(1, 2) * matrix(2, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(2, 1) +
+            matrix(0, 3) * matrix(1, 1) * matrix(2, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(2, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(2, 3) -
+            matrix(0, 1) * matrix(1, 3) * matrix(2, 2);
+
+        adjugate(3, 1) = 
+            matrix(0, 0) * matrix(1, 2) * matrix(2, 3) +
+            matrix(0, 2) * matrix(1, 3) * matrix(2, 0) +
+            matrix(0, 3) * matrix(1, 0) * matrix(2, 2) -
+            matrix(0, 3) * matrix(1, 2) * matrix(2, 0) -
+            matrix(0, 2) * matrix(1, 0) * matrix(2, 3) -
+            matrix(0, 0) * matrix(1, 3) * matrix(2, 2);
+
+        adjugate(3, 2) = 
+            matrix(0, 0) * matrix(1, 1) * matrix(2, 3) +
+            matrix(0, 1) * matrix(1, 3) * matrix(2, 0) +
+            matrix(0, 3) * matrix(1, 0) * matrix(2, 1) -
+            matrix(0, 3) * matrix(1, 1) * matrix(2, 0) -
+            matrix(0, 1) * matrix(1, 0) * matrix(2, 3) -
+            matrix(0, 0) * matrix(1, 3) * matrix(2, 1);
+
+        adjugate(3, 3) = 
+            matrix(0, 0) * matrix(1, 1) * matrix(2, 2) +
+            matrix(0, 1) * matrix(1, 2) * matrix(2, 0) +
+            matrix(0, 2) * matrix(1, 0) * matrix(2, 1) -
+            matrix(0, 2) * matrix(1, 1) * matrix(2, 0) -
+            matrix(0, 1) * matrix(1, 0) * matrix(2, 2) -
+            matrix(0, 0) * matrix(1, 2) * matrix(2, 1);
+
+        adjugate(1, 0) *= -1;
+        adjugate(3, 0) *= -1;
+
+        adjugate(0, 1) *= -1;
+        adjugate(2, 1) *= -1;
+
+        adjugate(1, 2) *= -1;
+        adjugate(3, 2) *= -1;
+
+        adjugate(0, 3) *= -1;
+        adjugate(2, 3) *= -1;
+
+        return adjugate * ( 1 / Determinant(matrix));
+    }
 }
