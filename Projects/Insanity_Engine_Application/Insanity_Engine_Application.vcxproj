@@ -60,7 +60,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;INSANITY_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;$(SolutionDir)Projects/TypedD3D/;$(SolutionDir)Projects/imgui-docking/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;$(SolutionDir)Projects/TypedD3D/;$(ProjectDir)ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -88,29 +88,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\imgui-docking\backends\imgui_impl_dx12.h" />
-    <ClInclude Include="..\imgui-docking\backends\imgui_impl_sdl.h" />
-    <ClInclude Include="..\imgui-docking\imconfig.h" />
-    <ClInclude Include="..\imgui-docking\imgui.h" />
-    <ClInclude Include="..\imgui-docking\imgui_internal.h" />
-    <ClInclude Include="..\imgui-docking\imstb_rectpack.h" />
-    <ClInclude Include="..\imgui-docking\imstb_textedit.h" />
-    <ClInclude Include="..\imgui-docking\imstb_truetype.h" />
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
+    <ClInclude Include="ImGui\backends\imgui_impl_dx12.h" />
+    <ClInclude Include="ImGui\backends\imgui_impl_sdl.h" />
+    <ClInclude Include="ImGui\imconfig.h" />
+    <ClInclude Include="ImGui\imgui.h" />
+    <ClInclude Include="ImGui\imgui_internal.h" />
+    <ClInclude Include="ImGui\imstb_rectpack.h" />
+    <ClInclude Include="ImGui\imstb_textedit.h" />
+    <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Rendering\Device.h" />
     <ClInclude Include="Rendering\Window.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\imgui-docking\backends\imgui_impl_dx12.cpp" />
-    <ClCompile Include="..\imgui-docking\backends\imgui_impl_sdl.cpp" />
-    <ClCompile Include="..\imgui-docking\imgui.cpp" />
-    <ClCompile Include="..\imgui-docking\imgui_demo.cpp" />
-    <ClCompile Include="..\imgui-docking\imgui_draw.cpp" />
-    <ClCompile Include="..\imgui-docking\imgui_tables.cpp" />
-    <ClCompile Include="..\imgui-docking\imgui_widgets.cpp" />
     <ClCompile Include="Application\Application.cpp" />
+    <ClCompile Include="ImGui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="ImGui\backends\imgui_impl_sdl.cpp" />
+    <ClCompile Include="ImGui\imgui.cpp" />
+    <ClCompile Include="ImGui\imgui_demo.cpp" />
+    <ClCompile Include="ImGui\imgui_draw.cpp" />
+    <ClCompile Include="ImGui\imgui_tables.cpp" />
+    <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
     <ClCompile Include="Rendering\Window.cpp" />

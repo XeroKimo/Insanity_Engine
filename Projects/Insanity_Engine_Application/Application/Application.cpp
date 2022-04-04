@@ -153,17 +153,25 @@ namespace InsanityEngine::Application
                         Rendering::RendererTag<ImGuiDrawer>(),
                         device };
             SDL_Event event;
-            while(true)
+            bool running = true;
+            while(running)
             {
                 if(SDL_PollEvent(&event))
                 {
                     if(event.type == SDL_EventType::SDL_QUIT)
-                        break;
+                        running = false;
 
                     window.HandleEvent(event);
 
                     switch(event.type)
                     {
+                    case SDL_EventType::SDL_WINDOWEVENT:
+                        if(event.window.windowID == SDL_GetWindowID(&window.GetWindow()))
+                        {
+                            if(event.window.event == SDL_WINDOWEVENT_CLOSE)
+                                running = false;
+                        }
+                        break;
                     case SDL_EventType::SDL_KEYDOWN:
                         if(event.key.repeat == 0 && event.key.state == SDL_PRESSED)
                         {
