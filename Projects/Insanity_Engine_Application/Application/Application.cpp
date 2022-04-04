@@ -27,7 +27,8 @@ namespace InsanityEngine::Application
                         SDL_WINDOW_SHOWN,
                         *factory.Get(),
                         device,
-                        Rendering::D3D12::DefaultDraw(device));
+                        Rendering::RendererTag<Rendering::D3D12::DefaultDraw>(),
+                        device);
                 }
                 else
                 {
@@ -47,7 +48,9 @@ namespace InsanityEngine::Application
                         *factory.Get(),
                         device,
                         deviceContext,
-                        Rendering::D3D11::DefaultDraw(device, deviceContext));
+                        Rendering::RendererTag<Rendering::D3D11::DefaultDraw>(),
+                        device, 
+                        deviceContext);
                 }
 
             }();
