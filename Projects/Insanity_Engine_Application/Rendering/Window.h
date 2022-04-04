@@ -11,6 +11,9 @@
 
 namespace InsanityEngine::Rendering
 {
+    template<class DrawCallback>
+    struct RendererTag {};
+
     class Window
     {
     public:
@@ -30,6 +33,7 @@ namespace InsanityEngine::Rendering
 
         public:
             virtual bool IsFullscreen() const = 0;
+            virtual Math::Types::Vector2ui GetWindowSize() const = 0;
         };
 
         class Null : public BackEnd
@@ -50,6 +54,8 @@ namespace InsanityEngine::Rendering
             void SetFullscreen(bool fullscreen) {}
             void SetWindowSize(Math::Types::Vector2ui size) final {}
             bool IsFullscreen() const final {}
+            Math::Types::Vector2ui GetWindowSize() const final {}
+
         };
 
         class DirectX11 : public BackEnd
@@ -71,7 +77,7 @@ namespace InsanityEngine::Rendering
 
         public:
             bool IsFullscreen() const final;
-            Math::Types::Vector2ui GetWindowSize() const
+            Math::Types::Vector2ui GetWindowSize() const final
             {
                 auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
                 return { description.Width, description.Height };
@@ -112,8 +118,8 @@ namespace InsanityEngine::Rendering
 
         public:
             bool IsFullscreen() const final;
-            Math::Types::Vector2ui GetWindowSize() const 
-            { 
+            Math::Types::Vector2ui GetWindowSize() const final
+            {
                 auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
                 return { description.Width, description.Height };
             }
@@ -137,6 +143,7 @@ namespace InsanityEngine::Rendering
             UINT GetCurrentBackBufferIndex() const;
             UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
             UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
+            DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get()); }
 
         private:
             void Reset();
@@ -149,9 +156,10 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, DrawCallback drawCallback) :
+            template<class... Params>
+            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, Params&&... params) :
                 DirectX11(window, factory, device, deviceContext),
-                m_drawCallback(std::move(drawCallback))
+                m_drawCallback(std::forward<Params>(params)...)
             {
                 m_drawCallback.Initialize(*this);
             }
@@ -171,9 +179,10 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, DrawCallback drawCallback) :
+            template<class... Params>
+            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, Params&&... params) :
                 DirectX12(window, factory, device),
-                m_drawCallback(std::move(drawCallback))
+                m_drawCallback(std::forward<Params>(params)...)
             {
                 m_drawCallback.Initialize(*this);
             }
@@ -195,43 +204,45 @@ namespace InsanityEngine::Rendering
         std::unique_ptr<BackEnd> m_backEnd = nullptr;
 
     public:
-        template<class DrawCallback>
+        template<class DrawCallback, class... DrawCallbackParams>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             Microsoft::WRL::ComPtr<ID3D11Device5> device,
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
-            DrawCallback&& drawCallback) :
+            RendererTag<DrawCallback> tag,
+            DrawCallbackParams&&... params) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
-            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallback>(drawCallback)))
+                windowFlags)),
+            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallbackParams>(params)...))
         {
 
         }
 
-        template<class DrawCallback>
+        template<class DrawCallback, class... DrawCallbackParams>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             TypedD3D::D3D12::Device5 device,
-            DrawCallback&& drawCallback) :
+            RendererTag<DrawCallback> tag,
+            DrawCallbackParams&&... params) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
-            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallback>(drawCallback)))
+                windowFlags)),
+            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallbackParams>(params)...))
         {
 
         }
@@ -254,6 +265,11 @@ namespace InsanityEngine::Rendering
         bool IsFullscreen() const
         {
             return m_backEnd->IsFullscreen();
+        }
+
+        Math::Types::Vector2ui GetWindowSize() const
+        {
+            return m_backEnd->GetWindowSize();
         }
 
         template<class Ty>
