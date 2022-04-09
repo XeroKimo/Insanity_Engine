@@ -147,7 +147,7 @@ namespace InsanityEngine::Application
                         settings.applicationName,
                         { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                         settings.windowResolution,
-                        SDL_WINDOW_SHOWN,
+                        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE,
                         *factory.Get(),
                         device,
                         Rendering::RendererTag<ImGuiDrawer>(),
@@ -172,46 +172,6 @@ namespace InsanityEngine::Application
                                 running = false;
                         }
                         break;
-                    case SDL_EventType::SDL_KEYDOWN:
-                        if(event.key.repeat == 0 && event.key.state == SDL_PRESSED)
-                        {
-                            if(event.key.keysym.sym == SDL_KeyCode::SDLK_1)
-                            {
-                                SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
-                                window.SetFullscreen(false);
-                            }
-                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_2)
-                            {
-                                SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
-                                window.SetFullscreen(true);
-                            }
-                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_3)
-                            {
-                                if(!window.IsFullscreen())
-                                {
-                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
-                                    window.SetWindowSize({ 1280, 720 });
-                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
-                                }
-                                else
-                                {
-                                    window.SetWindowSize({ 1280, 720 });
-                                }
-                            }
-                            else if(event.key.keysym.sym == SDL_KeyCode::SDLK_4)
-                            {
-                                if(!window.IsFullscreen())
-                                {
-                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_TRUE);
-                                    window.SetWindowSize({ 1600, 900 });
-                                    SDL_SetWindowResizable(&window.GetWindow(), SDL_FALSE);
-                                }
-                                else
-                                {
-                                    window.SetWindowSize({ 1600, 900 });
-                                }
-                            }
-                        }
                     break;
                     }
                 }
