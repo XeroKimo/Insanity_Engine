@@ -7,9 +7,39 @@
 #include <d3dcompiler.h>
 #include "backends/imgui_impl_dx12.h"
 #include "backends/imgui_impl_sdl.h"
+#include <concepts>
 
 namespace InsanityEngine::Application
 {
+    static void HelpMarker(const char* desc)
+    {
+        ImGui::TextDisabled("(?)");
+        if(ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(desc);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
+    static void ShowDockingDisabledMessage()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        ImGui::Text("ERROR: Docking is not enabled! See Demo > Configuration.");
+        ImGui::Text("Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code, or ");
+        ImGui::SameLine(0.0f, 0.0f);
+        if(ImGui::SmallButton("click here"))
+            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    }
+    template<std::invocable Invocable>
+    void GuiWindow(std::string_view name, bool* isUncollapsedOrVisible, ImGuiWindowFlags flags, Invocable invocable)
+    {
+        if(ImGui::Begin(name.data(), isUncollapsedOrVisible, flags))
+            std::invoke(invocable);
+        ImGui::End();
+    }
+
     class ImGuiDrawer
     {
         TypedD3D::D3D12::Device5 m_device;
@@ -37,7 +67,7 @@ namespace InsanityEngine::Application
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
             //io.ConfigViewportsNoAutoMerge = true;
             //io.ConfigViewportsNoTaskBarIcon = true;
-                
+
             // Setup Dear ImGui style
             ImGui::StyleColorsDark();
             //ImGui::StyleColorsClassic();
@@ -70,11 +100,11 @@ namespace InsanityEngine::Application
         {
             ImGui_ImplSDL2_InitForD3D(&renderer.GetWindow().GetWindow());
             ImGui_ImplDX12_Init(
-                m_device.Get(), 
-                renderer.GetSwapChainDescription().BufferCount, 
-                renderer.GetSwapChainDescription().Format, 
-                m_imGuiDescriptorHeap.Get(), 
-                m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Data(), 
+                m_device.Get(),
+                renderer.GetSwapChainDescription().BufferCount,
+                renderer.GetSwapChainDescription().Format,
+                m_imGuiDescriptorHeap.Get(),
+                m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Data(),
                 m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart().Data());
         }
 
@@ -84,17 +114,78 @@ namespace InsanityEngine::Application
             ImGui_ImplSDL2_NewFrame(&renderer.GetWindow().GetWindow());
             ImGui::NewFrame();
 
-            bool show_demo_window = true;
-            ImGui::ShowDemoWindow(&show_demo_window);
+            ImGuiViewport* viewport = ImGui::GetMainViewport();        
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowViewport(viewport->ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-            if(m_showWindow2)
+            //ImGui::DockSpaceOverViewport();
+            static bool open = true;
+            GuiWindow("Main DockSpace", &open, window_flags, [&]()
             {
-                ImGui::Begin("Another Window", &m_showWindow2);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                ImGui::Text("Hello from another window!");
-                if(ImGui::Button("Close Me"))
-                    m_showWindow2 = false;
+                ImGuiIO& io = ImGui::GetIO();
+                if(io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+                {
+                    ImGuiID dockspace_id = ImGui::GetID("Dock Space");
+                    ImGui::DockSpace(viewport->ID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+                    ImGui::PopStyleVar(3);
+                }
+            });
+
+            static bool show_demo_window = true;
+            static bool show_another_window = false;
+            static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            if(show_demo_window)
+                ImGui::ShowDemoWindow(&show_demo_window);
+
+            // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+            {
+                static float f = 0.0f;
+                static int counter = 0;
+
+                ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+                if(show_demo_window)
+                {
+
+                    GuiWindow("Test", &show_demo_window, ImGuiWindowFlags_None, [&]()
+                    {
+
+                    });
+                }
+                ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+                ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+                ImGui::Checkbox("Another Window", &show_another_window);
+
+                ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+                ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+                if(ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                    counter++;
+                ImGui::SameLine();
+                ImGui::Text("counter = %d", counter);
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
                 ImGui::End();
             }
+
+            // 3. Show another simple window.
+            if(show_another_window)
+            {
+                ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                ImGui::Text("Hello from another window!");
+                if(ImGui::Button("Close Me"))
+                    show_another_window = false;
+                ImGui::End();
+            }
+
+            // Rendering
             ImGui::Render();
 
             using Microsoft::WRL::ComPtr;
@@ -106,7 +197,7 @@ namespace InsanityEngine::Application
             m_commandList->ResourceBarrier(std::span(&barrier, 1));
 
             TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = renderer.GetBackBufferHandle();
-            m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
+            m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ clear_color.x, clear_color.y, clear_color.z, clear_color.w }), {});
             m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
             m_commandList->SetDescriptorHeaps(m_imGuiDescriptorHeap);
 
@@ -161,6 +252,7 @@ namespace InsanityEngine::Application
                     if(event.type == SDL_EventType::SDL_QUIT)
                         running = false;
 
+                    ImGui_ImplSDL2_ProcessEvent(&event);
                     window.HandleEvent(event);
 
                     switch(event.type)
@@ -172,11 +264,11 @@ namespace InsanityEngine::Application
                                 running = false;
                         }
                         break;
-                    break;
+                        break;
                     }
                 }
                 else
-                {   
+                {
                     window.Draw();
                 }
             }
