@@ -8,30 +8,11 @@
 #include "backends/imgui_impl_dx12.h"
 #include "backends/imgui_impl_sdl.h"
 #include <concepts>
+#include <filesystem>
 
 namespace InsanityEngine::Application
 {
-    static void HelpMarker(const char* desc)
-    {
-        ImGui::TextDisabled("(?)");
-        if(ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-            ImGui::TextUnformatted(desc);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
-    }
-    static void ShowDockingDisabledMessage()
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        ImGui::Text("ERROR: Docking is not enabled! See Demo > Configuration.");
-        ImGui::Text("Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code, or ");
-        ImGui::SameLine(0.0f, 0.0f);
-        if(ImGui::SmallButton("click here"))
-            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    }
+
     template<std::invocable Invocable>
     void GuiWindow(std::string_view name, bool* isUncollapsedOrVisible, ImGuiWindowFlags flags, Invocable invocable)
     {
@@ -39,6 +20,58 @@ namespace InsanityEngine::Application
             std::invoke(invocable);
         ImGui::End();
     }
+
+    class FileSystem
+    {
+    private:
+        bool m_show = true;
+
+    public:
+        void Show()
+        {
+            m_show = true;
+        }
+        void Hide()
+        {
+            m_show = false;
+        }
+
+        void Draw()
+        {
+            GuiWindow("File System", &m_show, ImGuiWindowFlags_NoCollapse, [&]()
+            {
+                ImGuiWindowFlags flags = ImGuiWindowFlags_HorizontalScrollbar;
+                ImGui::BeginChild("Content Tree", ImVec2{ 150, 00 }, true, flags);
+
+
+                for(auto& file : std::filesystem::directory_iterator("Resources"))
+                {
+                    if(file.is_directory())
+                    {
+                        std::string path = file.path().string();
+
+                        if(ImGui::TreeNode(path.c_str()))
+                        {
+                            ImGui::Text("Hello world");
+                            ImGui::TreePop();
+                        }
+                    }
+                }
+
+                ImGui::EndChild();
+
+                ImGui::SameLine();
+                ImGui::BeginChild("Content", ImVec2{ 00, 00 }, true);
+
+                for(auto& file : std::filesystem::directory_iterator("Resources"))
+                {
+                    std::string path = file.path().string();
+                    ImGui::Text("%s", path.c_str());
+                }
+                ImGui::EndChild();
+            });
+        }
+    };
 
     class ImGuiDrawer
     {
@@ -50,6 +83,7 @@ namespace InsanityEngine::Application
         Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
 
         TypedD3D::D3D12::DescriptorHeap::CBV_SRV_UAV m_imGuiDescriptorHeap;
+        FileSystem m_fileSystem;
 
         bool m_showWindow2 = true;
     public:
@@ -184,6 +218,8 @@ namespace InsanityEngine::Application
                     show_another_window = false;
                 ImGui::End();
             }
+
+            m_fileSystem.Draw();
 
             // Rendering
             ImGui::Render();
