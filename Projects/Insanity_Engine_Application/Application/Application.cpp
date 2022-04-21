@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "../Rendering/Window.h"
 #include <dxgi1_6.h>
+#include <utility>
 
 namespace InsanityEngine::Application
 {
@@ -20,14 +21,13 @@ namespace InsanityEngine::Application
                     TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
                     debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
 
-                    return Rendering::Window(
+                    return Rendering::Window::Create<Rendering::D3D12::DefaultDraw>(
                         settings.applicationName,
                         { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                         settings.windowResolution,
                         SDL_WINDOW_SHOWN,
                         *factory.Get(),
-                        device,
-                        Rendering::D3D12::DefaultDraw(device));
+                        device);
                 }
                 else
                 {
@@ -39,15 +39,14 @@ namespace InsanityEngine::Application
                     Microsoft::WRL::ComPtr<ID3D11Device5> device = TypedD3D::Helpers::COM::Cast<ID3D11Device5>(tempDevice);
                     Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext = TypedD3D::Helpers::COM::Cast<ID3D11DeviceContext4>(tempDeviceContext);
 
-                    return Rendering::Window(
+                    return Rendering::Window::Create<Rendering::D3D11::DefaultDraw>(
                         settings.applicationName,
                         { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                         settings.windowResolution,
                         SDL_WINDOW_SHOWN,
                         *factory.Get(),
                         device,
-                        deviceContext,
-                        Rendering::D3D11::DefaultDraw(device, deviceContext));
+                        deviceContext);
                 }
 
             }();
