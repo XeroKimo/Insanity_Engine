@@ -248,13 +248,8 @@ namespace InsanityEngine::Rendering
     namespace D3D11
     {
 
-            DefaultDraw::DefaultDraw(Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext) :
-                m_device(device),
-                m_deviceContext(deviceContext)
-            {
-            }
-
-            void DefaultDraw::Initialize(Window::DirectX11& renderer)
+            DefaultDraw::DefaultDraw(Window::DirectX11& renderer) :
+                m_renderer(&renderer)
             {
                 using Microsoft::WRL::ComPtr;
                 ComPtr<ID3DBlob> vertexBlob;
@@ -268,14 +263,14 @@ namespace InsanityEngine::Rendering
                     //MessageBox(handle, messageT.get(), L"Error", MB_OK);
                     return;
                 }
-                m_device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), nullptr, &m_vertexShader);
+                m_renderer->GetDevice()->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), nullptr, &m_vertexShader);
 
                 ComPtr<ID3DBlob> pixelBlob;
                 hr = D3DCompileFromFile(L"Default_Resources/PixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &pixelBlob, nullptr);
                 if(FAILED(hr))
                     return;
 
-                m_device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr, &m_pixelShader);
+                m_renderer->GetDevice()->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr, &m_pixelShader);
 
                 std::array<D3D11_INPUT_ELEMENT_DESC, 1> inputLayout
                 {
@@ -291,7 +286,7 @@ namespace InsanityEngine::Rendering
                     }
                 };
 
-                m_device->CreateInputLayout(inputLayout.data(), static_cast<UINT>(inputLayout.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &m_inputLayout);
+                m_renderer->GetDevice()->CreateInputLayout(inputLayout.data(), static_cast<UINT>(inputLayout.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &m_inputLayout);
 
                 auto vertices = std::to_array<Vertex>(
                     {
@@ -314,49 +309,45 @@ namespace InsanityEngine::Rendering
                 data.SysMemPitch = 0;
                 data.SysMemSlicePitch = 0;
 
-                m_device->CreateBuffer(&bufferDesc, &data, &m_vertexBuffer);
+                m_renderer->GetDevice()->CreateBuffer(&bufferDesc, &data, &m_vertexBuffer);
             }
 
-            void DefaultDraw::Draw(Window::DirectX11& renderer)
+            void DefaultDraw::Draw()
             {
                 D3D11_VIEWPORT viewport = {};
-                viewport.Width = static_cast<float>(renderer.GetWindowSize().x());
-                viewport.Height = static_cast<float>(renderer.GetWindowSize().y());
+                viewport.Width = static_cast<float>(m_renderer->GetWindowSize().x());
+                viewport.Height = static_cast<float>(m_renderer->GetWindowSize().y());
                 viewport.MaxDepth = 1;
                 viewport.MinDepth = 0;
 
                 D3D11_RECT rect = {};
-                rect.right = renderer.GetWindowSize().x();
-                rect.bottom = renderer.GetWindowSize().y();
+                rect.right = m_renderer->GetWindowSize().x();
+                rect.bottom = m_renderer->GetWindowSize().y();
 
-                m_deviceContext->ClearRenderTargetView(&renderer.GetBackBufferResource(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }).data());
-                ID3D11RenderTargetView* targets[] = { &renderer.GetBackBufferResource() };
-                m_deviceContext->OMSetRenderTargets(1, targets, nullptr);
-                m_deviceContext->RSSetViewports(1, &viewport);
-                m_deviceContext->RSSetScissorRects(1, &rect);
-                m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-                m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-                m_deviceContext->IASetInputLayout(m_inputLayout.Get());
-                m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                m_renderer->GetDeviceContext()->ClearRenderTargetView(&m_renderer->GetBackBufferResource(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }).data());
+                ID3D11RenderTargetView* targets[] = { &m_renderer->GetBackBufferResource() };
+                m_renderer->GetDeviceContext()->OMSetRenderTargets(1, targets, nullptr);
+                m_renderer->GetDeviceContext()->RSSetViewports(1, &viewport);
+                m_renderer->GetDeviceContext()->RSSetScissorRects(1, &rect);
+                m_renderer->GetDeviceContext()->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+                m_renderer->GetDeviceContext()->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+                m_renderer->GetDeviceContext()->IASetInputLayout(m_inputLayout.Get());
+                m_renderer->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
                 UINT stride = sizeof(Vertex);
                 UINT offset = 0;
 
-                m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-                m_deviceContext->Draw(3, 0);
+                m_renderer->GetDeviceContext()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+                m_renderer->GetDeviceContext()->Draw(3, 0);
 
-                renderer.Present();
+                m_renderer->Present();
             }
     }
     namespace D3D12
     {
-        DefaultDraw::DefaultDraw(TypedD3D::D3D12::Device5 device) :
-            m_device(device),
-            m_commandList(device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
-        {
-        }
-
-        void DefaultDraw::Initialize(Window::DirectX12& renderer)
+        DefaultDraw::DefaultDraw(Window::DirectX12& renderer) :
+            m_renderer(&renderer),
+            m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
         {
             D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc
             {
@@ -370,7 +361,7 @@ namespace InsanityEngine::Rendering
 
             ComPtr<ID3DBlob> signatureBlob;
             D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, nullptr);
-            m_rootSignature = m_device->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).GetValue();
+            m_rootSignature = m_renderer->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).GetValue();
 
             ComPtr<ID3DBlob> vertexBlob;
             ComPtr<ID3DBlob> errorBlob;
@@ -457,7 +448,7 @@ namespace InsanityEngine::Rendering
 
             graphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-            m_pipelineState = m_device->CreateGraphicsPipelineState(graphicsPipelineState).GetValue();
+            m_pipelineState = m_renderer->GetDevice()->CreateGraphicsPipelineState(graphicsPipelineState).GetValue();
 
             auto vertices = std::to_array<Vertex>(
                 {
@@ -490,7 +481,7 @@ namespace InsanityEngine::Rendering
             };
 
 
-            m_vertexBuffer = m_device->CreateCommittedResource(
+            m_vertexBuffer = m_renderer->GetDevice()->CreateCommittedResource(
                 vertexHeap,
                 D3D12_HEAP_FLAG_NONE,
                 vertexDesc,
@@ -506,7 +497,7 @@ namespace InsanityEngine::Rendering
                 .CreationNodeMask = 0,
                 .VisibleNodeMask = 0
             };
-            ComPtr<ID3D12Resource> vertexUpload = m_device->CreateCommittedResource(
+            ComPtr<ID3D12Resource> vertexUpload = m_renderer->GetDevice()->CreateCommittedResource(
                 uploadProperties,
                 D3D12_HEAP_FLAG_NONE,
                 vertexDesc,
@@ -520,7 +511,7 @@ namespace InsanityEngine::Rendering
                 .SlicePitch = static_cast<UINT>(vertices.size() * sizeof(Vertex)),
             };
 
-            m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
+            m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
             UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexUpload.Get(), 0, 0, 1, &vertexData);
 
 
@@ -532,22 +523,22 @@ namespace InsanityEngine::Rendering
             m_commandList->Close();
 
             std::array submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
-            renderer.ExecuteCommandLists(std::span(submitList));
-            renderer.SignalQueue();
-            renderer.WaitForCurrentFrame();
+            m_renderer->ExecuteCommandLists(std::span(submitList));
+            m_renderer->SignalQueue();
+            m_renderer->WaitForCurrentFrame();
         }
 
-        void DefaultDraw::Draw(Window::DirectX12& renderer)
+        void DefaultDraw::Draw()
         {
             using Microsoft::WRL::ComPtr;
-            m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
+            m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
 
-            ComPtr<ID3D12Resource> backBuffer = renderer.GetBackBufferResource();
+            ComPtr<ID3D12Resource> backBuffer = m_renderer->GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
             m_commandList->ResourceBarrier(std::span(&barrier, 1));
-            m_commandList->ClearRenderTargetView(renderer.GetBackBufferHandle(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
+            m_commandList->ClearRenderTargetView(m_renderer->GetBackBufferHandle(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
 
-            TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = renderer.GetBackBufferHandle();
+            TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = m_renderer->GetBackBufferHandle();
             m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
             m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
 
@@ -563,8 +554,8 @@ namespace InsanityEngine::Rendering
             {
                 .TopLeftX = 0,
                 .TopLeftY = 0,
-                .Width = static_cast<float>(renderer.GetWindowSize().x()),
-                .Height = static_cast<float>(renderer.GetWindowSize().y()),
+                .Width = static_cast<float>(m_renderer->GetWindowSize().x()),
+                .Height = static_cast<float>(m_renderer->GetWindowSize().y()),
                 .MinDepth = 0,
                 .MaxDepth = 1
             };
@@ -573,8 +564,8 @@ namespace InsanityEngine::Rendering
             {
                 .left = 0,
                 .top = 0,
-                .right = static_cast<LONG>(renderer.GetWindowSize().x()),
-                .bottom = static_cast<LONG>(renderer.GetWindowSize().y())
+                .right = static_cast<LONG>(m_renderer->GetWindowSize().x()),
+                .bottom = static_cast<LONG>(m_renderer->GetWindowSize().y())
             };
 
 
@@ -591,10 +582,10 @@ namespace InsanityEngine::Rendering
             m_commandList->Close();
 
             auto submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
-            renderer.ExecuteCommandLists(std::span(submitList));
-            renderer.SignalQueue();
-            renderer.Present();
-            renderer.WaitForCurrentFrame();
+            m_renderer->ExecuteCommandLists(std::span(submitList));
+            m_renderer->SignalQueue();
+            m_renderer->Present();
+            m_renderer->WaitForCurrentFrame();
         }
     }
 
