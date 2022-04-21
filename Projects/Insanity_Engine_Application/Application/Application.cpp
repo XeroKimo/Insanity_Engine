@@ -2,6 +2,7 @@
 #include "../Rendering/Window.h"
 #include "d3dx12.h"
 #include <dxgi1_6.h>
+#include <utility>
 
 #include "imgui.h"
 #include <d3dcompiler.h>
@@ -75,7 +76,7 @@ namespace InsanityEngine::Application
 
     class ImGuiDrawer
     {
-        TypedD3D::D3D12::Device5 m_device;
+        gsl::strict_not_null<Rendering::Window::DirectX12*> m_renderer;
         TypedD3D::D3D12::CommandList::Direct5 m_commandList;
 
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
@@ -87,10 +88,10 @@ namespace InsanityEngine::Application
 
         bool m_showWindow2 = true;
     public:
-        ImGuiDrawer(TypedD3D::D3D12::Device5 device) :
-            m_device(device),
-            m_commandList(m_device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
-            m_imGuiDescriptorHeap(m_device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>(1, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0).GetValue())
+        ImGuiDrawer(Rendering::Window::DirectX12& renderer) :
+            m_renderer(&renderer),
+            m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
+            m_imGuiDescriptorHeap(m_renderer->GetDevice()->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>(1, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0).GetValue())
         {
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
@@ -113,6 +114,15 @@ namespace InsanityEngine::Application
                 style.WindowRounding = 0.0f;
                 style.Colors[ImGuiCol_WindowBg].w = 1.0f;
             }
+
+            ImGui_ImplSDL2_InitForD3D(&m_renderer->GetWindow().GetWindow());
+            ImGui_ImplDX12_Init(
+                m_renderer->GetDevice().Get(),
+                m_renderer->GetSwapChainDescription().BufferCount,
+                m_renderer->GetSwapChainDescription().Format,
+                m_imGuiDescriptorHeap.Get(),
+                m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Data(),
+                m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart().Data());
         }
 
         ~ImGuiDrawer()
@@ -130,22 +140,11 @@ namespace InsanityEngine::Application
             float y;
             float z;
         };
-        void Initialize(Rendering::Window::DirectX12& renderer)
-        {
-            ImGui_ImplSDL2_InitForD3D(&renderer.GetWindow().GetWindow());
-            ImGui_ImplDX12_Init(
-                m_device.Get(),
-                renderer.GetSwapChainDescription().BufferCount,
-                renderer.GetSwapChainDescription().Format,
-                m_imGuiDescriptorHeap.Get(),
-                m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Data(),
-                m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart().Data());
-        }
 
-        void Draw(Rendering::Window::DirectX12& renderer)
+        void Draw()
         {
             ImGui_ImplDX12_NewFrame();
-            ImGui_ImplSDL2_NewFrame(&renderer.GetWindow().GetWindow());
+            ImGui_ImplSDL2_NewFrame(&m_renderer->GetWindow().GetWindow());
             ImGui::NewFrame();
 
             ImGuiViewport* viewport = ImGui::GetMainViewport();        
@@ -173,7 +172,7 @@ namespace InsanityEngine::Application
             });
 
             static bool show_demo_window = true;
-            static bool show_another_window = false;
+            static bool show_another_window = true;
             static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
             if(show_demo_window)
                 ImGui::ShowDemoWindow(&show_demo_window);
@@ -226,13 +225,13 @@ namespace InsanityEngine::Application
 
             using Microsoft::WRL::ComPtr;
 
-            m_commandList->Reset(renderer.CreateOrGetAllocator(), nullptr);
+            m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
 
-            ComPtr<ID3D12Resource> backBuffer = renderer.GetBackBufferResource();
+            ComPtr<ID3D12Resource> backBuffer = m_renderer->GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
             m_commandList->ResourceBarrier(std::span(&barrier, 1));
 
-            TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = renderer.GetBackBufferHandle();
+            TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = m_renderer->GetBackBufferHandle();
             m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ clear_color.x, clear_color.y, clear_color.z, clear_color.w }), {});
             m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
             m_commandList->SetDescriptorHeaps(m_imGuiDescriptorHeap);
@@ -245,7 +244,7 @@ namespace InsanityEngine::Application
             m_commandList->Close();
 
             auto executingCommandList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
-            renderer.ExecuteCommandLists(std::span(executingCommandList));
+            m_renderer->ExecuteCommandLists(std::span(executingCommandList));
 
             ImGuiIO& io = ImGui::GetIO();
             if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -254,9 +253,9 @@ namespace InsanityEngine::Application
                 ImGui::RenderPlatformWindowsDefault();
             }
 
-            renderer.SignalQueue();
-            renderer.Present();
-            renderer.WaitForCurrentFrame();
+            m_renderer->SignalQueue();
+            m_renderer->Present();
+            m_renderer->WaitForCurrentFrame();
         }
     };
 
@@ -270,15 +269,13 @@ namespace InsanityEngine::Application
             debug->EnableDebugLayer();
             TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
             debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
-            Rendering::Window window{
+            Rendering::Window window = Rendering::Window::Create<ImGuiDrawer>(
                         settings.applicationName,
                         { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                         settings.windowResolution,
                         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE,
                         *factory.Get(),
-                        device,
-                        Rendering::RendererTag<ImGuiDrawer>(),
-                        device };
+                        device);
             SDL_Event event;
             bool running = true;
             while(running)

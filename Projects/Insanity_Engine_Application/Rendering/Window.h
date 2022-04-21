@@ -8,6 +8,7 @@
 #include <string_view>
 #include <any>
 #include <Windows.h>
+#include <gsl/gsl>
 
 namespace InsanityEngine::Rendering
 {
@@ -16,6 +17,13 @@ namespace InsanityEngine::Rendering
 
     class Window
     {
+    private:
+        template<class Callback>
+        struct CallbackTag
+        {
+
+        };
+
     public:
         class BackEnd
         {
@@ -86,6 +94,10 @@ namespace InsanityEngine::Rendering
         public:
             ID3D11RenderTargetView& GetBackBufferResource() const { return *m_backBuffer.Get(); }
             void Present();
+
+        public:
+            Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_device; }
+            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> GetDeviceContext() const { return m_deviceContext; }
         };
 
         class DirectX12 : public BackEnd
@@ -149,6 +161,9 @@ namespace InsanityEngine::Rendering
 
         private:
             void Reset();
+
+        public:
+            TypedD3D::D3D12::Device5 GetDevice() const { return m_device; }
         };
 
     private:
@@ -158,18 +173,17 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            template<class... Params>
-            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, Params&&... params) :
+            template<class... Args>
+            DirectX11Renderer(Window& window, IDXGIFactory2& factory, Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext, Args&&... args) :
                 DirectX11(window, factory, device, deviceContext),
-                m_drawCallback(std::forward<Params>(params)...)
+                m_drawCallback(static_cast<DirectX11&>(*this), std::forward<Args>(args)...)
             {
-                m_drawCallback.Initialize(*this);
             }
 
         private:
             void Draw() final
             {
-                m_drawCallback.Draw(*this);
+                m_drawCallback.Draw();
             }
 
             std::any GetRenderer() final { return &m_drawCallback; }
@@ -181,18 +195,17 @@ namespace InsanityEngine::Rendering
             DrawCallback m_drawCallback;
 
         public:
-            template<class... Params>
-            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, Params&&... params) :
+            template<class... Args>
+            DirectX12Renderer(Window& window, IDXGIFactory2& factory, TypedD3D::D3D12::Device5 device, Args&&... args) :
                 DirectX12(window, factory, device),
-                m_drawCallback(std::forward<Params>(params)...)
+                m_drawCallback(static_cast<DirectX12&>(*this), std::forward<Args>(args)...)
             {
-                m_drawCallback.Initialize(*this);
             }
 
         private:
             void Draw() final
             {
-                m_drawCallback.Draw(*this);
+                m_drawCallback.Draw();
             }
 
             std::any GetRenderer() final { return &m_drawCallback; }
@@ -206,7 +219,33 @@ namespace InsanityEngine::Rendering
         std::unique_ptr<BackEnd> m_backEnd = nullptr;
 
     public:
-        template<class DrawCallback, class... DrawCallbackParams>
+        template<class DrawCallback, class... Args>
+        static Window Create(std::string_view title,
+            InsanityEngine::Math::Types::Vector2i windowPosition,
+            InsanityEngine::Math::Types::Vector2i windowSize,
+            Uint32 windowFlags,
+            IDXGIFactory2& factory,
+            Microsoft::WRL::ComPtr<ID3D11Device5> device,
+            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
+            Args&&... args)
+        {
+            return Window(title, windowPosition, windowSize, windowFlags, factory, device, deviceContext, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
+        }
+
+        template<class DrawCallback, class... Args>
+        static Window Create(std::string_view title,
+            InsanityEngine::Math::Types::Vector2i windowPosition,
+            InsanityEngine::Math::Types::Vector2i windowSize,
+            Uint32 windowFlags,
+            IDXGIFactory2& factory,
+            TypedD3D::D3D12::Device5 device,
+            Args&&... args)
+        {
+            return Window(title, windowPosition, windowSize, windowFlags, factory, device, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
+        }
+
+    private:
+        template<class DrawCallback, class... Args>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
@@ -214,8 +253,8 @@ namespace InsanityEngine::Rendering
             IDXGIFactory2& factory,
             Microsoft::WRL::ComPtr<ID3D11Device5> device,
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
-            RendererTag<DrawCallback> tag,
-            DrawCallbackParams&&... params) :
+            CallbackTag<DrawCallback>,
+            Args&&... args) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
@@ -223,20 +262,20 @@ namespace InsanityEngine::Rendering
                 windowSize.x(),
                 windowSize.y(),
                 windowFlags)),
-            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<DrawCallbackParams>(params)...))
+            m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<Args>(args)...))
         {
 
         }
 
-        template<class DrawCallback, class... DrawCallbackParams>
+        template<class DrawCallback, class... Args>
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
             Uint32 windowFlags,
             IDXGIFactory2& factory,
             TypedD3D::D3D12::Device5 device,
-            RendererTag<DrawCallback> tag,
-            DrawCallbackParams&&... params) :
+            CallbackTag<DrawCallback>,
+            Args&&... args) :
             m_windowHandle(SDL_CreateWindow(
                 title.data(),
                 windowPosition.x(),
@@ -244,7 +283,7 @@ namespace InsanityEngine::Rendering
                 windowSize.x(),
                 windowSize.y(),
                 windowFlags)),
-            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<DrawCallbackParams>(params)...))
+            m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<Args>(args)...))
         {
 
         }
@@ -299,19 +338,17 @@ namespace InsanityEngine::Rendering
     {
         struct DefaultDraw
         {
-            Microsoft::WRL::ComPtr<ID3D11Device5> m_device;
-            Microsoft::WRL::ComPtr<ID3D11DeviceContext4> m_deviceContext;
+            gsl::strict_not_null<Window::DirectX11*> m_renderer;
             Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
             Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
             Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
             Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
 
         public:
-            DefaultDraw(Microsoft::WRL::ComPtr<ID3D11Device5> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext);
+            DefaultDraw(Window::DirectX11& renderer);
 
         public:
-            void Initialize(Window::DirectX11& renderer);
-            void Draw(Window::DirectX11& renderer);
+            void Draw();
         };
     }
 
@@ -319,7 +356,7 @@ namespace InsanityEngine::Rendering
     {
         struct DefaultDraw
         {
-            TypedD3D::D3D12::Device5 m_device;
+            gsl::strict_not_null<Window::DirectX12*> m_renderer;
             TypedD3D::D3D12::CommandList::Direct5 m_commandList;
 
             Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
@@ -327,11 +364,10 @@ namespace InsanityEngine::Rendering
             Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
 
         public:
-            DefaultDraw(TypedD3D::D3D12::Device5 device);
+            DefaultDraw(Window::DirectX12& renderer);
 
         public:
-            void Initialize(Window::DirectX12& renderer);
-            void Draw(Window::DirectX12& renderer);
+            void Draw();
         };
 
         struct NullDraw
@@ -340,8 +376,7 @@ namespace InsanityEngine::Rendering
             NullDraw() = default;
 
         public:
-            void Initialize(Window::DirectX12& renderer) {}
-            void Draw(Window::DirectX12& renderer) {}
+            void Draw() {}
         };
     }
 }
