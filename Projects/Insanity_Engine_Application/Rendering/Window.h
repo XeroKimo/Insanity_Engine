@@ -12,6 +12,9 @@
 
 namespace InsanityEngine::Rendering
 {
+    template<class DrawCallback>
+    struct RendererTag {};
+
     class Window
     {
     private:
@@ -38,6 +41,7 @@ namespace InsanityEngine::Rendering
 
         public:
             virtual bool IsFullscreen() const = 0;
+            virtual Math::Types::Vector2ui GetWindowSize() const = 0;
         };
 
         class Null : public BackEnd
@@ -58,6 +62,8 @@ namespace InsanityEngine::Rendering
             void SetFullscreen(bool fullscreen) {}
             void SetWindowSize(Math::Types::Vector2ui size) final {}
             bool IsFullscreen() const final {}
+            Math::Types::Vector2ui GetWindowSize() const final {}
+
         };
 
         class DirectX11 : public BackEnd
@@ -79,7 +85,7 @@ namespace InsanityEngine::Rendering
 
         public:
             bool IsFullscreen() const final;
-            Math::Types::Vector2ui GetWindowSize() const
+            Math::Types::Vector2ui GetWindowSize() const final
             {
                 auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
                 return { description.Width, description.Height };
@@ -124,8 +130,8 @@ namespace InsanityEngine::Rendering
 
         public:
             bool IsFullscreen() const final;
-            Math::Types::Vector2ui GetWindowSize() const 
-            { 
+            Math::Types::Vector2ui GetWindowSize() const final
+            {
                 auto description = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
                 return { description.Width, description.Height };
             }
@@ -149,6 +155,7 @@ namespace InsanityEngine::Rendering
             UINT GetCurrentBackBufferIndex() const;
             UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
             UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
+            DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get()); }
 
         private:
             void Reset();
@@ -240,7 +247,7 @@ namespace InsanityEngine::Rendering
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             Microsoft::WRL::ComPtr<ID3D11Device5> device,
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
@@ -262,7 +269,7 @@ namespace InsanityEngine::Rendering
         Window(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             TypedD3D::D3D12::Device5 device,
             CallbackTag<DrawCallback>,
@@ -297,6 +304,11 @@ namespace InsanityEngine::Rendering
         bool IsFullscreen() const
         {
             return m_backEnd->IsFullscreen();
+        }
+
+        Math::Types::Vector2ui GetWindowSize() const
+        {
+            return m_backEnd->GetWindowSize();
         }
 
         template<class Ty>
