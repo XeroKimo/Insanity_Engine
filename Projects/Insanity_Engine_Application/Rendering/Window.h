@@ -221,25 +221,25 @@ namespace InsanityEngine::Rendering
         static Window Create(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             Microsoft::WRL::ComPtr<ID3D11Device5> device,
             Microsoft::WRL::ComPtr<ID3D11DeviceContext4> deviceContext,
             Args&&... args)
         {
-            return Window(title, windowPosition, windowSize, flags, factory, device, deviceContext, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
+            return Window(title, windowPosition, windowSize, windowFlags, factory, device, deviceContext, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
         }
 
         template<class DrawCallback, class... Args>
         static Window Create(std::string_view title,
             InsanityEngine::Math::Types::Vector2i windowPosition,
             InsanityEngine::Math::Types::Vector2i windowSize,
-            Uint32 flags,
+            Uint32 windowFlags,
             IDXGIFactory2& factory,
             TypedD3D::D3D12::Device5 device,
             Args&&... args)
         {
-            return Window(title, windowPosition, windowSize, flags, factory, device, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
+            return Window(title, windowPosition, windowSize, windowFlags, factory, device, CallbackTag<DrawCallback>(), std::forward<Args>(args)...);
         }
 
     private:
@@ -259,7 +259,7 @@ namespace InsanityEngine::Rendering
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
+                windowFlags)),
             m_backEnd(std::make_unique<DirectX11Renderer<DrawCallback>>(*this, factory, device, deviceContext, std::forward<Args>(args)...))
         {
 
@@ -280,7 +280,7 @@ namespace InsanityEngine::Rendering
                 windowPosition.y(),
                 windowSize.x(),
                 windowSize.y(),
-                flags)),
+                windowFlags)),
             m_backEnd(std::make_unique<DirectX12Renderer<DrawCallback>>(*this, factory, device, std::forward<Args>(args)...))
         {
 
