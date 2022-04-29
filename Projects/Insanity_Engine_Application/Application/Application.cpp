@@ -50,6 +50,7 @@ namespace InsanityEngine::Application
                 }
 
             }();
+
             Rendering::D3D12::DefaultDraw* draw = window.GetRenderer<Rendering::D3D12::DefaultDraw>();
             SDL_Event event;
             while(true)
