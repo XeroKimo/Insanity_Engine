@@ -91,6 +91,7 @@
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
+    <ClInclude Include="Rendering\Common\VertexFormats.h" />
     <ClInclude Include="Rendering\Device.h" />
     <ClInclude Include="Rendering\Window.h" />
     <ClInclude Include="Rendering\Window_Back_Ends\Backend.h" />

@@ -1,6 +1,7 @@
 #include "dx12.h"
 #include "../Window.h"
 #include "d3dx12.h"
+#include "../Common/VertexFormats.h"
 #include <d3dcompiler.h>
 
 namespace InsanityEngine::Rendering::D3D12
@@ -146,14 +147,7 @@ namespace InsanityEngine::Rendering::D3D12
         }
     }
 
-    
-
-    struct Vertex
-    {
-        float x;
-        float y;
-        float z;
-    };
+    using Vertex = Common::VertexFormat::Position;
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
@@ -262,9 +256,9 @@ namespace InsanityEngine::Rendering::D3D12
 
         auto vertices = std::to_array<Vertex>(
             {
-                { -0.5f, -0.5f, 0 },
-                {  0.0f,  0.5f, 0 },
-                {  0.5f, -0.5f, 0 },
+                {{ -0.5f, -0.5f, 0 }},
+                {{  0.0f,  0.5f, 0 }},
+                {{  0.5f, -0.5f, 0 }},
             });
 
         D3D12_HEAP_PROPERTIES vertexHeap

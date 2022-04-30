@@ -1,5 +1,6 @@
 #include "dx11.h"
 #include "../Window.h"
+#include "../Common/VertexFormats.h"
 #include <d3dcompiler.h>
 
 namespace InsanityEngine::Rendering::D3D11
@@ -73,12 +74,7 @@ namespace InsanityEngine::Rendering::D3D11
         m_swapChain->Present(1, 0);
     }
 
-    struct Vertex
-    {
-        float x;
-        float y;
-        float z;
-    };
+    using Vertex = Common::VertexFormat::Position;
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer)
@@ -122,9 +118,9 @@ namespace InsanityEngine::Rendering::D3D11
 
         auto vertices = std::to_array<Vertex>(
             {
-                { -0.5f, -0.5f, 0 },
-                {  0.0f,  0.5f, 0 },
-                {  0.5f, -0.5f, 0 },
+                {{ -0.5f, -0.5f, 0 }},
+                {{  0.0f,  0.5f, 0 }},
+                {{  0.5f, -0.5f, 0 }},
             });
 
         D3D11_BUFFER_DESC bufferDesc{};
