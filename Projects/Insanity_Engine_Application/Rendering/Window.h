@@ -3,8 +3,8 @@
 #include "SDL_syswm.h"
 #include "Insanity_Math.h"
 #include "TypedD3D.h"
-#include "Window_Back_Ends/dx11.h"
-#include "Window_Back_Ends/dx12.h"
+#include "d3d11/Backend.h"
+#include "d3d12/Backend.h"
 #include <memory>
 #include <string_view>
 #include <any>

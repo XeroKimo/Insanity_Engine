@@ -1,6 +1,6 @@
-#include "dx11.h"
+#include "Backend.h"
 #include "../Window.h"
-#include "../Common/VertexFormats.h"
+#include "VertexFormats.h"
 #include <d3dcompiler.h>
 
 namespace InsanityEngine::Rendering::D3D11
@@ -100,21 +100,7 @@ namespace InsanityEngine::Rendering::D3D11
 
         m_renderer->GetDevice()->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr, &m_pixelShader);
 
-        std::array<D3D11_INPUT_ELEMENT_DESC, 1> inputLayout
-        {
-            D3D11_INPUT_ELEMENT_DESC
-            {
-                .SemanticName = "POSITION",
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .InputSlot = 0,
-                .AlignedByteOffset = 0,
-                .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0
-            }
-        };
-
-        m_renderer->GetDevice()->CreateInputLayout(inputLayout.data(), static_cast<UINT>(inputLayout.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &m_inputLayout);
+        m_inputLayout = VertexFormat::Position::CreateLayout(*m_renderer->GetDevice().Get(), *vertexBlob.Get());
 
         auto vertices = std::to_array<Vertex>(
             {

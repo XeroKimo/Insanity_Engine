@@ -1,7 +1,7 @@
-#include "dx12.h"
+#include "Backend.h"
 #include "../Window.h"
 #include "d3dx12.h"
-#include "../Common/VertexFormats.h"
+#include "VertexFormats.h"
 #include <d3dcompiler.h>
 
 namespace InsanityEngine::Rendering::D3D12
@@ -204,12 +204,6 @@ namespace InsanityEngine::Rendering::D3D12
             }
         };
 
-        D3D12_INPUT_LAYOUT_DESC layoutDesc
-        {
-            .pInputElementDescs = inputLayout.data(),
-            .NumElements = static_cast<UINT>(inputLayout.size())
-        };
-
         D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState
         {
             .pRootSignature = m_rootSignature.Get(),
@@ -235,7 +229,7 @@ namespace InsanityEngine::Rendering::D3D12
                 .ForcedSampleCount = 0,
                 .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
             },
-            .InputLayout = layoutDesc,
+            .InputLayout = VertexFormat::Position::layout,
             .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
             .NumRenderTargets = 1,
             .SampleDesc = {.Count = 1, .Quality = 0}

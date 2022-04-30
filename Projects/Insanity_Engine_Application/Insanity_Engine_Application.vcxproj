@@ -93,19 +93,22 @@
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="Rendering\Common\VertexFormats.h" />
     <ClInclude Include="Rendering\Device.h" />
+    <ClInclude Include="Rendering\d3d11\VertexFormats.h" />
+    <ClInclude Include="Rendering\d3d12\VertexFormats.h" />
     <ClInclude Include="Rendering\Window.h" />
-    <ClInclude Include="Rendering\Window_Back_Ends\Backend.h" />
-    <ClInclude Include="Rendering\Window_Back_Ends\dx11.h" />
-    <ClInclude Include="Rendering\Window_Back_Ends\dx12.h" />
+    <ClInclude Include="Rendering\WindowBackend.h" />
+    <ClInclude Include="Rendering\d3d11\Backend.h" />
+    <ClInclude Include="Rendering\d3d12\Backend.h" />
     <ClInclude Include="Utility\Align.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
-    <ClCompile Include="Rendering\Window_Back_Ends\dx12.cpp" />
+    <ClCompile Include="Rendering\d3d11\VertexFormatsD3d11.cpp" />
+    <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp" />
     <ClCompile Include="Rendering\Window.cpp" />
-    <ClCompile Include="Rendering\Window_Back_Ends\dx11.cpp" />
+    <ClCompile Include="Rendering\d3d11\BackendD3d11.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
