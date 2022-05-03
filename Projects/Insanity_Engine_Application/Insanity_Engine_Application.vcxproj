@@ -92,6 +92,7 @@
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="Rendering\Common\VertexFormats.h" />
+    <ClInclude Include="Rendering\d3d12\ConstantBuffer.h" />
     <ClInclude Include="Rendering\d3d12\MeshObject.h" />
     <ClInclude Include="Rendering\Device.h" />
     <ClInclude Include="Rendering\d3d11\VertexFormats.h" />
@@ -105,6 +106,7 @@
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
+    <ClCompile Include="Rendering\d3d12\ConstantBuffer.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
     <ClCompile Include="Rendering\d3d11\VertexFormatsD3d11.cpp" />
     <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp" />
