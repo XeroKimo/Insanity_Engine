@@ -7,7 +7,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_resource(device->CreateCommittedResource(
             CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
             D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
-            CD3DX12_RESOURCE_DESC::Buffer(Utility::AlignCeiling(size, static_cast<UINT64>(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT))),
+            CD3DX12_RESOURCE_DESC::Buffer(Utility::AlignCeiling((size == 0) ? 1 : size, static_cast<UINT64>(D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT))),
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr).GetValue()),
         m_fenceValue(startingFenceValue)
@@ -15,7 +15,7 @@ namespace InsanityEngine::Rendering::D3D12
         void* mappedPtr;
         m_resource->Map(0, nullptr, &mappedPtr);
         m_begin = m_current = static_cast<char*>(mappedPtr);
-        m_end = m_begin + m_resource->GetDesc().Width + D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+        m_end = m_begin + m_resource->GetDesc().Width;
         m_entries.push_back(
             {
                 .begin = m_current,

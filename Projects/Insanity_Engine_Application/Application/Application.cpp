@@ -299,7 +299,7 @@ namespace InsanityEngine::Application
         TicTacToeDraw(Rendering::D3D12::Backend& renderer, TicTacToeManager*& manager) :
             m_renderer(&renderer),
             m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
-            m_constantBuffer(m_renderer->GetDevice(), 1024 * 1000 * 10, 0)
+            m_constantBuffer(m_renderer->GetDevice(), 1, 0)
         {
             int i = 0;
             for(Sprite& sprite : m_ticTacToe.tiles)
