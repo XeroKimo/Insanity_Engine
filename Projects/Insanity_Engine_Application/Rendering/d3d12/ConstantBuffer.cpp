@@ -9,7 +9,8 @@ namespace InsanityEngine::Rendering::D3D12
             D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
             CD3DX12_RESOURCE_DESC::Buffer(Utility::AlignCeiling(size, static_cast<UINT64>(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT))),
             D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr).GetValue())
+            nullptr).GetValue()),
+        m_fenceValue(startingFenceValue)
     {
         void* mappedPtr;
         m_resource->Map(0, nullptr, &mappedPtr);
@@ -74,7 +75,7 @@ namespace InsanityEngine::Rendering::D3D12
                 {
                     .begin = m_current,
                     .end = m_current,
-                    .fenceValue = m_fenceValue
+                    .fenceValue = m_fenceValue + 1
                 });
         }
     }
