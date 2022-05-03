@@ -276,7 +276,7 @@ namespace InsanityEngine::Application
 
     struct TicTacToeDraw
     {
-        gsl::strict_not_null<Rendering::Window::DirectX12*> m_renderer;
+        gsl::strict_not_null<Rendering::D3D12::Backend*> m_renderer;
         TypedD3D::D3D12::CommandList::Direct5 m_commandList;
 
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
@@ -296,7 +296,7 @@ namespace InsanityEngine::Application
         TicTacToeManager m_ticTacToe;
 
     public:
-        TicTacToeDraw(Rendering::Window::DirectX12& renderer, TicTacToeManager*& manager) :
+        TicTacToeDraw(Rendering::D3D12::Backend& renderer, TicTacToeManager*& manager) :
             m_renderer(&renderer),
             m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
             m_constantBuffer(m_renderer->GetDevice(), 1024 * 1000 * 10, 0)
@@ -700,6 +700,7 @@ namespace InsanityEngine::Application
             auto submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
             m_renderer->ExecuteCommandLists(std::span(submitList));
             m_renderer->SignalQueue();
+            m_constantBuffer.Signal(m_renderer->GetCurrentFenceValue());
             m_renderer->Present();
             m_renderer->WaitForCurrentFrame();
         }

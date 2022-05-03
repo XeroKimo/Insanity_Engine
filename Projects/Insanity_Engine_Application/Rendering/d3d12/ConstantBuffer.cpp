@@ -35,15 +35,17 @@ namespace InsanityEngine::Rendering::D3D12
             m_current = m_begin;
         }
 
-        if(m_current + size >= m_entries.back().begin)
+        if(m_current < m_entries.front().begin &&
+            m_current + size >= m_entries.front().begin)
         {
             throw std::bad_alloc();
         }
 
+        D3D12_GPU_VIRTUAL_ADDRESS address = m_resource->GetGPUVirtualAddress() + (m_current - m_begin);
         std::memcpy(m_current, data, size);
         m_entries.back().end = m_current = Utility::AlignCeiling(m_current + size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-        return m_resource->GetGPUVirtualAddress() + (m_current - m_begin);
+        return address;
     }
 
     void ConstantBuffer::Signal(UINT64 fenceValue)
