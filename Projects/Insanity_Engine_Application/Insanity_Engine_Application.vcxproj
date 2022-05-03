@@ -92,6 +92,7 @@
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
     <ClInclude Include="Rendering\Common\VertexFormats.h" />
+    <ClInclude Include="Rendering\d3d12\MeshObject.h" />
     <ClInclude Include="Rendering\Device.h" />
     <ClInclude Include="Rendering\d3d11\VertexFormats.h" />
     <ClInclude Include="Rendering\d3d12\VertexFormats.h" />

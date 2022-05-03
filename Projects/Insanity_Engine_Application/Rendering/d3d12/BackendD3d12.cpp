@@ -147,7 +147,7 @@ namespace InsanityEngine::Rendering::D3D12
         }
     }
 
-    using Vertex = Common::VertexFormat::Position;
+    using Vertex = Common::VertexFormat::Position::Format;
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
@@ -190,19 +190,6 @@ namespace InsanityEngine::Rendering::D3D12
         D3D12_SHADER_BYTECODE pixelByteCode{};
         pixelByteCode.BytecodeLength = pixelBlob->GetBufferSize();
         pixelByteCode.pShaderBytecode = pixelBlob->GetBufferPointer();
-        std::array<D3D12_INPUT_ELEMENT_DESC, 1> inputLayout
-        {
-            D3D12_INPUT_ELEMENT_DESC
-            {
-                .SemanticName = "POSITION",
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .InputSlot = 0,
-                .AlignedByteOffset = 0,
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0
-            }
-        };
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState
         {
@@ -229,7 +216,7 @@ namespace InsanityEngine::Rendering::D3D12
                 .ForcedSampleCount = 0,
                 .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
             },
-            .InputLayout = VertexFormat::Position::layout,
+            .InputLayout = VertexFormat::PositionNormalUV::layout,
             .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
             .NumRenderTargets = 1,
             .SampleDesc = {.Count = 1, .Quality = 0}
@@ -250,9 +237,9 @@ namespace InsanityEngine::Rendering::D3D12
 
         auto vertices = std::to_array<Vertex>(
             {
-                {{ -0.5f, -0.5f, 0 }},
-                {{  0.0f,  0.5f, 0 }},
-                {{  0.5f, -0.5f, 0 }},
+                {{ -0.5f, -0.5f, 0 }},// { Math::Types::Scalar(0) }, { Math::Types::Scalar(0) }},
+                {{  0.0f,  0.5f, 0 }},// { Math::Types::Scalar(0) }, { Math::Types::Scalar(0) }},
+                {{  0.5f, -0.5f, 0 }},// { Math::Types::Scalar(0) }, { Math::Types::Scalar(0) }},
             });
 
         D3D12_HEAP_PROPERTIES vertexHeap
@@ -309,6 +296,15 @@ namespace InsanityEngine::Rendering::D3D12
             .SlicePitch = static_cast<UINT>(vertices.size() * sizeof(Vertex)),
         };
 
+        D3D12_VERTEX_BUFFER_VIEW vertexBufferView
+        {
+            .BufferLocation = m_vertexBuffer->GetGPUVirtualAddress(),
+            .SizeInBytes = static_cast<UINT>(sizeof(Vertex) * 3),
+            .StrideInBytes = static_cast<UINT>(sizeof(Vertex))
+        };
+
+        m_mesh.vertexBufferView = vertexBufferView;
+
         m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
         UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexUpload.Get(), 0, 0, 1, &vertexData);
 
@@ -340,12 +336,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
         m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
 
-        D3D12_VERTEX_BUFFER_VIEW vertexBufferView
-        {
-            .BufferLocation = m_vertexBuffer->GetGPUVirtualAddress(),
-            .SizeInBytes = static_cast<UINT>(sizeof(Vertex) * 3),
-            .StrideInBytes = static_cast<UINT>(sizeof(Vertex))
-        };
+
 
 
         D3D12_VIEWPORT viewport
@@ -366,13 +357,12 @@ namespace InsanityEngine::Rendering::D3D12
             .bottom = static_cast<LONG>(m_renderer->GetWindowSize().y())
         };
 
-
         m_commandList->SetPipelineState(m_pipelineState.Get());
         m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
         m_commandList->RSSetViewports(std::span(&viewport, 1));
         m_commandList->RSSetScissorRects(std::span(&rect, 1));
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_commandList->IASetVertexBuffers(0, std::span(&vertexBufferView, 1));
+        m_commandList->IASetVertexBuffers(0, std::span(&m_mesh.vertexBufferView, 1));
         m_commandList->DrawInstanced(3, 1, 0, 0);
 
         barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);

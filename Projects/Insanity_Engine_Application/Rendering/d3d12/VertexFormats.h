@@ -10,6 +10,7 @@ namespace InsanityEngine::Rendering::D3D12::VertexFormat
 
     namespace Position
     {
+        using Format = Common::VertexFormat::Position::Format;
         inline constexpr std::array<D3D12_INPUT_ELEMENT_DESC, 1> elements
         {
             D3D12_INPUT_ELEMENT_DESC
@@ -24,7 +25,7 @@ namespace InsanityEngine::Rendering::D3D12::VertexFormat
             }
         };
 
-        static_assert(sizeof(Common::VertexFormat::Position) == sizeof(float) * 3);
+        static_assert(sizeof(Format) == sizeof(float) * 3);
 
         inline D3D12_INPUT_LAYOUT_DESC layout
         {
@@ -33,13 +34,24 @@ namespace InsanityEngine::Rendering::D3D12::VertexFormat
         };
     }
 
-    namespace PositionUV
+    namespace PositionNormalUV
     {
-        inline constexpr std::array<D3D12_INPUT_ELEMENT_DESC, 2> elements
+        using Format = Common::VertexFormat::PositionNormalUV::Format;
+        inline constexpr std::array<D3D12_INPUT_ELEMENT_DESC, 3> elements
         {
             D3D12_INPUT_ELEMENT_DESC
             {
                 .SemanticName = "POSITION",
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .InputSlot = 0,
+                .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            },
+            D3D12_INPUT_ELEMENT_DESC
+            {
+                .SemanticName = "NORMAL",
                 .SemanticIndex = 0,
                 .Format = DXGI_FORMAT_R32G32B32_FLOAT,
                 .InputSlot = 0,
@@ -59,7 +71,7 @@ namespace InsanityEngine::Rendering::D3D12::VertexFormat
             },
         };
 
-        static_assert(sizeof(Common::VertexFormat::PositionUV) == sizeof(float) * 5);
+        static_assert(sizeof(Format) == sizeof(float) * 8);
 
         inline D3D12_INPUT_LAYOUT_DESC layout
         {

@@ -91,6 +91,9 @@ namespace InsanityEngine::Rendering
         {
             switch(api)
             {
+            case RenderAPI::DX11:
+                return std::make_unique<DX11>();
+                break;
             case RenderAPI::DX12:
                 return std::make_unique<DX12>();
                 break;

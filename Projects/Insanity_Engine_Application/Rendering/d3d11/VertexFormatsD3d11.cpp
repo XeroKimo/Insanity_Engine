@@ -14,7 +14,7 @@ namespace InsanityEngine::Rendering::D3D11::VertexFormat
         }
     }
 
-    namespace PositionUV
+    namespace PositionNormalUV
     {
         ComPtr<ID3D11InputLayout> CreateLayout(ID3D11Device& device, ID3DBlob& shaderBlob)
         {

@@ -3,14 +3,21 @@
 
 namespace InsanityEngine::Rendering::Common::VertexFormat
 {
-    struct Position
+    namespace Position
     {
-        Math::Types::Vector3f position;
-    };
+        struct Format
+        {
+            Math::Types::Vector3f position;
+        };
+    }
 
-    struct PositionUV
+    namespace PositionNormalUV
     {
-        Math::Types::Vector3f position;
-        Math::Types::Vector2f uv;
-    };
+        struct Format
+        {
+            Math::Types::Vector3f position;
+            Math::Types::Vector3f normal;
+            Math::Types::Vector2f uv;
+        };
+    }
 }

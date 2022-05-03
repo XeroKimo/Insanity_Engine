@@ -2,6 +2,7 @@
 #include "../WindowBackend.h"
 #include "TypedD3D.h"
 #include "Insanity_Math.h"
+#include "MeshObject.h"
 #include <wrl/client.h>
 #include <vector>
 #include <gsl/gsl>
@@ -113,6 +114,8 @@ namespace InsanityEngine::Rendering::D3D12
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
         TypedD3D::D3D12::PipelineState::Graphics m_pipelineState;
         Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+
+        MeshObject m_mesh;
 
     public:
         DefaultDraw(Backend& renderer);

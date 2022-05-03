@@ -74,7 +74,7 @@ namespace InsanityEngine::Rendering::D3D11
         m_swapChain->Present(1, 0);
     }
 
-    using Vertex = Common::VertexFormat::Position;
+    using Vertex = Common::VertexFormat::Position::Format;
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer)
