@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 #include "Extensions/MatrixExtension.h"
 #include "Extensions/VectorExtension.h"
+#include "../Rendering/d3d12/ConstantBuffer.h"
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 
@@ -288,7 +289,8 @@ namespace InsanityEngine::Application
         Microsoft::WRL::ComPtr<ID3D12Resource> m_oTexture;
         TypedD3D::D3D12::DescriptorHeap::CBV_SRV_UAV m_textures;
 
-        std::vector<ConstantBuffer> m_constantBuffer;
+        //std::vector<ConstantBuffer> m_constantBuffer;
+        InsanityEngine::Rendering::D3D12::ConstantBuffer m_constantBuffer;
         D3D12_GPU_VIRTUAL_ADDRESS m_cameraMatrix;
 
         TicTacToeManager m_ticTacToe;
@@ -296,7 +298,8 @@ namespace InsanityEngine::Application
     public:
         TicTacToeDraw(Rendering::Window::DirectX12& renderer, TicTacToeManager*& manager) :
             m_renderer(&renderer),
-            m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
+            m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
+            m_constantBuffer(m_renderer->GetDevice(), 1024 * 1000 * 10, 0)
         {
             int i = 0;
             for(Sprite& sprite : m_ticTacToe.tiles)
@@ -306,9 +309,6 @@ namespace InsanityEngine::Application
             m_ticTacToe.board.scale *= 3;
             m_ticTacToe.board.textureResourceOffset = 0;
             manager = &m_ticTacToe;
-
-            for(size_t i = 0; i < m_renderer->GetSwapChainDescription().BufferCount; i++)
-                m_constantBuffer.push_back(ConstantBuffer(m_renderer->GetDevice(), 0));
 
             D3D12_DESCRIPTOR_RANGE range
             {
@@ -607,19 +607,18 @@ namespace InsanityEngine::Application
         {
             using Microsoft::WRL::ComPtr;
             m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
-            ConstantBuffer& currentConstantBuffer = m_constantBuffer[m_renderer->GetCurrentBackBufferIndex()];
-            currentConstantBuffer.clear();
-            m_cameraMatrix = currentConstantBuffer.emplace_back(m_ticTacToe.projectionMatrix);
+            m_constantBuffer.Clear(m_renderer->GetCurrentFenceValue());
+            m_cameraMatrix = m_constantBuffer.emplace_back(m_ticTacToe.projectionMatrix);
 
             for(Sprite& sprite : m_ticTacToe.tiles)
             {
                 if(sprite.draw)
                 {
-                    sprite.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(sprite.position) * Math::Matrix::ScaleMatrix(sprite.scale));
+                    sprite.objectConstantBuffer = m_constantBuffer.emplace_back(Math::Matrix::PositionMatrix(sprite.position) * Math::Matrix::ScaleMatrix(sprite.scale));
                 }
             }
-            m_ticTacToe.board.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.board.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.board.scale));
-            m_ticTacToe.mouseDebug.objectConstantBuffer = currentConstantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.mouseDebug.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.mouseDebug.scale));
+            m_ticTacToe.board.objectConstantBuffer = m_constantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.board.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.board.scale));
+            m_ticTacToe.mouseDebug.objectConstantBuffer = m_constantBuffer.emplace_back(Math::Matrix::PositionMatrix(m_ticTacToe.mouseDebug.position) * Math::Matrix::ScaleMatrix(m_ticTacToe.mouseDebug.scale));
 
             ComPtr<ID3D12Resource> backBuffer = m_renderer->GetBackBufferResource();
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
