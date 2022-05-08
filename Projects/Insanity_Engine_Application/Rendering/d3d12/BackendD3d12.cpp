@@ -23,8 +23,7 @@ namespace InsanityEngine::Rendering::D3D12
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
             false).GetValue()),
         m_swapChainDescriptorHeap(device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>(bufferCount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0).GetValue()),
-        m_mainFence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).GetValue()),
-        m_mainFenceWaitValue(0)
+        m_mainFence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).GetValue())
     {
         TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get());
         m_frameData.reserve(5);
@@ -83,18 +82,30 @@ namespace InsanityEngine::Rendering::D3D12
 
     void Backend::SignalQueue()
     {
-        m_frameData[m_swapChain->GetCurrentBackBufferIndex()].fenceWaitValue = m_mainFenceWaitValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.Get(), *m_mainFence.Get(), m_mainFenceWaitValue);
+        CurrentFrameData().fenceWaitValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
     }
 
     void Backend::WaitForCurrentFrame()
     {
-        FrameData& currentFrame = m_frameData[GetCurrentBackBufferIndex()];
+        FrameData& currentFrame = CurrentFrameData();
         TypedD3D::Helpers::D3D12::StallCPUThread(*m_mainFence.Get(), currentFrame.fenceWaitValue);
         currentFrame.idleAllocatorIndex = 0;
+
+        //To make sure the next SignalQueue() current frame's fence value not increment to the same value as 
+        //the previous frame's fence value, we set the current frame's fence value to be equal to the previous frame's 
+        //fence value so that the first SignalQueue() for the current frame will properly start off with 
+        //previous frame's fence value + 1.
+
+        //SignalQueue() increments the current frame's fence value because users can ask for any frame's fence value
+        //at any given time. A minor optimization, but a fence value outside of FrameData's would be a waste to increment 
+        //every SignalQueue() as it will always equal the current frame's fence value, therefore we only update it
+        //every Present() and set the current frame's fence value to the previous one to keep the continuity
+        currentFrame.fenceWaitValue = m_previousFrameFenceValue;
     }
 
     void Backend::Present()
     {
+        m_previousFrameFenceValue = GetCurrentFenceValue();
         m_swapChain->Present(1, 0);
     }
 
@@ -113,7 +124,7 @@ namespace InsanityEngine::Rendering::D3D12
 
     TypedD3D::D3D12::CommandAllocator::Direct Backend::CreateOrGetAllocator()
     {
-        FrameData& currentFrame = m_frameData[GetCurrentBackBufferIndex()];
+        FrameData& currentFrame = CurrentFrameData();
         TypedD3D::D3D12::CommandAllocator::Direct allocator;
         if(currentFrame.idleAllocatorIndex == currentFrame.allocators.size())
         {
@@ -137,10 +148,10 @@ namespace InsanityEngine::Rendering::D3D12
 
     void Backend::Reset()
     {
-        TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.Get(), *m_mainFence.Get(), m_mainFenceWaitValue);
+        TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
 
         TypedD3D::Helpers::D3D12::ResetFence(*m_mainFence.Get());
-        m_mainFenceWaitValue = 0;
+        m_previousFrameFenceValue = 0;
         for(FrameData& frame : m_frameData)
         {
             frame.fenceWaitValue = 0;
