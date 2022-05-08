@@ -32,7 +32,7 @@ namespace InsanityEngine::Rendering::D3D12
         ComPtr<IDXGISwapChain4> m_swapChain;
         TypedD3D::D3D12::DescriptorHeap::RTV m_swapChainDescriptorHeap;
         ComPtr<ID3D12Fence> m_mainFence;
-        UINT64 m_mainFenceWaitValue = 0;
+        UINT64 m_previousFrameFenceValue = 0;
         std::vector<FrameData> m_frameData;
 
     public:
@@ -69,12 +69,13 @@ namespace InsanityEngine::Rendering::D3D12
 
     public:
         UINT GetCurrentBackBufferIndex() const;
-        UINT64 GetCurrentFenceValue() const { return m_mainFenceWaitValue; }
+        UINT64 GetCurrentFenceValue() const { return GetFrameFenceValue(m_swapChain->GetCurrentBackBufferIndex()); }
         UINT64 GetFrameFenceValue(size_t frame) const { return m_frameData[frame].fenceWaitValue; }
         DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get()); }
 
     private:
         void Reset();
+        FrameData& CurrentFrameData() { return m_frameData[m_swapChain->GetCurrentBackBufferIndex()]; }
 
     public:
         TypedD3D::D3D12::Device5 GetDevice() const { return m_device; }

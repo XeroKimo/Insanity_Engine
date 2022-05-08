@@ -50,24 +50,22 @@ namespace InsanityEngine::Rendering::D3D12
     public:
         size_t Size() const
         {
-            if(m_entries.back().end < m_entries.back().begin)
-            {
-                return m_end - m_entries.front().begin + m_entries.back().end - m_begin;
-            }
-            else
+            if(m_entries.back().end > m_entries.front().begin)
             {
                 return m_entries.back().end - m_entries.front().begin;
             }
+            else
+            {
+                return m_end - m_entries.front().begin + m_entries.back().end - m_begin;
+            }
         }
         size_t Capacity() const { return m_end - m_begin; }
-
         size_t AvailableSize() const { return Capacity() - Size(); }
 
     public:
         void Signal(UINT64 fenceValue);
         void Clear(UINT64 fenceValue);
         UINT64 GetFenceValue() const { return m_fenceValue; }
-
 
     public:
         ComPtr<ID3D12Resource> Data() const { return m_resource; }
