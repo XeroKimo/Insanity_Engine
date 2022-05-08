@@ -60,12 +60,12 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;INSANITY_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;$(SolutionDir)Projects\SDL2-2.0.16\Project\$(Configuration)\SDL2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
