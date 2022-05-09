@@ -43,7 +43,7 @@ namespace InsanityEngine::Application
 
     class ImGuiDrawer
     {
-        gsl::strict_not_null<Rendering::Window::DirectX12*> m_renderer;
+        gsl::strict_not_null<Rendering::D3D12::Backend*> m_renderer;
         TypedD3D::D3D12::CommandList::Direct5 m_commandList;
 
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
@@ -54,7 +54,7 @@ namespace InsanityEngine::Application
 
         bool m_showWindow2 = true;
     public:
-        ImGuiDrawer(Rendering::Window::DirectX12& renderer) :
+        ImGuiDrawer(Rendering::D3D12::Backend& renderer) :
             m_renderer(&renderer),
             m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
             m_imGuiDescriptorHeap(m_renderer->GetDevice()->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>(1, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0).GetValue())

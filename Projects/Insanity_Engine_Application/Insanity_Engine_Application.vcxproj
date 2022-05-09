@@ -53,6 +53,9 @@
     <OutDir>$(SolutionDir)Output\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -60,12 +63,12 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;INSANITY_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;$(SolutionDir)Projects/TypedD3D/;$(ProjectDir)ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/TypedD3D/;$(ProjectDir)ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;$(SolutionDir)Projects\SDL2-2.0.16\Project\$(Configuration)\SDL2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -99,8 +102,17 @@
     <ClInclude Include="ImGui\imstb_rectpack.h" />
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
+    <ClInclude Include="Rendering\Common\VertexFormats.h" />
+    <ClInclude Include="Rendering\d3d12\ConstantBuffer.h" />
+    <ClInclude Include="Rendering\d3d12\MeshObject.h" />
     <ClInclude Include="Rendering\Device.h" />
+    <ClInclude Include="Rendering\d3d11\VertexFormats.h" />
+    <ClInclude Include="Rendering\d3d12\VertexFormats.h" />
     <ClInclude Include="Rendering\Window.h" />
+    <ClInclude Include="Rendering\WindowBackend.h" />
+    <ClInclude Include="Rendering\d3d11\Backend.h" />
+    <ClInclude Include="Rendering\d3d12\Backend.h" />
+    <ClInclude Include="Utility\Align.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
@@ -112,8 +124,12 @@
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
+    <ClCompile Include="Rendering\d3d12\ConstantBuffer.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
+    <ClCompile Include="Rendering\d3d11\VertexFormatsD3d11.cpp" />
+    <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp" />
     <ClCompile Include="Rendering\Window.cpp" />
+    <ClCompile Include="Rendering\d3d11\BackendD3d11.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
