@@ -10,5 +10,5 @@
 // add headers that you want to pre-compile here
 #include "Insanity_Math.h"
 #include "Extensions/MatrixExtension.h"
-#include "glm-master/glm/glm.hpp"
+#include <glm/glm.hpp>
 #endif //PCH_H

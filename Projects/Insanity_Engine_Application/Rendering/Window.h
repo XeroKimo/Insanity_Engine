@@ -1,6 +1,4 @@
 #pragma once
-#include "SDL.h"
-#include "SDL_syswm.h"
 #include "Insanity_Math.h"
 #include "TypedD3D.h"
 #include "d3d11/Backend.h"
@@ -10,6 +8,8 @@
 #include <any>
 #include <Windows.h>
 #include <gsl/gsl>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 
 namespace InsanityEngine::Rendering
 {
