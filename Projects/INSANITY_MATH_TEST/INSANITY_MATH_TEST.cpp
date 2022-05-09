@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
-#include "glm-master/glm/gtc/matrix_transform.hpp"
-#include "glm-master/glm/ext/quaternion_float.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/quaternion_float.hpp>
 #include <sstream>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;

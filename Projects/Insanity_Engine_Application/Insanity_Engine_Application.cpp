@@ -13,7 +13,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     {
         .applicationName = "Insanity Engine",
         .windowResolution = { 1280, 720 },
-        .renderAPI = Rendering::RenderAPI::DX11
+        .renderAPI = Rendering::RenderAPI::DX12
     };
     return Application::Run(settings);
 }
