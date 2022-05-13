@@ -57,6 +57,9 @@
     <ClInclude Include="Rendering\d3d12\ConstantBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Experimental\Renderer2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Insanity_Engine_Application.cpp">

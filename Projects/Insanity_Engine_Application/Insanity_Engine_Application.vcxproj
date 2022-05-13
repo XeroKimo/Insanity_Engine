@@ -91,6 +91,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Experimental\Renderer2D.h" />
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
