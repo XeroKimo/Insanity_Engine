@@ -34,6 +34,42 @@ namespace InsanityEngine::Rendering::D3D12::VertexFormat
         };
     }
 
+    namespace PositionUV
+    {
+        using Format = Common::VertexFormat::PositionUV::Format;
+        inline constexpr std::array<D3D12_INPUT_ELEMENT_DESC, 2> elements
+        {
+            D3D12_INPUT_ELEMENT_DESC
+            {
+                .SemanticName = "POSITION",
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .InputSlot = 0,
+                .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            },
+            D3D12_INPUT_ELEMENT_DESC
+            {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .InputSlot = 0,
+                .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            },
+        };
+
+        static_assert(sizeof(Format) == sizeof(float) * 5);
+
+        inline D3D12_INPUT_LAYOUT_DESC layout
+        {
+            .pInputElementDescs = elements.data(),
+            .NumElements = static_cast<UINT>(elements.size())
+        };
+    }
+
     namespace PositionNormalUV
     {
         using Format = Common::VertexFormat::PositionNormalUV::Format;

@@ -758,17 +758,19 @@ namespace InsanityEngine::Application
             debug->EnableDebugLayer();
             TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
             debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
-            TicTacToeManager* ticTacToe;
-            Rendering::Window window = Rendering::Window::Create<TicTacToeDraw>(
+            //TicTacToeManager* ticTacToe;
+            Rendering::Window window = Rendering::Window::Create<InsanityEngine::Experimental::Rendering::Renderer2D>(
                 settings.applicationName,
                 { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                 settings.windowResolution,
                 SDL_WINDOW_SHOWN,
                 *factory.Get(),
-                device,
-                ticTacToe );
+                device );
 
-            TicTacToeGame game{ window, *ticTacToe };
+            auto& renderer = *window.GetRenderer<InsanityEngine::Experimental::Rendering::Renderer2D>();
+
+            auto testSprite = renderer.CreateSprite({}, {});
+            //TicTacToeGame game{ window, *ticTacToe };
 
             SDL_Event event;
             while(true)
@@ -779,10 +781,15 @@ namespace InsanityEngine::Application
                         break;
 
                     window.HandleEvent(event);
-                    game.HandleEvent(event);
+                    //game.HandleEvent(event);
 
                     switch(event.type)
                     {
+                    case SDL_EventType::SDL_MOUSEMOTION:
+                    {
+                        Math::Types::Vector2f windowSize = window.GetWindowSize();
+                        testSprite.SetPosition(Math::Vector::ScreenToWorldPosition({ event.motion.x, event.motion.y }, windowSize, Math::Types::Matrix4x4f::Identity(), renderer.projectionMatrix, 0, 0, 0));
+                    }
                     case SDL_EventType::SDL_KEYDOWN:
                         if(event.key.repeat == 0 && event.key.state == SDL_PRESSED)
                         {

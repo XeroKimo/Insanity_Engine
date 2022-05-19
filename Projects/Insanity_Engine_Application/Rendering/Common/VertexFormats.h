@@ -11,6 +11,15 @@ namespace InsanityEngine::Rendering::Common::VertexFormat
         };
     }
 
+    namespace PositionUV
+    {
+        struct Format
+        {
+            Math::Types::Vector3f position;
+            Math::Types::Vector2f uv;
+        };
+    }
+
     namespace PositionNormalUV
     {
         struct Format
