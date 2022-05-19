@@ -8,6 +8,7 @@
 #include <gsl/gsl>
 #include <d3dcompiler.h>
 
+//TODO: LOTS OF CLEAN UP
 namespace InsanityEngine::Experimental::Rendering
 {
     using namespace InsanityEngine::Rendering;
@@ -50,6 +51,12 @@ namespace InsanityEngine::Experimental::Rendering
         template<class Ty>
         class Handle;
 
+        struct ShaderResource
+        {
+            UINT64 offset = 0;
+            UINT64 referenceCount = 0;
+        };
+
     private:
         gsl::strict_not_null<D3D12::Backend*> m_backend;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_spriteRootSignature;
@@ -60,6 +67,10 @@ namespace InsanityEngine::Experimental::Rendering
 
         std::vector<std::unique_ptr<Managed<Sprite>>> m_sprites;
         Texture m_defaultTexture;
+
+        std::unordered_map<ID3D12Resource*, ShaderResource> m_shaderResources;
+        std::vector<UINT64> m_freeTextureSlots;
+        UINT64 m_currentTextureSlot = 0;
 
     public:
         SpriteRenderer(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, Microsoft::WRL::ComPtr<ID3D12Resource>& outTempBuffer) :
@@ -308,15 +319,48 @@ namespace InsanityEngine::Experimental::Rendering
         void SetDefaultTexture(Texture texture)
         {
             m_defaultTexture = texture;
-            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            srvDesc.Format = m_defaultTexture.resource->GetDesc().Format;
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            srvDesc.Texture2D.MipLevels = 1;
-            m_backend->GetDevice()->CreateShaderResourceView(*m_defaultTexture.resource.Get(), &srvDesc, m_textures->GetCPUDescriptorHandleForHeapStart());
+            RegisterTexture(texture);
         }
 
     private:
+        UINT64 RegisterTexture(Texture texture)
+        {
+            auto it = m_shaderResources.find(texture.resource.Get());
+
+            if(it == m_shaderResources.end())
+            {
+                m_shaderResources.insert({ texture.resource.Get(), {} });
+                it = m_shaderResources.find(texture.resource.Get());
+                UINT64 textureSlot;
+
+                if(m_freeTextureSlots.empty())
+                {
+                    textureSlot = m_currentTextureSlot++;
+                }
+                else
+                {
+                    textureSlot = m_freeTextureSlots.back();
+                    m_freeTextureSlots.pop_back();
+                }
+                
+                it->second.offset = textureSlot;
+                it->second.referenceCount = 0;
+
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                srvDesc.Format = texture.resource->GetDesc().Format;
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                srvDesc.Texture2D.MipLevels = 1;
+
+                auto stride = m_backend->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+                auto handle = m_textures->GetCPUDescriptorHandleForHeapStart();
+                handle.Ptr() += stride * textureSlot;
+                m_backend->GetDevice()->CreateShaderResourceView(*texture.resource.Get(), &srvDesc, handle);
+            }
+            it->second.referenceCount++;
+
+            return it->second.offset;
+        }
         void Destroy(Managed<Sprite>* sprite)
         {
             m_sprites.erase(std::find_if(m_sprites.begin(), m_sprites.end(), [=](const std::unique_ptr<Managed<Sprite>>& comp) { return comp.get() == sprite; }));
@@ -351,6 +395,7 @@ namespace InsanityEngine::Experimental::Rendering
         void SetTexture(Texture texture)
         {
             object().sprite.texture = (texture.resource != nullptr) ? texture : renderer().m_defaultTexture;
+            object().textureHeapOffset = renderer().RegisterTexture(texture);
         }
 
         void SetPosition(Math::Types::Vector3f position)
@@ -371,7 +416,9 @@ namespace InsanityEngine::Experimental::Rendering
     SpriteRenderer::Handle<Sprite> SpriteRenderer::CreateSprite(Texture texture, Math::Types::Vector3f position, Math::Types::Vector3f scale)
     {
         m_sprites.push_back(std::make_unique<Managed<Sprite>>());
-        m_sprites.back()->sprite.texture = (texture.resource != nullptr) ? texture : m_defaultTexture;
+        texture = (texture.resource != nullptr) ? texture : m_defaultTexture;
+        m_sprites.back()->sprite.texture = texture;
+        m_sprites.back()->textureHeapOffset = RegisterTexture(texture);
         m_sprites.back()->sprite.position = position;
         m_sprites.back()->sprite.scale = scale;
 
@@ -402,7 +449,9 @@ namespace InsanityEngine::Experimental::Rendering
 
         for(std::unique_ptr<Managed<Sprite>>& sprite : m_sprites)
         {
-            commandList->SetGraphicsRootDescriptorTable(0, GPUTextureHandle.Data());
+            auto handle = GPUTextureHandle.Data();
+            handle.ptr += incrementSize * sprite->textureHeapOffset;
+            commandList->SetGraphicsRootDescriptorTable(0, handle);
             commandList->SetGraphicsRootConstantBufferView(3, constantBuffer.emplace_back(Math::Matrix::PositionMatrix(sprite->sprite.position) * Math::Matrix::ScaleMatrix(sprite->sprite.scale)));
             commandList->DrawInstanced(6, 1, 0, 0);
         }

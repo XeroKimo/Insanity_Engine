@@ -623,6 +623,145 @@ namespace InsanityEngine::Application
         O
     };
 
+
+    class TicTacToeGameGeneric
+    {
+    private:
+        InsanityEngine::Experimental::Rendering::Renderer2D* m_renderer;
+        Rendering::Window* m_window;
+
+        std::vector<std::unique_ptr<InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>>> m_sprites;
+        InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>* board;
+        InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>* mouseDebug;
+
+        InsanityEngine::Experimental::Rendering::Texture boardTexture;
+        InsanityEngine::Experimental::Rendering::Texture oTexture;
+        InsanityEngine::Experimental::Rendering::Texture xTexture;
+
+        int m_turn = 0;
+        std::array<ClickBox, 9> m_clickBoxes;
+        std::array<TileType, 9> m_tileTypes;
+        bool gameEnded = false;
+
+    public:
+        TicTacToeGameGeneric(InsanityEngine::Experimental::Rendering::Renderer2D& renderer, Rendering::Window& window) :
+            m_renderer(&renderer),
+            m_window(&window)
+        {
+            for(int y = -1, i = 0; y <= 1; y++)
+            {
+                for(int x = -1; x <= 1; x++, i++)
+                {
+                    m_clickBoxes[i].position = { x, y };
+                    m_clickBoxes[i].halfDimensions = { 0.5f, 0.5f };
+                }
+            }
+            boardTexture = m_renderer->CreateTexture(L"Resources/ttt_board.png");
+            oTexture = m_renderer->CreateTexture(L"Resources/o_img.png");
+            xTexture = m_renderer->CreateTexture(L"Resources/x_img.png");
+
+            m_sprites.push_back(std::make_unique<InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>>(m_renderer->CreateSprite(boardTexture, {}, Math::Types::Scalar(3))));
+            board = m_sprites.back().get();
+            m_sprites.push_back(std::make_unique<InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>>(m_renderer->CreateSprite(boardTexture, {})));
+            mouseDebug = m_sprites.back().get();
+        }
+
+    public:
+        void HandleEvent(const SDL_Event& event)
+        {
+            switch(event.type)
+            {
+            case SDL_EventType::SDL_MOUSEBUTTONDOWN:
+            {
+                if(event.button.button == SDL_BUTTON_LEFT)
+                {
+                    if(gameEnded)
+                        ResetGame();
+                    else
+                    {
+                        if(m_turn < 9)
+                        {
+                            Math::Types::Vector2f windowSize = m_window->GetWindowSize();
+                            Math::Types::Vector4f mouseWorldPosition = Math::Vector::ScreenToWorldPosition({ event.button.x, event.button.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_renderer->projectionMatrix, 0, 0, 0);
+                            size_t boardPosIndex = GetBoardPositionIndex(mouseWorldPosition);
+
+                            if(boardPosIndex < m_clickBoxes.size() && m_tileTypes[boardPosIndex] == TileType::None)
+                            {
+                                auto& selectedTexture = ((m_turn % 2) == 0) ? xTexture : oTexture;
+                                m_sprites.push_back(std::make_unique<InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>>(m_renderer->CreateSprite(selectedTexture, m_clickBoxes[boardPosIndex].position)));
+                                m_tileTypes[boardPosIndex] = TileType((m_turn % 2) + 1);
+                                m_turn++;
+
+                                gameEnded = CheckGameFinish();
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            case SDL_EventType::SDL_MOUSEMOTION:
+            {
+                Math::Types::Vector2f windowSize = m_window->GetWindowSize();
+                mouseDebug->SetPosition(Math::Vector::ScreenToWorldPosition({ event.motion.x, event.motion.y }, windowSize, Math::Types::Matrix4x4f::Identity(), m_renderer->projectionMatrix, 0, 0, 0));
+            }
+            break;
+            }
+        }
+
+    private:
+        size_t GetBoardPositionIndex(Math::Types::Vector2f position)
+        {
+            for(size_t i = 0; i < m_clickBoxes.size(); i++)
+            {
+                const Math::Types::Vector2f minPosition = m_clickBoxes[i].position - m_clickBoxes[i].halfDimensions;
+                const Math::Types::Vector2f maxPosition = m_clickBoxes[i].position + m_clickBoxes[i].halfDimensions;
+                if(position.x() >= minPosition.x() && position.x() < maxPosition.x() &&
+                    position.y() >= minPosition.y() && position.y() < maxPosition.y())
+                {
+                    return i;
+                }
+            }
+            return m_clickBoxes.size();
+        }
+
+        bool CheckGameFinish()
+        {
+            if(m_turn >= m_tileTypes.size())
+                return true;
+
+            for(size_t i = 0; i < 3; i++)
+            {
+                if(m_tileTypes[i * 3] == m_tileTypes[i * 3 + 1] &&
+                    m_tileTypes[i * 3 + 1] == m_tileTypes[i * 3 + 2] &&
+                    m_tileTypes[i * 3] != TileType::None)
+                    return true;
+            }
+
+            for(size_t i = 0; i < 3; i++)
+            {
+                if(m_tileTypes[i] == m_tileTypes[i + 1 * 3] &&
+                    m_tileTypes[i + 1 * 3] == m_tileTypes[i + 2 * 3] &&
+                    m_tileTypes[i] != TileType::None)
+                    return true;
+            }
+
+            return (m_tileTypes[0] == m_tileTypes[1 + 3] && m_tileTypes[1 + 3] == m_tileTypes[2 + 6] && m_tileTypes[0] != TileType::None) ||
+                (m_tileTypes[0 + 6] == m_tileTypes[1 + 3] && m_tileTypes[1 + 3] == m_tileTypes[2] && m_tileTypes[2] != TileType::None);
+        }
+
+        void ResetGame()
+        {
+            m_sprites.erase(std::remove_if(m_sprites.begin(), m_sprites.end(), [&]
+            (std::unique_ptr<InsanityEngine::Experimental::Rendering::SpriteRenderer::Handle<InsanityEngine::Experimental::Rendering::Sprite>>& sprite) { return sprite.get() != mouseDebug && sprite.get() != board; }), m_sprites.end());
+            for(TileType& type : m_tileTypes)
+            {
+                type = TileType::None;
+            }
+            m_turn = 0;
+            gameEnded = false;
+        }
+    };
+
     class TicTacToeGame
     {
     private:
@@ -758,6 +897,7 @@ namespace InsanityEngine::Application
             debug->EnableDebugLayer();
             TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
             debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
+
             //TicTacToeManager* ticTacToe;
             //Rendering::Window window = Rendering::Window::Create<TicTacToeDraw>(
             //    settings.applicationName,
@@ -768,6 +908,7 @@ namespace InsanityEngine::Application
             //    device,
             //    ticTacToe);
             //TicTacToeGame game{ window, *ticTacToe };
+
             Rendering::Window window = Rendering::Window::Create<InsanityEngine::Experimental::Rendering::Renderer2D>(
                 settings.applicationName,
                 { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
@@ -776,8 +917,7 @@ namespace InsanityEngine::Application
                 *factory.Get(),
                 device );            
             auto& renderer = *window.GetRenderer<InsanityEngine::Experimental::Rendering::Renderer2D>();
-
-            auto testSprite = renderer.CreateSprite({}, {});
+            TicTacToeGameGeneric game{ renderer, window };
 
             SDL_Event event;
             while(true)
@@ -788,15 +928,10 @@ namespace InsanityEngine::Application
                         break;
 
                     window.HandleEvent(event);
-                    //game.HandleEvent(event);
+                    game.HandleEvent(event);
 
                     switch(event.type)
                     {
-                    case SDL_EventType::SDL_MOUSEMOTION:
-                    {
-                        Math::Types::Vector2f windowSize = window.GetWindowSize();
-                        testSprite.SetPosition(Math::Vector::ScreenToWorldPosition({ event.motion.x, event.motion.y }, windowSize, Math::Types::Matrix4x4f::Identity(), renderer.projectionMatrix, 0, 0, 0));
-                    }
                     case SDL_EventType::SDL_KEYDOWN:
                         if(event.key.repeat == 0 && event.key.state == SDL_PRESSED)
                         {
