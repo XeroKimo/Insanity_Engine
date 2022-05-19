@@ -361,10 +361,7 @@ namespace InsanityEngine::Experimental::Rendering
 
             return it->second.offset;
         }
-        void Destroy(Managed<Sprite>* sprite)
-        {
-            m_sprites.erase(std::find_if(m_sprites.begin(), m_sprites.end(), [=](const std::unique_ptr<Managed<Sprite>>& comp) { return comp.get() == sprite; }));
-        }
+        void Destroy(Managed<Sprite>* sprite);
 
     public:
         void Draw(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, D3D12::ConstantBuffer& constantBuffer, const Math::Types::Matrix4x4f& projectionMatrix);
@@ -457,6 +454,18 @@ namespace InsanityEngine::Experimental::Rendering
         }
     }
 
+    void SpriteRenderer::Destroy(SpriteRenderer::Managed<Sprite>* sprite)
+    {
+        auto it = m_shaderResources.find(sprite->sprite.texture.resource.Get());
+        it->second.referenceCount--;
+        if(it->second.referenceCount == 0)
+        {
+            m_freeTextureSlots.push_back(it->second.offset);
+            m_shaderResources.erase(it);
+        }
+
+        m_sprites.erase(std::find_if(m_sprites.begin(), m_sprites.end(), [=](const std::unique_ptr<Managed<Sprite>>& comp) { return comp.get() == sprite; }));
+    }
     class Renderer2D
     {
     private:
