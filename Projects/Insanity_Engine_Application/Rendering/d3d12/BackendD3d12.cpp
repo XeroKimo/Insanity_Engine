@@ -82,7 +82,7 @@ namespace InsanityEngine::Rendering::D3D12
 
     void Backend::SignalQueue()
     {
-        CurrentFrameData().fenceWaitValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
+        CurrentFrameData().fenceWaitValue = m_mainFenceValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.Get(), *m_mainFence.Get(), m_mainFenceValue);
     }
 
     void Backend::WaitForCurrentFrame()
@@ -90,22 +90,10 @@ namespace InsanityEngine::Rendering::D3D12
         FrameData& currentFrame = CurrentFrameData();
         TypedD3D::Helpers::D3D12::StallCPUThread(*m_mainFence.Get(), currentFrame.fenceWaitValue);
         currentFrame.idleAllocatorIndex = 0;
-
-        //To make sure the next SignalQueue() current frame's fence value not increment to the same value as 
-        //the previous frame's fence value, we set the current frame's fence value to be equal to the previous frame's 
-        //fence value so that the first SignalQueue() for the current frame will properly start off with 
-        //previous frame's fence value + 1.
-
-        //SignalQueue() increments the current frame's fence value because users can ask for any frame's fence value
-        //at any given time. A minor optimization, but a fence value outside of FrameData's would be a waste to increment 
-        //every SignalQueue() as it will always equal the current frame's fence value, therefore we only update it
-        //every Present() and set the current frame's fence value to the previous one to keep the continuity
-        currentFrame.fenceWaitValue = m_previousFrameFenceValue;
     }
 
     void Backend::Present()
     {
-        m_previousFrameFenceValue = GetCurrentFenceValue();
         m_swapChain->Present(1, 0);
     }
 
@@ -151,7 +139,7 @@ namespace InsanityEngine::Rendering::D3D12
         TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
 
         TypedD3D::Helpers::D3D12::ResetFence(*m_mainFence.Get());
-        m_previousFrameFenceValue = 0;
+        m_mainFenceValue = 0;
         for(FrameData& frame : m_frameData)
         {
             frame.fenceWaitValue = 0;

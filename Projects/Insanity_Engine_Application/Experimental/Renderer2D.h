@@ -3,6 +3,7 @@
 #include "../Rendering/d3d12/BlendConstants.h"
 #include "../Rendering/d3d12/VertexFormats.h"
 #include "../Rendering/d3d12/ConstantBuffer.h"
+#include <array>
 #include <TypedD3D.h>
 #include <gsl/gsl>
 #include <d3dcompiler.h>
@@ -50,6 +51,7 @@ namespace InsanityEngine::Experimental::Rendering
         class Handle;
 
     private:
+        gsl::strict_not_null<D3D12::Backend*> m_backend;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_spriteRootSignature;
         TypedD3D::D3D12::PipelineState::Graphics m_spritePipeline;
         Microsoft::WRL::ComPtr<ID3D12Resource> m_spriteMesh;
@@ -60,7 +62,8 @@ namespace InsanityEngine::Experimental::Rendering
         Texture m_defaultTexture;
 
     public:
-        SpriteRenderer(D3D12::Backend& backend)
+        SpriteRenderer(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, Microsoft::WRL::ComPtr<ID3D12Resource>& outTempBuffer) :
+            m_backend(&backend)
         {
             D3D12_DESCRIPTOR_RANGE range
             {
@@ -161,35 +164,6 @@ namespace InsanityEngine::Experimental::Rendering
             D3D12_SHADER_BYTECODE pixelByteCode{};
             pixelByteCode.BytecodeLength = pixelBlob->GetBufferSize();
             pixelByteCode.pShaderBytecode = pixelBlob->GetBufferPointer();
-            std::array<D3D12_INPUT_ELEMENT_DESC, 2> inputLayout
-            {
-                D3D12_INPUT_ELEMENT_DESC
-                {
-                    .SemanticName = "POSITION",
-                    .SemanticIndex = 0,
-                    .Format = DXGI_FORMAT_R32G32_FLOAT,
-                    .InputSlot = 0,
-                    .AlignedByteOffset = 0,
-                    .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                    .InstanceDataStepRate = 0
-                },
-                D3D12_INPUT_ELEMENT_DESC
-                {
-                    .SemanticName = "TEXCOORD",
-                    .SemanticIndex = 0,
-                    .Format = DXGI_FORMAT_R32G32_FLOAT,
-                    .InputSlot = 0,
-                    .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
-                    .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                    .InstanceDataStepRate = 0
-                }
-            };
-
-            D3D12_INPUT_LAYOUT_DESC layoutDesc
-            {
-                .pInputElementDescs = inputLayout.data(),
-                .NumElements = static_cast<UINT>(inputLayout.size())
-            };
 
             D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState
             {
@@ -216,7 +190,7 @@ namespace InsanityEngine::Experimental::Rendering
                     .ForcedSampleCount = 0,
                     .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
                 },
-                .InputLayout = layoutDesc,
+                .InputLayout = D3D12::VertexFormat::PositionUV::layout,
                 .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
                 .NumRenderTargets = 1,
                 .SampleDesc = {.Count = 1, .Quality = 0}
@@ -243,6 +217,90 @@ namespace InsanityEngine::Experimental::Rendering
                 .MaxLOD = D3D12_FLOAT32_MAX
             };
             backend.GetDevice()->CreateSampler(samplerDesc, m_spriteSampler->GetCPUDescriptorHandleForHeapStart());
+
+            m_textures = backend.GetDevice()->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>(100, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0).GetValue();
+
+            auto vertices = std::to_array<Vertex>(
+                {
+                    { { -0.5f, -0.5f, 0 }, { 0, 0 } },
+                    { { -0.5f, 0.5f, 0 }, { 0, 1 } },
+                    { { 0.5f, 0.5f, 0 }, { 1, 1 } },
+                    { { -0.5f, -0.5f, 0 }, { 0, 0 } },
+                    { { 0.5f, 0.5f, 0 }, { 1, 1 } },
+                    { { 0.5f, -0.5f, 0 }, { 1, 0 } },
+                });
+
+            D3D12_HEAP_PROPERTIES vertexHeap
+            {
+                .Type = D3D12_HEAP_TYPE_DEFAULT,
+                .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+                .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+                .CreationNodeMask = 0,
+                .VisibleNodeMask = 0
+            };
+
+            D3D12_RESOURCE_DESC resourceDesc =
+            {
+                .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+                .Alignment = 0,
+                .Width = static_cast<UINT>(vertices.size() * sizeof(Vertex)),
+                .Height = 1,
+                .DepthOrArraySize = 1,
+                .MipLevels = 1,
+                .Format = DXGI_FORMAT_UNKNOWN,
+                .SampleDesc = {.Count = 1, . Quality = 0},
+                .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+                .Flags = D3D12_RESOURCE_FLAG_NONE
+            };
+
+            m_spriteMesh = backend.GetDevice()->CreateCommittedResource(
+                vertexHeap,
+                D3D12_HEAP_FLAG_NONE,
+                resourceDesc,
+                D3D12_RESOURCE_STATE_COPY_DEST,
+                nullptr).GetValue();
+
+
+            D3D12_HEAP_PROPERTIES uploadProperties
+            {
+                .Type = D3D12_HEAP_TYPE_UPLOAD,
+                .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+                .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+                .CreationNodeMask = 0,
+                .VisibleNodeMask = 0
+            };
+
+            
+            outTempBuffer = backend.GetDevice()->CreateCommittedResource(
+                uploadProperties,
+                D3D12_HEAP_FLAG_NONE,
+                resourceDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr).GetValue();
+
+            D3D12_SUBRESOURCE_DATA data =
+            {
+                .pData = vertices.data(),
+                .RowPitch = static_cast<UINT>(vertices.size() * sizeof(Vertex)),
+                .SlicePitch = static_cast<UINT>(vertices.size() * sizeof(Vertex)),
+            };
+
+            commandList->Reset(backend.CreateOrGetAllocator(), nullptr);
+            UpdateSubresources(commandList.Get(), m_spriteMesh.Get(), outTempBuffer.Get(), 0, 0, 1, &data);
+            std::array barrier = std::to_array(
+                {
+                    TypedD3D::Helpers::D3D12::ResourceBarrier::Transition(
+                        *m_spriteMesh.Get(),
+                        D3D12_RESOURCE_STATE_COPY_DEST,
+                        D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER),
+                });
+            commandList->ResourceBarrier(std::span(barrier));
+            commandList->Close();
+
+            std::array submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ commandList });
+            backend.ExecuteCommandLists(std::span(submitList));
+            backend.SignalQueue();
+            backend.WaitForCurrentFrame();
         }
 
     public:
@@ -250,6 +308,12 @@ namespace InsanityEngine::Experimental::Rendering
         void SetDefaultTexture(Texture texture)
         {
             m_defaultTexture = texture;
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.Format = m_defaultTexture.resource->GetDesc().Format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = 1;
+            m_backend->GetDevice()->CreateShaderResourceView(*m_defaultTexture.resource.Get(), &srvDesc, m_textures->GetCPUDescriptorHandleForHeapStart());
         }
 
     private:
@@ -259,7 +323,7 @@ namespace InsanityEngine::Experimental::Rendering
         }
 
     public:
-        void Draw(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, D3D12::ConstantBuffer& constantBuffer);
+        void Draw(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, D3D12::ConstantBuffer& constantBuffer, const Math::Types::Matrix4x4f& projectionMatrix);
     };
 
     template<>
@@ -314,7 +378,7 @@ namespace InsanityEngine::Experimental::Rendering
         return Handle<Sprite>(m_sprites.back().get(), Deleter<Managed<Sprite>>{.renderer = this });
     }
 
-    void SpriteRenderer::Draw(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, D3D12::ConstantBuffer& constantBuffer)
+    void SpriteRenderer::Draw(D3D12::Backend& backend, TypedD3D::D3D12::CommandList::Direct5 commandList, D3D12::ConstantBuffer& constantBuffer, const Math::Types::Matrix4x4f& projectionMatrix)
     {
         D3D12_VERTEX_BUFFER_VIEW vertexBufferView
         {
@@ -327,8 +391,12 @@ namespace InsanityEngine::Experimental::Rendering
         commandList->SetGraphicsRootSignature(m_spriteRootSignature.Get());
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);            
         commandList->IASetVertexBuffers(0, std::span(&vertexBufferView, 1));
+        commandList->SetDescriptorHeaps(m_textures, m_spriteSampler);
 
+        auto test = m_spriteSampler->GetGPUDescriptorHandleForHeapStart();
+        auto test2 = m_spriteSampler->GetGPUDescriptorHandleForHeapStart().Data();
         commandList->SetGraphicsRootDescriptorTable(1, m_spriteSampler->GetGPUDescriptorHandleForHeapStart().Data());
+        commandList->SetGraphicsRootConstantBufferView(2, constantBuffer.emplace_back(projectionMatrix));
         auto GPUTextureHandle = m_textures->GetGPUDescriptorHandleForHeapStart(); 
         UINT64 incrementSize = backend.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -346,8 +414,8 @@ namespace InsanityEngine::Experimental::Rendering
         gsl::strict_not_null<D3D12::Backend*> m_backend;
         TypedD3D::D3D12::CommandList::Direct5 m_commandList;
         D3D12::ConstantBuffer m_constantBuffer;
-        SpriteRenderer m_spriteRenderer;
         std::deque<std::pair<UINT64, Microsoft::WRL::ComPtr<ID3D12Resource>>> m_temporaryUploadBuffers;
+        SpriteRenderer m_spriteRenderer;
 
     public:
         Math::Types::Matrix4x4f projectionMatrix;
@@ -357,12 +425,14 @@ namespace InsanityEngine::Experimental::Rendering
             m_backend(&backend),
             m_commandList(m_backend->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>()),
             m_constantBuffer(m_backend->GetDevice(), 1, 0),
-            m_spriteRenderer(backend)
+            m_temporaryUploadBuffers(1),
+            m_spriteRenderer(backend, m_commandList, m_temporaryUploadBuffers.back().second)
         {
             Math::Types::Vector2f windowSize = m_backend->GetWindowSize();
             projectionMatrix = Math::Matrix::OrthographicProjectionLH(Math::Types::Vector2f{ 4 * (windowSize.x() / windowSize.y()), 4 }, 0.0001f, 1000.f);
 
-            m_spriteRenderer.SetDefaultTexture(CreateTexture(L"Resources/Korone_NotLikeThis.png"));
+            m_temporaryUploadBuffers.back().first = backend.GetCurrentFenceValue() + 1;
+            m_spriteRenderer.SetDefaultTexture(CreateTexture(L"Resources/ttt_board.png"));
         }
 
 
@@ -371,8 +441,8 @@ namespace InsanityEngine::Experimental::Rendering
         {
             using Microsoft::WRL::ComPtr;
             m_commandList->Reset(m_backend->CreateOrGetAllocator(), nullptr);
-            m_constantBuffer.Clear(m_backend->GetCurrentFenceValue());
-            while(!m_temporaryUploadBuffers.empty() && m_temporaryUploadBuffers.front().first <= m_backend->GetCurrentFenceValue())
+            m_constantBuffer.Clear(m_backend->GetCompletedFenceValue());
+            while(!m_temporaryUploadBuffers.empty() && m_temporaryUploadBuffers.front().first <= m_backend->GetCompletedFenceValue())
             {
                 m_temporaryUploadBuffers.pop_front();
             }
@@ -406,8 +476,7 @@ namespace InsanityEngine::Experimental::Rendering
 
             m_commandList->RSSetViewports(std::span(&viewport, 1));
             m_commandList->RSSetScissorRects(std::span(&rect, 1));
-            m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer.emplace_back(projectionMatrix));
-            m_spriteRenderer.Draw(*m_backend, m_commandList, m_constantBuffer);
+            m_spriteRenderer.Draw(*m_backend, m_commandList, m_constantBuffer, projectionMatrix);
 
             barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
             m_commandList->ResourceBarrier(std::span(&barrier, 1));
@@ -427,7 +496,7 @@ namespace InsanityEngine::Experimental::Rendering
             DirectX::ScratchImage image;
 
             DirectX::LoadFromWICFile(
-                L"Resources/o_img.png",
+                file.c_str(),
                 DirectX::WIC_FLAGS_FORCE_RGB,
                 nullptr,
                 image);

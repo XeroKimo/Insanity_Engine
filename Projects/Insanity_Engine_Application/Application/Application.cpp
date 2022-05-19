@@ -511,7 +511,7 @@ namespace InsanityEngine::Application
         {
             using Microsoft::WRL::ComPtr;
             m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
-            m_constantBuffer.Clear(m_renderer->GetCurrentFenceValue());
+            m_constantBuffer.Clear(m_renderer->GetCompletedFenceValue());
             m_cameraMatrix = m_constantBuffer.emplace_back(m_ticTacToe.projectionMatrix);
 
             for(Sprite& sprite : m_ticTacToe.tiles)
@@ -759,18 +759,25 @@ namespace InsanityEngine::Application
             TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
             debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
             //TicTacToeManager* ticTacToe;
+            //Rendering::Window window = Rendering::Window::Create<TicTacToeDraw>(
+            //    settings.applicationName,
+            //    { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
+            //    settings.windowResolution,
+            //    SDL_WINDOW_SHOWN,
+            //    *factory.Get(),
+            //    device,
+            //    ticTacToe);
+            //TicTacToeGame game{ window, *ticTacToe };
             Rendering::Window window = Rendering::Window::Create<InsanityEngine::Experimental::Rendering::Renderer2D>(
                 settings.applicationName,
                 { SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED },
                 settings.windowResolution,
                 SDL_WINDOW_SHOWN,
                 *factory.Get(),
-                device );
-
+                device );            
             auto& renderer = *window.GetRenderer<InsanityEngine::Experimental::Rendering::Renderer2D>();
 
             auto testSprite = renderer.CreateSprite({}, {});
-            //TicTacToeGame game{ window, *ticTacToe };
 
             SDL_Event event;
             while(true)
