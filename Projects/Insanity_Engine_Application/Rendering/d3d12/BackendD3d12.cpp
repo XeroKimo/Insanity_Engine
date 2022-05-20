@@ -25,7 +25,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_swapChainDescriptorHeap(device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>(bufferCount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0).GetValue()),
         m_mainFence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).GetValue())
     {
-        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get());
+        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
         m_frameData.reserve(5);
         m_frameData.resize(bufferCount);
     }
@@ -42,7 +42,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
         m_swapChain->ResizeBuffers(bufferCount, size.x(), size.y(), desc.Format, desc.Flags);
-        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*m_device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get());
+        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*m_device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
     }
 
     void Backend::SetFullscreen(bool fullscreen)
@@ -55,7 +55,7 @@ namespace InsanityEngine::Rendering::D3D12
         DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
         m_swapChain->SetFullscreenState(fullscreen, nullptr);
         m_swapChain->ResizeBuffers(bufferCount, desc.Width, desc.Height, desc.Format, desc.Flags);
-        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*m_device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get());
+        TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*m_device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
     }
 
     void Backend::SetWindowSize(Math::Types::Vector2ui size)

@@ -162,18 +162,29 @@ namespace TypedD3D::Helpers::D3D12
     }
 
     template<class Resource = ID3D12Resource>
-    std::vector<Microsoft::WRL::ComPtr<Resource>> CreateSwapChainRenderTargets(ID3D12Device& device, IDXGISwapChain1& swapChain, ID3D12DescriptorHeap& descriptor)
+    std::vector<Microsoft::WRL::ComPtr<Resource>> CreateSwapChainRenderTargets(ID3D12Device& device, IDXGISwapChain1& swapChain, ID3D12DescriptorHeap& descriptor, std::optional<DXGI_FORMAT> format = std::nullopt)
     {
         UINT rtvOffset = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptor.GetCPUDescriptorHandleForHeapStart();
         DXGI_SWAP_CHAIN_DESC1 desc = Helpers::Common::GetDescription(swapChain);
 
         std::vector<Microsoft::WRL::ComPtr<Resource>> buffers(desc.BufferCount);
+
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc
+        {
+            .Format = format.value_or(desc.Format),
+            .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
+            .Texture2D =
+                {
+                    .MipSlice = 0,
+                    .PlaneSlice = 0
+                }
+        };
         for(UINT i = 0; i < desc.BufferCount; i++)
         {
             buffers[i] = Helpers::DXGI::SwapChain::GetBuffer<Resource>(swapChain, i).GetValue();
 
-            device.CreateRenderTargetView(buffers[i].Get(), nullptr, handle);
+            device.CreateRenderTargetView(buffers[i].Get(), &rtvDesc, handle);
             handle.ptr += rtvOffset;
         }
 

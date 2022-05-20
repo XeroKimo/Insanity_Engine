@@ -511,7 +511,7 @@ namespace InsanityEngine::Experimental::Rendering
             m_commandList->ClearRenderTargetView(m_backend->GetBackBufferHandle(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
 
             TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = m_backend->GetBackBufferHandle();
-            m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
+            m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.1f, 0.7f, 1.f }), {});
             m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
 
             D3D12_VIEWPORT viewport
