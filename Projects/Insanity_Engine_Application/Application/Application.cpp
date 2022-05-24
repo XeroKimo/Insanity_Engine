@@ -1,5 +1,8 @@
 #include "Application.h"
 #include "../Rendering/Window.h"
+#include "source/Helpers/DXGIHelpers.h"
+#include "source/Helpers/D3D12Helpers.h"
+#include "source/Helpers/COMHelpers.h"
 #include <dxgi1_6.h>
 #include <utility>
 
@@ -18,7 +21,7 @@ namespace InsanityEngine::Application
 
                 if(settings.renderAPI == Rendering::RenderAPI::DX12)
                 {
-                    TypedD3D::D3D12::Device5 device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
+                    TypedD3D::Wrapper<ID3D12Device5> device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
                     debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
 
                     return Rendering::Window::Create<Rendering::D3D12::DefaultDraw>(

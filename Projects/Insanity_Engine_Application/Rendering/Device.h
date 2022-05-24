@@ -1,5 +1,5 @@
 #pragma once
-#include "TypedD3D.h"
+#include "TypedD3D12.h"
 #include <d3d11_4.h>
 #include <memory>
 

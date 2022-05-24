@@ -1,6 +1,6 @@
 #pragma once
 #include "../WindowBackend.h"
-#include "TypedD3D.h"
+#include "TypedD3D12.h"
 #include "Insanity_Math.h"
 #include <wrl/client.h>
 #include <d3d11_4.h>

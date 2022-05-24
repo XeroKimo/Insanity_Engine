@@ -1,6 +1,6 @@
 #pragma once
 #include "../WindowBackend.h"
-#include "TypedD3D.h"
+#include "TypedD3D12.h"
 #include "Insanity_Math.h"
 #include "MeshObject.h"
 #include <wrl/client.h>
@@ -58,13 +58,13 @@ namespace InsanityEngine::Rendering::D3D12
         void Present();
 
         template<size_t Extents>
-        void ExecuteCommandLists(std::span<TypedD3D::D3D12::CommandList::Direct, Extents> commandLists)
+        void ExecuteCommandLists(std::span<TypedD3D::Direct<ID3D12CommandList>, Extents> commandLists)
         {
             m_mainQueue->ExecuteCommandLists(commandLists);
         }
 
         TypedD3D::D3D12::CommandAllocator::Direct CreateOrGetAllocator();
-        TypedD3D::D3D12::DescriptorHandle::CPU_RTV GetBackBufferHandle();
+        TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> GetBackBufferHandle();
         Microsoft::WRL::ComPtr<ID3D12Resource> GetBackBufferResource();
 
     public:

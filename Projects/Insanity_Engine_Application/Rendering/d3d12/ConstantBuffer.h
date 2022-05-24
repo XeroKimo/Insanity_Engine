@@ -1,5 +1,5 @@
 #pragma once
-#include "TypedD3D.h"
+#include "TypedD3D12.h"
 #include "../../Utility/Align.h"
 #include <d3d12.h>
 #include <deque>

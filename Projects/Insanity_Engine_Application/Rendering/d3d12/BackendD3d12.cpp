@@ -109,11 +109,11 @@ namespace InsanityEngine::Rendering::D3D12
         m_swapChain->Present(1, 0);
     }
 
-    TypedD3D::D3D12::DescriptorHandle::CPU_RTV Backend::GetBackBufferHandle()
+    TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> Backend::GetBackBufferHandle()
     {
         UINT stride = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        TypedD3D::D3D12::DescriptorHandle::CPU_RTV handle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        handle.Ptr() += stride * m_swapChain->GetCurrentBackBufferIndex();
+        TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> handle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        handle.ptr += stride * m_swapChain->GetCurrentBackBufferIndex();
         return handle;
     }
 
@@ -162,7 +162,7 @@ namespace InsanityEngine::Rendering::D3D12
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
-        m_commandList(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue().As<TypedD3D::D3D12::CommandList::Direct5>())
+        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue()))
     {
         D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
@@ -327,7 +327,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_commandList->ResourceBarrier(std::span(&barrier, 1));
         m_commandList->Close();
 
-        std::array submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
+        std::array submitList = std::to_array<TypedD3D::Direct<ID3D12CommandList>>({ m_commandList });
         m_renderer->ExecuteCommandLists(std::span(submitList));
         m_renderer->SignalQueue();
         m_renderer->WaitForCurrentFrame();
@@ -343,7 +343,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_commandList->ResourceBarrier(std::span(&barrier, 1));
         m_commandList->ClearRenderTargetView(m_renderer->GetBackBufferHandle(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
 
-        TypedD3D::D3D12::DescriptorHandle::CPU_RTV backBufferHandle = m_renderer->GetBackBufferHandle();
+        TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> backBufferHandle = m_renderer->GetBackBufferHandle();
         m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
         m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
 
@@ -380,7 +380,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_commandList->ResourceBarrier(std::span(&barrier, 1));
         m_commandList->Close();
 
-        auto submitList = std::to_array<TypedD3D::D3D12::CommandList::Direct>({ m_commandList });
+        auto submitList = std::to_array<TypedD3D::Direct<ID3D12CommandList>>({ m_commandList });
         m_renderer->ExecuteCommandLists(std::span(submitList));
         m_renderer->SignalQueue();
         m_renderer->Present();
