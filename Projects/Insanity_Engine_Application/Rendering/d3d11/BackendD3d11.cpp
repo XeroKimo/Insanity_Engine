@@ -17,9 +17,9 @@ namespace InsanityEngine::Rendering::D3D11
             DXGI_FORMAT_R8G8B8A8_UNORM,
             bufferCount,
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
-            false).GetValue())
+            false).value())
     {
-        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).value().Get(), nullptr, m_backBuffer.GetAddressOf());
     }
 
     Backend::~Backend()
@@ -36,7 +36,7 @@ namespace InsanityEngine::Rendering::D3D11
 
         DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
         m_swapChain->ResizeBuffers(bufferCount, size.x(), size.y(), desc.Format, desc.Flags);
-        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).value().Get(), nullptr, m_backBuffer.GetAddressOf());
     }
 
     void Backend::SetFullscreen(bool fullscreen)
@@ -51,7 +51,7 @@ namespace InsanityEngine::Rendering::D3D11
         DXGI_SWAP_CHAIN_DESC1 desc = TypedD3D::Helpers::Common::GetDescription(*m_swapChain.Get());
         m_swapChain->SetFullscreenState(fullscreen, nullptr);
         m_swapChain->ResizeBuffers(bufferCount, desc.Width, desc.Height, desc.Format, desc.Flags);
-        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).GetValue().Get(), nullptr, m_backBuffer.GetAddressOf());
+        m_device->CreateRenderTargetView(TypedD3D::Helpers::DXGI::SwapChain::GetBuffer<ID3D11Resource>(*m_swapChain.Get(), 0).value().Get(), nullptr, m_backBuffer.GetAddressOf());
     }
 
     void Backend::SetWindowSize(Math::Types::Vector2ui size)

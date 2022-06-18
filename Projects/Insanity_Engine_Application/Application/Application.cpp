@@ -15,14 +15,14 @@ namespace InsanityEngine::Application
         {
             Rendering::Window window = [&]() 
             {
-                ComPtr<IDXGIFactory7> factory = TypedD3D::Helpers::DXGI::Factory::Create<IDXGIFactory7>(TypedD3D::Helpers::DXGI::Factory::CreationFlags::None).GetValue();
-                ComPtr<ID3D12Debug3> debug = TypedD3D::Helpers::D3D12::GetDebugInterface<ID3D12Debug3>().GetValue();
+                ComPtr<IDXGIFactory7> factory = TypedD3D::Helpers::DXGI::Factory::Create<IDXGIFactory7>(TypedD3D::Helpers::DXGI::Factory::CreationFlags::None).value();
+                ComPtr<ID3D12Debug3> debug = TypedD3D::Helpers::D3D12::GetDebugInterface<ID3D12Debug3>().value();
                 debug->EnableDebugLayer();
 
                 if(settings.renderAPI == Rendering::RenderAPI::DX12)
                 {
-                    TypedD3D::Wrapper<ID3D12Device5> device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).GetValue();
-                    debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.GetComPtr());
+                    TypedD3D::Wrapper<ID3D12Device5> device = TypedD3D::D3D12::CreateDevice<TypedD3D::D3D12::Device5>(D3D_FEATURE_LEVEL_12_0, nullptr).value();
+                    debugDevice = TypedD3D::Helpers::COM::Cast<ID3D12DebugDevice2>(device.AsComPtr());
 
                     return Rendering::Window::Create<Rendering::D3D12::DefaultDraw>(
                         settings.applicationName,

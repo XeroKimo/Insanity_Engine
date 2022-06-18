@@ -13,7 +13,7 @@ namespace InsanityEngine::Rendering::D3D12
         m_mainQueue(device->CreateCommandQueue<D3D12_COMMAND_LIST_TYPE_DIRECT>(
             D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
             D3D12_COMMAND_QUEUE_FLAG_NONE,
-            0).GetValue()),
+            0).value()),
         m_swapChain(TypedD3D::Helpers::DXGI::SwapChain::CreateFlipDiscard<IDXGISwapChain4>(
             factory,
             *m_mainQueue.Get(),
@@ -21,9 +21,9 @@ namespace InsanityEngine::Rendering::D3D12
             DXGI_FORMAT_R8G8B8A8_UNORM,
             bufferCount,
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
-            false).GetValue()),
-        m_swapChainDescriptorHeap(device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>(bufferCount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0).GetValue()),
-        m_mainFence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).GetValue())
+            false).value()),
+        m_swapChainDescriptorHeap(device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(bufferCount, 0).value()),
+        m_mainFence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).value())
     {
         TypedD3D::Helpers::D3D12::CreateSwapChainRenderTargets(*device.Get(), *m_swapChain.Get(), *m_swapChainDescriptorHeap.Get());
         m_frameData.reserve(5);
@@ -119,7 +119,7 @@ namespace InsanityEngine::Rendering::D3D12
 
     Microsoft::WRL::ComPtr<ID3D12Resource> Backend::GetBackBufferResource()
     {
-        return TypedD3D::Helpers::DXGI::SwapChain::GetBuffer(*m_swapChain.Get(), GetCurrentBackBufferIndex()).GetValue();
+        return TypedD3D::Helpers::DXGI::SwapChain::GetBuffer(*m_swapChain.Get(), GetCurrentBackBufferIndex()).value();
     }
 
     TypedD3D::D3D12::CommandAllocator::Direct Backend::CreateOrGetAllocator()
@@ -128,7 +128,7 @@ namespace InsanityEngine::Rendering::D3D12
         TypedD3D::D3D12::CommandAllocator::Direct allocator;
         if(currentFrame.idleAllocatorIndex == currentFrame.allocators.size())
         {
-            currentFrame.allocators.push_back(m_device->CreateCommandAllocator<D3D12_COMMAND_LIST_TYPE_DIRECT>().GetValue());
+            currentFrame.allocators.push_back(m_device->CreateCommandAllocator<D3D12_COMMAND_LIST_TYPE_DIRECT>().value());
             allocator = currentFrame.allocators.back();
         }
         else
@@ -162,7 +162,7 @@ namespace InsanityEngine::Rendering::D3D12
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
-        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).GetValue()))
+        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).value()))
     {
         D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
@@ -176,7 +176,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         ComPtr<ID3DBlob> signatureBlob;
         D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, nullptr);
-        m_rootSignature = m_renderer->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).GetValue();
+        m_rootSignature = m_renderer->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).value();
 
         ComPtr<ID3DBlob> vertexBlob;
         ComPtr<ID3DBlob> errorBlob;
@@ -244,7 +244,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         graphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-        m_pipelineState = m_renderer->GetDevice()->CreateGraphicsPipelineState(graphicsPipelineState).GetValue();
+        m_pipelineState = m_renderer->GetDevice()->CreateGraphicsPipelineState(graphicsPipelineState).value();
 
         auto vertices = std::to_array<Vertex>(
             {
@@ -282,7 +282,7 @@ namespace InsanityEngine::Rendering::D3D12
             D3D12_HEAP_FLAG_NONE,
             vertexDesc,
             D3D12_RESOURCE_STATE_COPY_DEST,
-            nullptr).GetValue();
+            nullptr).value();
 
 
         D3D12_HEAP_PROPERTIES uploadProperties
@@ -298,7 +298,7 @@ namespace InsanityEngine::Rendering::D3D12
             D3D12_HEAP_FLAG_NONE,
             vertexDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr).GetValue();
+            nullptr).value();
 
         D3D12_SUBRESOURCE_DATA vertexData
         {
