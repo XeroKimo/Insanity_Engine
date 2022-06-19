@@ -33,22 +33,10 @@
     <ClInclude Include="Utility\Align.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\d3d11\Backend.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Rendering\d3d12\Backend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\WindowBackend.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Common\VertexFormats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\d3d11\VertexFormats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\d3d12\VertexFormats.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\d3d12\MeshObject.h">
@@ -71,13 +59,7 @@
     <ClCompile Include="Rendering\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\d3d11\BackendD3d11.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\d3d11\VertexFormatsD3d11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Rendering\d3d12\ConstantBuffer.cpp">

@@ -63,12 +63,12 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;INSANITY_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_DX11\Insanity_Engine_Rendering_DX11.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_DX12\Insanity_Engine_Rendering_DX12.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_Common\Insanity_Engine_Rendering_Common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -80,29 +80,25 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Library;$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;$(SolutionDir)Projects\SDL2-2.0.16\Project\$(Configuration)\SDL2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Math\Insanity_Engine_Math.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\DirectXTex\DirectXTex.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_DX11\Insanity_Engine_Rendering_DX11.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_DX12\Insanity_Engine_Rendering_DX12.lib;$(SolutionDir)Output\$(Platform)\$(Configuration)\Insanity_Engine_Rendering_Common\Insanity_Engine_Rendering_Common.lib;$(SolutionDir)Projects\SDL2-2.0.16\Project\$(Configuration)\SDL2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
-    <ClInclude Include="Rendering\Common\VertexFormats.h" />
     <ClInclude Include="Rendering\d3d12\ConstantBuffer.h" />
     <ClInclude Include="Rendering\d3d12\MeshObject.h" />
     <ClInclude Include="Rendering\Device.h" />
-    <ClInclude Include="Rendering\d3d11\VertexFormats.h" />
-    <ClInclude Include="Rendering\d3d12\VertexFormats.h" />
     <ClInclude Include="Rendering\Window.h" />
     <ClInclude Include="Rendering\WindowBackend.h" />
-    <ClInclude Include="Rendering\d3d11\Backend.h" />
     <ClInclude Include="Rendering\d3d12\Backend.h" />
     <ClInclude Include="Utility\Align.h" />
   </ItemGroup>
@@ -111,10 +107,8 @@
     <ClCompile Include="Insanity_Engine_Application.cpp" />
     <ClCompile Include="Rendering\d3d12\ConstantBuffer.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
-    <ClCompile Include="Rendering\d3d11\VertexFormatsD3d11.cpp" />
     <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp" />
     <ClCompile Include="Rendering\Window.cpp" />
-    <ClCompile Include="Rendering\d3d11\BackendD3d11.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
@@ -122,6 +116,15 @@
     </ProjectReference>
     <ProjectReference Include="..\Insanity_Engine_Math\Insanity_Engine_Math.vcxproj">
       <Project>{83ddfcd4-19d0-4022-99f0-0009f8f706d7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Rendering_Common\Insanity_Engine_Rendering_Common.vcxproj">
+      <Project>{6c51a3d2-eee8-4298-8ced-da956d76a10a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Rendering_DX11\Insanity_Engine_Rendering_DX11.vcxproj.vcxproj">
+      <Project>{b0f68d10-6564-42d7-a60c-06ba17fb1b93}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Rendering_DX12\Insanity_Engine_Rendering_DX12.vcxproj">
+      <Project>{240487d0-ed90-4260-9aa4-d1a16e9f3530}</Project>
     </ProjectReference>
     <ProjectReference Include="..\SDL2-2.0.16\Project\SDL2.vcxproj">
       <Project>{97701317-01e3-3c9b-aba8-553d0f3e4eaa}</Project>

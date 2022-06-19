@@ -9,3 +9,4 @@
 #include "source/D3D11/Shaders.h"
 #include "source/D3D11/Device.h"
 #include "source/D3D11/DeviceContext.h"
+#include "source/Wrappers.h"
