@@ -163,10 +163,10 @@ namespace InsanityEngine::Rendering::D3D11
         m_renderer->GetDeviceContext()->IASetInputLayout(m_inputLayout.Get());
         m_renderer->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
+        TypedD3D::Stride stride{ sizeof(Vertex) };
+        TypedD3D::Offset offset{ 0 };
 
-        m_renderer->GetDeviceContext()->IASetVertexBuffers(0, xk::span_tuple<TypedD3D::Wrapper<ID3D11Buffer>, std::dynamic_extent, UINT, UINT>(&m_vertexBuffer, 1, &stride, &offset));
+        m_renderer->GetDeviceContext()->IASetVertexBuffers(0, xk::span_tuple<TypedD3D::Wrapper<ID3D11Buffer>, std::dynamic_extent, TypedD3D::Stride, TypedD3D::Offset>(&m_vertexBuffer, 1, &stride, &offset));
         m_renderer->GetDeviceContext()->Draw(3, 0);
 
         m_renderer->Present();
