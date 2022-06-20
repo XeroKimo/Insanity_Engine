@@ -4,6 +4,7 @@
 #include "source/Helpers/D3D12Helpers.h"
 #include "source/Helpers/COMHelpers.h"
 #include "DX11/Backend.h"
+#include "DX12/Backend.h"
 #include <dxgi1_6.h>
 #include <utility>
 #include <SDL2/SDL.h>
@@ -21,16 +22,26 @@ namespace InsanityEngine::Application
         SDL_VERSION(&info.version);
         SDL_GetWindowWMInfo(window.get(), &info);
         D3D_FEATURE_LEVEL levels = D3D_FEATURE_LEVEL_11_0;
-        auto [device, deviceContext] = TypedD3D::D3D11::CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, std::span(&levels, 1), D3D11_SDK_VERSION).value();
-        Rendering::D3D11::BackendInitParams initParams
+        //auto [device, deviceContext] = TypedD3D::D3D11::CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, std::span(&levels, 1), D3D11_SDK_VERSION).value();
+        //Rendering::D3D11::BackendInitParams initParams
+        //{
+        //    .device = device,
+        //    .deviceContext = deviceContext,
+        //    .factory = TypedD3D::DXGI::Factory::Create1<IDXGIFactory2>().value(),
+        //    .windowHandle = info.info.win.window,
+        //    .windowSize = { 1280, 720 }
+        //};
+        //Rendering::D3D11::BackendWithRenderer<Rendering::D3D11::DefaultDraw> renderer{ initParams };
+
+        TypedD3D::Wrapper<ID3D12Device5> device = TypedD3D::D3D12::CreateDevice<ID3D12Device5>(D3D_FEATURE_LEVEL_11_0).value();
+        Rendering::D3D12::BackendInitParams initParams
         {
             .device = device,
-            .deviceContext = deviceContext,
             .factory = TypedD3D::DXGI::Factory::Create1<IDXGIFactory2>().value(),
             .windowHandle = info.info.win.window,
             .windowSize = { 1280, 720 }
         };
-        Rendering::D3D11::BackendWithRenderer<Rendering::D3D11::DefaultDraw> renderer{ initParams };
+        Rendering::D3D12::BackendWithRenderer<Rendering::D3D12::DefaultDraw> renderer{ initParams };
         //using Microsoft::WRL::ComPtr;
         //ComPtr<ID3D12DebugDevice2> debugDevice;
         //{

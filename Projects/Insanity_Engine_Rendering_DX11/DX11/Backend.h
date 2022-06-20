@@ -80,7 +80,7 @@ namespace InsanityEngine::Rendering::D3D11
     public:
         void Draw()
         {
-            m_renderer.Draw();
+            m_renderer.Draw(static_cast<Backend&>(*this));
         }
 
         Renderer& GetRenderer() { return m_renderer; }
@@ -96,9 +96,9 @@ namespace InsanityEngine::Rendering::D3D11
         TypedD3D::Wrapper<ID3D11Buffer> m_vertexBuffer;
 
     public:
-        DefaultDraw(Backend& renderer);
+        DefaultDraw(Backend& backend);
 
     public:
-        void Draw();
+        void Draw(Backend& backend);
     };
 }

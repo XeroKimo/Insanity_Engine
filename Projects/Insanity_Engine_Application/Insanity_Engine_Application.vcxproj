@@ -94,20 +94,15 @@
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
-    <ClInclude Include="Rendering\d3d12\ConstantBuffer.h" />
-    <ClInclude Include="Rendering\d3d12\MeshObject.h" />
     <ClInclude Include="Rendering\Device.h" />
     <ClInclude Include="Rendering\Window.h" />
     <ClInclude Include="Rendering\WindowBackend.h" />
-    <ClInclude Include="Rendering\d3d12\Backend.h" />
     <ClInclude Include="Utility\Align.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
-    <ClCompile Include="Rendering\d3d12\ConstantBuffer.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
-    <ClCompile Include="Rendering\d3d12\BackendD3d12.cpp" />
     <ClCompile Include="Rendering\Window.cpp" />
   </ItemGroup>
   <ItemGroup>

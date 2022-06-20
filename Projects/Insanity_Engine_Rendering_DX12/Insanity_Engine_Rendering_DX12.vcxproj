@@ -27,9 +27,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DX12\Backend.cpp" />
+    <ClCompile Include="DX12\ConstantBuffer.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DX12\Backend.h" />
+    <ClInclude Include="DX12\ConstantBuffer.h" />
+    <ClInclude Include="DX12\MeshObject.h" />
     <ClInclude Include="DX12\VertexFormats.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -140,7 +140,7 @@ namespace InsanityEngine::Rendering::D3D11
         m_vertexBuffer = m_renderer->GetDevice()->CreateBuffer(bufferDesc, &data).value();
     }
 
-    void DefaultDraw::Draw()
+    void DefaultDraw::Draw(Backend& backend)
     {
         D3D11_VIEWPORT viewport = {};
         viewport.Width = static_cast<float>(m_renderer->GetWindowSize().x());
@@ -166,7 +166,7 @@ namespace InsanityEngine::Rendering::D3D11
         TypedD3D::Stride stride{ sizeof(Vertex) };
         TypedD3D::Offset offset{ 0 };
 
-        m_renderer->GetDeviceContext()->IASetVertexBuffers(0, xk::span_tuple<TypedD3D::Wrapper<ID3D11Buffer>, std::dynamic_extent, TypedD3D::Stride, TypedD3D::Offset>(&m_vertexBuffer, 1, &stride, &offset));
+        m_renderer->GetDeviceContext()->IASetVertexBuffers(0, xk::span_tuple<TypedD3D::Wrapper<ID3D11Buffer>, std::dynamic_extent, const TypedD3D::Stride, const TypedD3D::Offset>(&m_vertexBuffer, 1, &stride, &offset));
         m_renderer->GetDeviceContext()->Draw(3, 0);
 
         m_renderer->Present();
