@@ -95,7 +95,23 @@ namespace InsanityEngine::Application
                 if(event.type == SDL_EventType::SDL_QUIT)
                     break;
 
-                //window.HandleEvent(event);
+                if(event.type == SDL_EventType::SDL_KEYDOWN)
+                {
+                    switch(event.key.keysym.sym)
+                    {
+                    case SDL_KeyCode::SDLK_1:
+                        renderer.SetWindowSize({ 1600, 900 });
+                        break;
+                    case SDL_KeyCode::SDLK_2:
+                        renderer.SetWindowSize({ 1280, 720 });
+                        break;
+                    }
+                }
+                if(event.type == SDL_EventType::SDL_WINDOWEVENT)
+                {
+                    if(event.window.type == SDL_WINDOWEVENT_SIZE_CHANGED)
+                        renderer.ResizeBuffers({ event.window.data1, event.window.data2 });
+                }
             }
             else
             {

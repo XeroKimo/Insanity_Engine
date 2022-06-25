@@ -10,6 +10,7 @@
 #include "DXGIHelpers.h"
 #include "CommonHelpers.h"
 #include "expected.hpp"
+#include "span_tuple.h"
 #include <functional>
 #include <type_traits>
 #include <d3d12.h>
@@ -32,15 +33,15 @@ namespace TypedD3D::Helpers::D3D12
 
     //Creates a open command list
     template<class CommandList = ID3D12GraphicsCommandList>
-    tl::expected<Microsoft::WRL::ComPtr<CommandList>, HRESULT> CreateCommandList(ID3D12Device& device,  D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator& allocator, UINT nodeMask = 0, ID3D12PipelineState* optInitialPipeline = nullptr)
+    tl::expected<Microsoft::WRL::ComPtr<CommandList>, HRESULT> CreateCommandList(ID3D12Device& device, D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator& allocator, UINT nodeMask = 0, ID3D12PipelineState* optInitialPipeline = nullptr)
     {
         static_assert(std::derived_from<CommandList, ID3D12CommandList>, "This function requires it's type to inherit from ID3D12CommandList");
         return Helpers::COM::IIDToObjectForwardFunction<CommandList>(&ID3D12Device::CreateCommandList, device, nodeMask, type, &allocator, optInitialPipeline);
     }
-    
+
     //Creates a closed command list
     template<class CommandList = ID3D12GraphicsCommandList>
-    tl::expected<Microsoft::WRL::ComPtr<CommandList>, HRESULT> CreateCommandList(ID3D12Device4& device,  D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_LIST_FLAGS flags, UINT nodeMask = 0)
+    tl::expected<Microsoft::WRL::ComPtr<CommandList>, HRESULT> CreateCommandList(ID3D12Device4& device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_LIST_FLAGS flags, UINT nodeMask = 0)
     {
         static_assert(std::is_base_of_v<ID3D12CommandList, CommandList>, "This function requires it's type to inherit from ID3D12CommandList");
         return Helpers::COM::IIDToObjectForwardFunction<CommandList>(&ID3D12Device4::CreateCommandList1, device, nodeMask, type, flags);
@@ -167,10 +168,7 @@ namespace TypedD3D::Helpers::D3D12
 
     void FlushCommandQueue(ID3D12CommandQueue& commandQueue, ID3D12Fence& fence, UINT64& currentFenceValue, HANDLE waitEvent = nullptr);
 
-#pragma push_macro("max")
-#undef max
-
-    constexpr std::chrono::milliseconds waitForCompletion = std::chrono::milliseconds::max();
+    constexpr std::chrono::milliseconds waitForCompletion = (std::chrono::milliseconds::max)();
 
     /// <summary>
     /// Stalls the calling CPU thread by putting it to sleep until the given fence has been signaled to a given value by another thread or the GPU
@@ -188,14 +186,193 @@ namespace TypedD3D::Helpers::D3D12
     /// <param name="fence"> The fence that will be signaled </param>
     /// <param name="fenceValue"> The value we're waiting for before </param>
     void StallCommandQueue(ID3D12CommandQueue& commandQueue, ID3D12Fence& fence, UINT64 fenceValue);
-#pragma pop_macro("max")
 
-    namespace ResourceBarrier
+    /// <summary>
+    /// Resets the passed in command list and allocator before sending it to the invocable followed by closing the command list and returning it
+    /// </summary>
+    /// <param name="commandList">A closed command list to reset</param>
+    /// <param name="commandAllocator">A command allocator that requires resetting</param>
+    /// <param name="func">An invocable that takes in a command list pointer to do work with it</param>
+    /// <param name="pipeline">An optional pipeline to start the command list with</param>
+    /// <returns>The passed in command list in a closed state</returns>
+    template<std::derived_from<ID3D12GraphicsCommandList> ListTy, std::invocable<ListTy*> Func>
+    ID3D12CommandList* Record(ListTy& commandList, ID3D12CommandAllocator& commandAllocator, Func&& func, ID3D12PipelineState* pipeline = nullptr)
     {
-        D3D12_RESOURCE_BARRIER Transition(ID3D12Resource& resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-        D3D12_RESOURCE_BARRIER Aliasing(ID3D12Resource* optResourceBefore, ID3D12Resource* optResourceAfter, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
-        D3D12_RESOURCE_BARRIER UAV(ID3D12Resource& resource, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
+        commandAllocator.Reset();
+        commandList.Reset(&commandAllocator, pipeline);
+        func(&commandList);
+        commandList.Close();
+        return static_cast<ID3D12CommandList*>(&commandList);
     }
+
+    /// <summary>
+    /// Executes the function with the passed in command list and closes it before returning
+    /// </summary>
+    /// <param name="commandList">An already resetted command list</param>
+    /// <param name="func">An invocable that takes in a command list pointer to do work with it</param>
+    /// <returns>The passed in command list in a closed state</returns>
+    template<std::derived_from<ID3D12GraphicsCommandList> ListTy, std::invocable<ListTy*> Func>
+    ID3D12CommandList* Record(ListTy& commandList, Func&& func)
+    {
+        func(&commandList);
+        commandList.Close();
+        return static_cast<ID3D12CommandList*>(&commandList);
+    }
+
+    template<std::derived_from<ID3D12GraphicsCommandList> ListTy, std::invocable<ListTy*> Func>
+    void ResourceBarrier(ListTy& commandList, std::span<D3D12_RESOURCE_BARRIER> beginBarriers, std::span<D3D12_RESOURCE_BARRIER> endBarriers, Func&& func)
+    {
+        commandList.ResourceBarrier(static_cast<UINT>(beginBarriers.size()), beginBarriers.data());
+
+        func(&commandList);
+
+        commandList.ResourceBarrier(static_cast<UINT>(endBarriers.size()), endBarriers.data());
+    }
+
+    /// <summary>
+    /// Resets the passed in command list and allocator before sending it to the invocable followed by closing the command list and executing it
+    /// </summary>
+    /// <param name="commandQueue">A command queue which will execute the command list</param>
+    /// <param name="commandList">A closed command list to reset</param>
+    /// <param name="commandAllocator">A command allocator that requires resetting</param>
+    /// <param name="func">An invocable that takes in a command list pointer to do work with it</param>
+    /// <param name="pipeline">An optional pipeline to start the command list with</param>
+    template<std::derived_from<ID3D12GraphicsCommandList> ListTy, std::invocable<ListTy*> Func>
+    void RecordAndExecute(ListTy& commandList, ID3D12CommandAllocator& commandAllocator, ID3D12CommandQueue& commandQueue, Func&& func, ID3D12PipelineState* pipeline = nullptr)
+    {
+        std::array<ID3D12CommandList*, 1> lists{ Record(commandList, commandAllocator, std::forward<Func>(func), pipeline) };
+        commandQueue.ExecuteCommandLists(static_cast<UINT>(lists.size()), lists.data());
+    }
+
+    /// <summary>
+    /// Executes the function with the passed in command list and closes it before returning
+    /// </summary>
+    /// <param name="commandQueue">A command queue which will execute the command list</param>
+    /// <param name="commandList">An already resetted command list</param>
+    /// <param name="func">An invocable that takes in a command list pointer to do work with it</param>
+    template<std::derived_from<ID3D12GraphicsCommandList> ListTy, std::invocable<ListTy*> Func>
+    void RecordAndExecute(ListTy& commandList, ID3D12CommandQueue& commandQueue, Func&& func)
+    {
+        std::array<ID3D12CommandList*, 1> lists{ Record(commandList, std::forward<Func>(func)) };
+        commandQueue.ExecuteCommandLists(static_cast<UINT>(lists.size()), lists.data());
+    }
+
+    /// <summary>
+    /// Calls the invocable and then have the command queue signal the fence when work is done
+    /// </summary>
+    /// <param name="commandQueue"></param>
+    /// <param name="fence"></param>
+    /// <param name="fenceValue"></param>
+    /// <param name="f"></param>
+    template<std::invocable<ID3D12CommandQueue*> Func>
+    void GPUWork(ID3D12CommandQueue& commandQueue, ID3D12Fence& fence, UINT64& fenceValue, Func&& func)
+    {
+        func(&commandQueue);
+        fenceValue = SignalFenceGPU(commandQueue, fence, fenceValue);
+    }
+
+    /// <summary>
+    /// Calls the invocable and then have the CPU signal the fence
+    /// </summary>
+    /// <param name="fence"></param>
+    /// <param name="fenceValue"></param>
+    /// <param name="f"></param>
+    template<std::invocable Func>
+    void CPUWork(ID3D12Fence& fence, UINT64 fenceValue, Func&& func)
+    {
+        func();
+        SignalFenceCPU(fence, fenceValue);
+    }
+
+
+    struct FenceCPUSyncParams
+    {
+        ID3D12Fence& fence;
+        HANDLE syncPrimitive = nullptr;
+        std::chrono::milliseconds waitInterval = waitForCompletion;
+    };
+
+    /// <summary>
+    /// Has a CPU thread wait for a fence to reach a fence value before doing some work
+    /// </summary>
+    /// <param name="fence"></param>
+    /// <param name="fenceValue"></param>
+    /// <param name="f"></param>
+    /// <param name="waitEvent"></param>
+    /// <param name="waitInterval"></param>
+    template<std::invocable Func>
+    void CPUWaitAndThen(const FenceCPUSyncParams& fenceSyncParams, UINT64 fenceValue, Func&& func)
+    {
+        StallCPUThread(fenceSyncParams.fence, fenceValue, fenceSyncParams.syncPrimitive, fenceSyncParams.waitInterval);
+        func();
+    }
+
+    template<std::invocable Func>
+    void TailCPUWait(const FenceCPUSyncParams& fenceSyncParams, UINT64 fenceValue, Func&& func)
+    {
+        func();
+        StallCPUThread(fenceSyncParams.fence, fenceValue, fenceSyncParams.syncPrimitive, fenceSyncParams.waitInterval);
+    }
+
+    /// <summary>
+    /// Has a GPU queue wait for a fence value before executing the next work
+    /// </summary>
+    /// <param name="commandQueue"></param>
+    /// <param name="fence"></param>
+    /// <param name="fenceValue"></param>
+    /// <param name="f"></param>
+    template<std::invocable<ID3D12CommandQueue*> Func>
+    void GPUWaitAndThen(ID3D12CommandQueue& commandQueue, ID3D12Fence& fence, UINT64 fenceValue, Func&& func)
+    {
+        commandQueue.Wait(&fence, fenceValue);
+        func(&commandQueue);
+    }
+
+    template<std::invocable<ID3D12CommandQueue*> Func>
+    void TailGPUWait(ID3D12CommandQueue& commandQueue, ID3D12Fence& fence, UINT64 fenceValue, Func&& func)
+    {
+        func(&commandQueue);
+        commandQueue.Wait(&fence, fenceValue);
+    }
+
+    struct FrameData
+    {
+        ID3D12CommandQueue& commandQueue;
+        ID3D12Fence& fence;
+        UINT64& currentFrameFenceValue;
+        UINT backBufferIndex;
+    };
+
+    struct PresentFrameParams
+    {
+        IDXGISwapChain& swapChain;
+        UINT syncInterval = 0;
+        UINT presentFlags = 0;
+    };
+
+    template<std::invocable<const FrameData&> Func>
+    void Frame(const PresentFrameParams& presentFrameParams, const FenceCPUSyncParams& fenceSyncParams, ID3D12CommandQueue& commandQueue, UINT64& currentFrameFenceValue, UINT64& highestFrameFenceValue, UINT& backBufferIndex, UINT bufferCount, Func&& func)
+    {
+        CPUWaitAndThen(fenceSyncParams, currentFrameFenceValue, [&]()
+        {
+            currentFrameFenceValue = highestFrameFenceValue;
+            func(FrameData
+                {
+                    .commandQueue = commandQueue,
+                    .fence = fenceSyncParams.fence,
+                    .currentFrameFenceValue = currentFrameFenceValue,
+                    .backBufferIndex = backBufferIndex
+                });
+
+            currentFrameFenceValue = highestFrameFenceValue = SignalFenceGPU(commandQueue, fenceSyncParams.fence, currentFrameFenceValue);
+            presentFrameParams.swapChain.Present(presentFrameParams.syncInterval, presentFrameParams.presentFlags);
+            backBufferIndex = (backBufferIndex + 1) % bufferCount;
+        });
+    }
+
+    D3D12_RESOURCE_BARRIER TransitionBarrier(ID3D12Resource& resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+    D3D12_RESOURCE_BARRIER AliasingBarrier(ID3D12Resource* optResourceBefore, ID3D12Resource* optResourceAfter, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
+    D3D12_RESOURCE_BARRIER UAVBarrier(ID3D12Resource& resource, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
     template<class DebugTy = ID3D12Debug>
     tl::expected<Microsoft::WRL::ComPtr<DebugTy>, HRESULT> GetDebugInterface()

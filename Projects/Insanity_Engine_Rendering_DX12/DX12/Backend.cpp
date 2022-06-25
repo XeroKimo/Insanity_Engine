@@ -20,16 +20,24 @@ namespace InsanityEngine::Rendering::D3D12
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
             false).value()),
         m_swapChainDescriptorHeap(m_device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(params.bufferCount, 0).value()),
-        m_mainFence(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE).value())
+        m_mainFence(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE).value()),
+        m_rtvHandleIncrement(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV))
     {
         CreateRenderTargets();
-        m_frameData.reserve(5);
-        m_frameData.resize(params.bufferCount);
+        m_frameFenceValues.reserve(5);
+        m_frameFenceValues.resize(params.bufferCount);
+        m_frameResources.reserve(5);
+        m_frameResources.resize(params.bufferCount);
+
+        for(UINT i = 0; i < params.bufferCount; i++)
+        {
+            m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
+        }
     }
 
     Backend::~Backend()
     {
-        Reset();
+        Flush();
         SetFullscreen(false);
     }
 
@@ -39,6 +47,13 @@ namespace InsanityEngine::Rendering::D3D12
 
         DXGI_SWAP_CHAIN_DESC1 desc = m_swapChain->GetDesc1();
         m_swapChain->ResizeBuffers(desc.BufferCount, size.x(), size.y(), desc.Format, desc.Flags);
+        m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+        m_frameResources.clear();
+
+        for(UINT i = 0; i < desc.BufferCount; i++)
+        {
+            m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
+        }
         CreateRenderTargets();
     }
 
@@ -52,6 +67,14 @@ namespace InsanityEngine::Rendering::D3D12
         DXGI_SWAP_CHAIN_DESC1 desc = m_swapChain->GetDesc1();
         m_swapChain->SetFullscreenState(fullscreen, nullptr);
         m_swapChain->ResizeBuffers(desc.BufferCount, desc.Width, desc.Height, desc.Format, desc.Flags);
+        m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+        m_frameResources.clear();
+
+
+        for(UINT i = 0; i < desc.BufferCount; i++)
+        {
+            m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
+        }
         CreateRenderTargets();
     }
 
@@ -75,81 +98,15 @@ namespace InsanityEngine::Rendering::D3D12
         return m_swapChain->GetFullscreenState().first;
     }
 
-    void Backend::SignalQueue()
-    {
-        CurrentFrameData().fenceWaitValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.get().Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
-    }
-
-    void Backend::WaitForCurrentFrame()
-    {
-        FrameData& currentFrame = CurrentFrameData();
-        TypedD3D::Helpers::D3D12::StallCPUThread(*m_mainFence.Get(), currentFrame.fenceWaitValue);
-        currentFrame.idleAllocatorIndex = 0;
-
-        //To make sure the next SignalQueue() current frame's fence value not increment to the same value as 
-        //the previous frame's fence value, we set the current frame's fence value to be equal to the previous frame's 
-        //fence value so that the first SignalQueue() for the current frame will properly start off with 
-        //previous frame's fence value + 1.
-
-        //SignalQueue() increments the current frame's fence value because users can ask for any frame's fence value
-        //at any given time. A minor optimization, but a fence value outside of FrameData's would be a waste to increment 
-        //every SignalQueue() as it will always equal the current frame's fence value, therefore we only update it
-        //every Present() and set the current frame's fence value to the previous one to keep the continuity
-        currentFrame.fenceWaitValue = m_previousFrameFenceValue;
-    }
-
-    void Backend::Present()
-    {
-        m_previousFrameFenceValue = GetCurrentFenceValue();
-        m_swapChain->Present(1, 0);
-    }
-
-    TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> Backend::GetBackBufferHandle()
-    {
-        UINT stride = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> handle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        handle.ptr += stride * m_swapChain->GetCurrentBackBufferIndex();
-        return handle;
-    }
-
-    TypedD3D::Wrapper<ID3D12Resource> Backend::GetBackBufferResource()
-    {
-        return m_swapChain->GetBuffer<ID3D12Resource>(GetCurrentBackBufferIndex()).value();
-    }
-
-    TypedD3D::D3D12::CommandAllocator::Direct Backend::CreateOrGetAllocator()
-    {
-        FrameData& currentFrame = CurrentFrameData();
-        TypedD3D::D3D12::CommandAllocator::Direct allocator;
-        if(currentFrame.idleAllocatorIndex == currentFrame.allocators.size())
-        {
-            currentFrame.allocators.push_back(m_device->CreateCommandAllocator<D3D12_COMMAND_LIST_TYPE_DIRECT>().value());
-            allocator = currentFrame.allocators.back();
-        }
-        else
-        {
-            allocator = currentFrame.allocators[currentFrame.idleAllocatorIndex];
-            allocator->Reset();
-        }
-        ++currentFrame.idleAllocatorIndex;
-
-        return allocator;
-    }
-
-    UINT Backend::GetCurrentBackBufferIndex() const
-    {
-        return m_swapChain->GetCurrentBackBufferIndex();
-    }
-
     void Backend::Reset()
     {
-        TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.get().Get(), *m_mainFence.Get(), CurrentFrameData().fenceWaitValue);
+        Flush();
 
-        TypedD3D::Helpers::D3D12::ResetFence(*m_mainFence.Get());
-        m_previousFrameFenceValue = 0;
-        for(FrameData& frame : m_frameData)
+        TypedD3D::Helpers::D3D12::ResetFence(*m_mainFence.get().Get());
+        m_highestFrameFenceValue = 0;
+        for(UINT64& fenceValue : m_frameFenceValues)
         {
-            frame.fenceWaitValue = 0;
+            fenceValue = 0;
         }
     }
 
@@ -181,7 +138,8 @@ namespace InsanityEngine::Rendering::D3D12
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
-        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).value()))
+        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).value())),
+        m_allocatorManager(m_renderer->GetDevice(), m_renderer->GetBufferCount())
     {
         D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
@@ -335,74 +293,71 @@ namespace InsanityEngine::Rendering::D3D12
 
         m_mesh.vertexBufferView = vertexBufferView;
 
-        m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
-        UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexUpload.Get(), 0, 0, 1, &vertexData);
+        TypedD3D::Helpers::D3D12::TailCPUWait({ *m_renderer->GetFence().get().Get() }, m_renderer->GetCurrentFenceValue(), 
+            [&]()
+            {
+                TypedD3D::Helpers::D3D12::GPUWork(*m_renderer->GetCommandQueue().get().Get(), *m_renderer->GetFence().get().Get(), m_renderer->GetCurrentFenceValue(),
+                    [&](TypedD3D::Direct<ID3D12CommandQueue> commandQueue)
+                    {
+                        TypedD3D::Helpers::D3D12::RecordAndExecute(*m_commandList.Get(), *m_allocatorManager.CreateOrGetAllocator(m_renderer->GetCurrentFrameIndex()).Get(), *commandQueue.Get(),
+                            [&](TypedD3D::Direct<ID3D12GraphicsCommandList5> commandList)
+                            {
+                                UpdateSubresources(m_commandList.Get(), m_vertexBuffer.Get(), vertexUpload.Get(), 0, 0, 1, &vertexData);
 
+                                D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                                    m_vertexBuffer.Get(),
+                                    D3D12_RESOURCE_STATE_COPY_DEST,
+                                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-        D3D12_RESOURCE_BARRIER barrier = TypedD3D::Helpers::D3D12::ResourceBarrier::Transition(
-            *m_vertexBuffer.Get(),
-            D3D12_RESOURCE_STATE_COPY_DEST,
-            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-        m_commandList->ResourceBarrier(std::span(&barrier, 1));
-        m_commandList->Close();
-
-        std::array submitList = std::to_array<TypedD3D::Direct<ID3D12CommandList>>({ m_commandList });
-        m_renderer->ExecuteCommandLists(std::span(submitList));
-        m_renderer->SignalQueue();
-        m_renderer->WaitForCurrentFrame();
+                                m_commandList->ResourceBarrier(std::span(&barrier, 1));
+                            });
+                    });
+            });
     }
 
-    void DefaultDraw::Draw(Backend& backend)
+    void DefaultDraw::Draw(const FrameData& frame)
     {
-        using Microsoft::WRL::ComPtr;
-        m_commandList->Reset(m_renderer->CreateOrGetAllocator(), nullptr);
+        m_allocatorManager.Flush(frame.currentFrameIndex);
 
-        TypedD3D::Wrapper<ID3D12Resource> backBuffer = m_renderer->GetBackBufferResource();
-        D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        m_commandList->ResourceBarrier(std::span(&barrier, 1));
-        m_commandList->ClearRenderTargetView(m_renderer->GetBackBufferHandle(), std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
+        TypedD3D::Helpers::D3D12::RecordAndExecute(*m_commandList.Get(), *m_allocatorManager.CreateOrGetAllocator(m_renderer->GetCurrentFrameIndex()).Get(), *frame.commandQueue.get().Get(),
+            [&](TypedD3D::Direct<ID3D12GraphicsCommandList5> commandList)
+            {
+                D3D12_RESOURCE_BARRIER beginBarrier = CD3DX12_RESOURCE_BARRIER::Transition(frame.currentFrameResource.get().Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                D3D12_RESOURCE_BARRIER endBarrier = CD3DX12_RESOURCE_BARRIER::Transition(frame.currentFrameResource.get().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
 
-        TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> backBufferHandle = m_renderer->GetBackBufferHandle();
-        m_commandList->ClearRenderTargetView(backBufferHandle, std::to_array({ 0.f, 0.3f, 0.7f, 1.f }), {});
-        m_commandList->OMSetRenderTargets(std::span(&backBufferHandle, 1), true, nullptr);
+                TypedD3D::Helpers::D3D12::ResourceBarrier(*commandList.Get(), std::span{ &beginBarrier, 1 }, std::span{ &endBarrier, 1 },
+                    [&](TypedD3D::Direct<ID3D12GraphicsCommandList5> commandList)
+                    {
+                        commandList->ClearRenderTargetView(frame.currentFrameHandle, std::to_array({ 0.0f, 0.3f, 0.7f, 1.0f }), {});
+                        commandList->OMSetRenderTargets(std::span(&frame.currentFrameHandle, 1), true, nullptr);
 
+                        D3D12_VIEWPORT viewport
+                        {
+                            .TopLeftX = 0,
+                            .TopLeftY = 0,
+                            .Width = static_cast<float>(m_renderer->GetWindowSize().x()),
+                            .Height = static_cast<float>(m_renderer->GetWindowSize().y()),
+                            .MinDepth = 0,
+                            .MaxDepth = 1
+                        };
 
+                        D3D12_RECT rect
+                        {
+                            .left = 0,
+                            .top = 0,
+                            .right = static_cast<LONG>(m_renderer->GetWindowSize().x()),
+                            .bottom = static_cast<LONG>(m_renderer->GetWindowSize().y())
+                        };
 
+                        commandList->SetPipelineState(m_pipelineState.Get());
+                        commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+                        commandList->RSSetViewports(std::span(&viewport, 1));
+                        commandList->RSSetScissorRects(std::span(&rect, 1));
+                        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                        commandList->IASetVertexBuffers(0, std::span(&m_mesh.vertexBufferView, 1));
+                        commandList->DrawInstanced(3, 1, 0, 0);
+                    });
 
-        D3D12_VIEWPORT viewport
-        {
-            .TopLeftX = 0,
-            .TopLeftY = 0,
-            .Width = static_cast<float>(m_renderer->GetWindowSize().x()),
-            .Height = static_cast<float>(m_renderer->GetWindowSize().y()),
-            .MinDepth = 0,
-            .MaxDepth = 1
-        };
-
-        D3D12_RECT rect
-        {
-            .left = 0,
-            .top = 0,
-            .right = static_cast<LONG>(m_renderer->GetWindowSize().x()),
-            .bottom = static_cast<LONG>(m_renderer->GetWindowSize().y())
-        };
-
-        m_commandList->SetPipelineState(m_pipelineState.Get());
-        m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-        m_commandList->RSSetViewports(std::span(&viewport, 1));
-        m_commandList->RSSetScissorRects(std::span(&rect, 1));
-        m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_commandList->IASetVertexBuffers(0, std::span(&m_mesh.vertexBufferView, 1));
-        m_commandList->DrawInstanced(3, 1, 0, 0);
-
-        barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
-        m_commandList->ResourceBarrier(std::span(&barrier, 1));
-        m_commandList->Close();
-
-        auto submitList = std::to_array<TypedD3D::Direct<ID3D12CommandList>>({ m_commandList });
-        m_renderer->ExecuteCommandLists(std::span(submitList));
-        m_renderer->SignalQueue();
-        m_renderer->Present();
-        m_renderer->WaitForCurrentFrame();
+            });
     }
 }
