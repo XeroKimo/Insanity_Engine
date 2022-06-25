@@ -52,7 +52,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         for(UINT i = 0; i < desc.BufferCount; i++)
         {
-            m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
+            m_frameResources.push_back(m_swapChain->GetBuffer<ID3D12Resource>(i).value());
         }
         CreateRenderTargets();
     }
@@ -73,7 +73,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         for(UINT i = 0; i < desc.BufferCount; i++)
         {
-            m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
+            m_frameResources.push_back(m_swapChain->GetBuffer<ID3D12Resource>(i).value());
         }
         CreateRenderTargets();
     }

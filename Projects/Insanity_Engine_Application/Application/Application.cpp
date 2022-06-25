@@ -100,16 +100,21 @@ namespace InsanityEngine::Application
                     switch(event.key.keysym.sym)
                     {
                     case SDL_KeyCode::SDLK_1:
+
+                        SDL_SetWindowResizable(window.get(), SDL_TRUE);
                         renderer.SetWindowSize({ 1600, 900 });
+                        SDL_SetWindowResizable(window.get(), SDL_FALSE);
                         break;
                     case SDL_KeyCode::SDLK_2:
+                        SDL_SetWindowResizable(window.get(), SDL_TRUE);
                         renderer.SetWindowSize({ 1280, 720 });
+                        SDL_SetWindowResizable(window.get(), SDL_FALSE);
                         break;
                     }
                 }
                 if(event.type == SDL_EventType::SDL_WINDOWEVENT)
                 {
-                    if(event.window.type == SDL_WINDOWEVENT_SIZE_CHANGED)
+                    if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                         renderer.ResizeBuffers({ event.window.data1, event.window.data2 });
                 }
             }
