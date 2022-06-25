@@ -45,10 +45,10 @@ namespace InsanityEngine::Rendering::D3D12
     {
         Reset();
 
+        m_frameResources.clear();
         DXGI_SWAP_CHAIN_DESC1 desc = m_swapChain->GetDesc1();
         m_swapChain->ResizeBuffers(desc.BufferCount, size.x(), size.y(), desc.Format, desc.Flags);
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
-        m_frameResources.clear();
 
         for(UINT i = 0; i < desc.BufferCount; i++)
         {
@@ -64,11 +64,11 @@ namespace InsanityEngine::Rendering::D3D12
 
         Reset();
 
+        m_frameResources.clear();
         DXGI_SWAP_CHAIN_DESC1 desc = m_swapChain->GetDesc1();
         m_swapChain->SetFullscreenState(fullscreen, nullptr);
         m_swapChain->ResizeBuffers(desc.BufferCount, desc.Width, desc.Height, desc.Format, desc.Flags);
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
-        m_frameResources.clear();
 
 
         for(UINT i = 0; i < desc.BufferCount; i++)
