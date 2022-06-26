@@ -1,5 +1,4 @@
 #include "Application.h"
-#include "../Rendering/Window.h"
 #include "source/Helpers/DXGIHelpers.h"
 #include "source/Helpers/D3D12Helpers.h"
 #include "source/Helpers/COMHelpers.h"
