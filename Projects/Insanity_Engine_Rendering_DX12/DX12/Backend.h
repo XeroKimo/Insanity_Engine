@@ -19,34 +19,31 @@ namespace InsanityEngine::Rendering::D3D12
         UINT64 currentFrameIndex;
     };
 
-    struct BackendInitParams
-    {
-        TypedD3D::Wrapper<ID3D12Device5> device;
-        TypedD3D::Wrapper<IDXGIFactory2> factory;
-        HWND windowHandle;
-        Math::Types::Vector2ui windowSize;
-        UINT bufferCount = 2;
-        DXGI_FORMAT swapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    };
-
     class Backend
     {
         template<class T>
         using ComPtr = Microsoft::WRL::ComPtr<T>;
-    protected:
-        gsl::not_null<TypedD3D::Wrapper<ID3D12Device5>> m_device;
-        gsl::not_null<TypedD3D::Direct<ID3D12CommandQueue>> m_mainQueue;
+    public:
+        gsl::not_null<TypedD3D::Wrapper<ID3D12Device5>> device;
+        gsl::not_null<TypedD3D::Direct<ID3D12CommandQueue>> commandQueue;
+        gsl::not_null<ComPtr<ID3D12Fence>> fence;
+
+    private:
         gsl::not_null<TypedD3D::Wrapper<IDXGISwapChain3>> m_swapChain;
         std::vector<TypedD3D::Wrapper<ID3D12Resource>> m_frameResources;
         gsl::not_null<TypedD3D::RTV<ID3D12DescriptorHeap>> m_swapChainDescriptorHeap;
-        gsl::not_null<ComPtr<ID3D12Fence>> m_mainFence;
         std::vector<UINT64> m_frameFenceValues;
         UINT64 m_rtvHandleIncrement;
         UINT64 m_highestFrameFenceValue = 0;
         UINT m_backBufferIndex = 0;
 
     public:
-        Backend(const BackendInitParams& params);
+        Backend(HWND windowHandle,
+            Math::Types::Vector2ui size, 
+            gsl::not_null<TypedD3D::Wrapper<ID3D12Device5>> device,
+            gsl::not_null<TypedD3D::Wrapper<IDXGIFactory2>> factory,
+            UINT bufferCount = 2,
+            DXGI_FORMAT swapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM);
         ~Backend();
 
     public:
@@ -63,19 +60,15 @@ namespace InsanityEngine::Rendering::D3D12
         }
 
     public:
-        gsl::not_null<TypedD3D::Direct<ID3D12CommandQueue>> GetCommandQueue() const { return m_mainQueue; }
-        gsl::not_null<ComPtr<ID3D12Fence>> GetFence() const { return m_mainFence; }
         gsl::not_null<TypedD3D::Wrapper<ID3D12Resource>> GetCurrentFrameResource() const { return m_frameResources[GetCurrentFrameIndex()]; }
         gsl::not_null<TypedD3D::Wrapper<ID3D12Resource>> GetPreviousFrameResource() const { return m_frameResources[GetPreviousFrameIndex()]; }
 
-        UINT64& GetCurrentFenceValue() { return GetFrameFenceValue(GetCurrentFrameIndex()); }
-        UINT64& GetPreviousFenceValue() { return GetFrameFenceValue(GetPreviousFrameIndex()); }
+        UINT64& GetCurrentFrameFenceValue() { return m_frameFenceValues[GetCurrentFrameIndex()]; }
+        UINT64 GetPreviousFrameFenceValue() const { return GetFrameFenceValue(GetPreviousFrameIndex()); }
 
-        const UINT64& GetCurrentFenceValue() const { return GetFrameFenceValue(GetCurrentFrameIndex()); }
-        const UINT64& GetPreviousFenceValue() const { return GetFrameFenceValue(GetPreviousFrameIndex()); }
+        const UINT64& GetCurrentFrameFenceValue() const { return m_frameFenceValues[GetCurrentFrameIndex()]; }
 
-        UINT64& GetFrameFenceValue(size_t frame) { return m_frameFenceValues[frame]; }
-        const UINT64& GetFrameFenceValue(size_t frame) const { return m_frameFenceValues[frame]; }
+        UINT64 GetFrameFenceValue(size_t frame) const { return m_frameFenceValues[frame]; }
         DXGI_SWAP_CHAIN_DESC1 GetSwapChainDescription() const { return m_swapChain->GetDesc1(); }
         UINT GetBufferCount() const { return static_cast<UINT>(m_frameResources.size()); }
 
@@ -84,18 +77,40 @@ namespace InsanityEngine::Rendering::D3D12
 
         virtual void Flush()
         {
-            TypedD3D::Helpers::D3D12::FlushCommandQueue(*m_mainQueue.get().Get(), *m_mainFence.get().Get(), m_frameFenceValues[m_backBufferIndex]);
+            TypedD3D::Helpers::D3D12::FlushCommandQueue(*commandQueue.get().Get(), *fence.get().Get(), GetCurrentFrameFenceValue());
         }
 
         TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> GetCurrentFrameHandle()
         {
             return m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Offset(GetCurrentFrameIndex(), m_rtvHandleIncrement);
         }
-    private:
-        void Reset();
 
     public:
-        TypedD3D::D3D12::Device5 GetDevice() const { return m_device; }
+        template<std::invocable<const FrameData&> Func>
+        void Present(UINT syncInterval, UINT flags, Func&& func)
+        {
+            TypedD3D::Helpers::D3D12::PrependCPUWait({ *fence.get().Get() }, GetCurrentFrameFenceValue(), [&]()
+            {
+                GetCurrentFrameFenceValue() = m_highestFrameFenceValue;
+
+                func(FrameData
+                {
+                    .commandQueue = commandQueue,
+                    .fence = fence,
+                    .currentFrameResource = m_frameResources[GetCurrentFrameIndex()],
+                    .currentFrameHandle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Offset(GetCurrentFrameIndex(), m_rtvHandleIncrement),
+                    .currentFrameFenceValue = GetCurrentFrameFenceValue(),
+                    .currentFrameIndex = GetCurrentFrameIndex(),
+                });
+
+                GetCurrentFrameFenceValue() = m_highestFrameFenceValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*commandQueue.get().Get(), *fence.get().Get(), GetCurrentFrameFenceValue());
+                m_swapChain->Present(1, 0);
+                m_backBufferIndex = (m_backBufferIndex + 1) % static_cast<UINT>(m_frameFenceValues.size());
+            });
+        }
+
+    private:
+        void Reset();
 
     private:
         void CreateRenderTargets();
@@ -110,16 +125,33 @@ namespace InsanityEngine::Rendering::D3D12
 
     public:
         template<class... Args>
-        BackendWithRenderer(const BackendInitParams& params, Args&&... args) :
-            Backend(params),
+        BackendWithRenderer(HWND windowHandle,
+            Math::Types::Vector2ui size,
+            gsl::not_null<TypedD3D::Wrapper<ID3D12Device5>> device,
+            gsl::not_null<TypedD3D::Wrapper<IDXGIFactory2>> factory,
+            UINT bufferCount = 2,
+            DXGI_FORMAT swapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM,
+            Args&&... args) :
+            Backend(windowHandle,
+                size,
+                device,
+                factory,
+                bufferCount,
+                swapChainFormat),
             m_renderer(static_cast<Backend&>(*this), std::forward<Args>(args)...)
         {
         }
 
+    private:
+        using Backend::Present;
+
     public:
         void Draw()
         {
-            DrawImpl();
+            Present(1, 0, [&](const FrameData& frameData)
+            {
+                m_renderer.Draw(frameData);
+            });
         }
 
         void Flush() final
@@ -130,29 +162,6 @@ namespace InsanityEngine::Rendering::D3D12
 
         Renderer& GetRenderer() { return m_renderer; }
         const Renderer& GetRenderer() const { return m_renderer; }
-
-    private:
-        void DrawImpl()
-        {
-            TypedD3D::Helpers::D3D12::CPUWaitAndThen({ *m_mainFence.get().Get() }, m_frameFenceValues[m_backBufferIndex], [&]()
-            {
-                m_frameFenceValues[m_backBufferIndex] = m_highestFrameFenceValue;
-                FrameData f =
-                {
-                    .commandQueue = m_mainQueue,
-                    .fence = m_mainFence,
-                    .currentFrameResource = m_frameResources[m_backBufferIndex],
-                    .currentFrameHandle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart().Offset(m_backBufferIndex, m_rtvHandleIncrement),
-                    .currentFrameFenceValue = m_frameFenceValues[m_backBufferIndex],
-                    .currentFrameIndex = m_backBufferIndex,
-                };
-                m_renderer.Draw(f);
-
-                m_frameFenceValues[m_backBufferIndex] = m_highestFrameFenceValue = TypedD3D::Helpers::D3D12::SignalFenceGPU(*m_mainQueue.get().Get(), *m_mainFence.get().Get(), m_frameFenceValues[m_backBufferIndex]);
-                m_swapChain->Present(1, 0);
-                m_backBufferIndex = (m_backBufferIndex + 1) % static_cast<UINT>(m_frameFenceValues.size());
-            });
-        }
     };
 
 
@@ -203,7 +212,7 @@ namespace InsanityEngine::Rendering::D3D12
         {
             for(size_t i = 0; i < m_allocators.size(); i++)
             {
-                Flush(i);
+                Flush(static_cast<UINT>(i));
             }
         }
     };

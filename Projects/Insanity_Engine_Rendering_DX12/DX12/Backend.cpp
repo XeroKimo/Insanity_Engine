@@ -5,31 +5,36 @@
 
 namespace InsanityEngine::Rendering::D3D12
 {
-    Backend::Backend(const BackendInitParams& params) :
-        m_device(params.device),
-        m_mainQueue(m_device->CreateCommandQueue<D3D12_COMMAND_LIST_TYPE_DIRECT>(
+    Backend::Backend(HWND windowHandle,
+            Math::Types::Vector2ui size,
+            gsl::not_null<TypedD3D::Wrapper<ID3D12Device5>> device,
+            gsl::not_null<TypedD3D::Wrapper<IDXGIFactory2>> factory,
+            UINT bufferCount,
+            DXGI_FORMAT swapChainFormat) :
+        device(device),
+        commandQueue(device->CreateCommandQueue<D3D12_COMMAND_LIST_TYPE_DIRECT>(
             D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
             D3D12_COMMAND_QUEUE_FLAG_NONE,
             0).value()),
         m_swapChain(TypedD3D::Helpers::DXGI::SwapChain::CreateFlipDiscard<IDXGISwapChain3>(
-            *params.factory.Get(),
-            *m_mainQueue.get().Get(),
-            params.windowHandle,
-            params.swapChainFormat,
-            params.bufferCount,
+            *factory.get().Get(),
+            *commandQueue.get().Get(),
+            windowHandle,
+            swapChainFormat,
+            bufferCount,
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH,
             false).value()),
-        m_swapChainDescriptorHeap(m_device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(params.bufferCount, 0).value()),
-        m_mainFence(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE).value()),
-        m_rtvHandleIncrement(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV))
+        m_swapChainDescriptorHeap(device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(bufferCount, 0).value()),
+        fence(device->CreateFence(0, D3D12_FENCE_FLAG_NONE).value()),
+        m_rtvHandleIncrement(device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV))
     {
         CreateRenderTargets();
         m_frameFenceValues.reserve(5);
-        m_frameFenceValues.resize(params.bufferCount);
+        m_frameFenceValues.resize(bufferCount);
         m_frameResources.reserve(5);
-        m_frameResources.resize(params.bufferCount);
+        m_frameResources.resize(bufferCount);
 
-        for(UINT i = 0; i < params.bufferCount; i++)
+        for(UINT i = 0; i < bufferCount; i++)
         {
             m_frameResources[i] = m_swapChain->GetBuffer<ID3D12Resource>(i).value();
         }
@@ -37,7 +42,6 @@ namespace InsanityEngine::Rendering::D3D12
 
     Backend::~Backend()
     {
-        Flush();
         SetFullscreen(false);
     }
 
@@ -102,7 +106,7 @@ namespace InsanityEngine::Rendering::D3D12
     {
         Flush();
 
-        TypedD3D::Helpers::D3D12::ResetFence(*m_mainFence.get().Get());
+        TypedD3D::Helpers::D3D12::ResetFence(*fence.get().Get());
         m_highestFrameFenceValue = 0;
         for(UINT64& fenceValue : m_frameFenceValues)
         {
@@ -126,11 +130,10 @@ namespace InsanityEngine::Rendering::D3D12
             viewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 
         TypedD3D::RTV<D3D12_CPU_DESCRIPTOR_HANDLE> handle = m_swapChainDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        UINT64 rtvOffset = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         for(UINT i = 0; i < desc.BufferCount; i++)
         {
-            m_device->CreateRenderTargetView(*m_swapChain->GetBuffer<ID3D12Resource>(i).value().Get(), &viewDesc, handle);
-            handle = handle.Offset(rtvOffset);
+            device->CreateRenderTargetView(*m_swapChain->GetBuffer<ID3D12Resource>(i).value().Get(), &viewDesc, handle);
+            handle = handle.Offset(m_rtvHandleIncrement);
         }
     }
 
@@ -138,8 +141,8 @@ namespace InsanityEngine::Rendering::D3D12
 
     DefaultDraw::DefaultDraw(Backend& renderer) :
         m_renderer(&renderer),
-        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->GetDevice()->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).value())),
-        m_allocatorManager(m_renderer->GetDevice(), m_renderer->GetBufferCount())
+        m_commandList(TypedD3D::Cast<ID3D12GraphicsCommandList5>(m_renderer->device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT>(0, D3D12_COMMAND_LIST_FLAG_NONE).value())),
+        m_allocatorManager(m_renderer->device, m_renderer->GetBufferCount())
     {
         D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
@@ -153,7 +156,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         ComPtr<ID3DBlob> signatureBlob;
         D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, nullptr);
-        m_rootSignature = m_renderer->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).value();
+        m_rootSignature = m_renderer->device->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize()).value();
 
         ComPtr<ID3DBlob> vertexBlob;
         ComPtr<ID3DBlob> errorBlob;
@@ -221,7 +224,7 @@ namespace InsanityEngine::Rendering::D3D12
 
         graphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-        m_pipelineState = m_renderer->GetDevice()->CreateGraphicsPipelineState(graphicsPipelineState).value();
+        m_pipelineState = m_renderer->device->CreateGraphicsPipelineState(graphicsPipelineState).value();
 
         auto vertices = std::to_array<Vertex>(
             {
@@ -254,7 +257,7 @@ namespace InsanityEngine::Rendering::D3D12
         };
 
 
-        m_vertexBuffer = m_renderer->GetDevice()->CreateCommittedResource(
+        m_vertexBuffer = m_renderer->device->CreateCommittedResource(
             vertexHeap,
             D3D12_HEAP_FLAG_NONE,
             vertexDesc,
@@ -270,7 +273,7 @@ namespace InsanityEngine::Rendering::D3D12
             .CreationNodeMask = 0,
             .VisibleNodeMask = 0
         };
-        ComPtr<ID3D12Resource> vertexUpload = m_renderer->GetDevice()->CreateCommittedResource(
+        ComPtr<ID3D12Resource> vertexUpload = m_renderer->device->CreateCommittedResource(
             uploadProperties,
             D3D12_HEAP_FLAG_NONE,
             vertexDesc,
@@ -293,10 +296,10 @@ namespace InsanityEngine::Rendering::D3D12
 
         m_mesh.vertexBufferView = vertexBufferView;
 
-        TypedD3D::Helpers::D3D12::TailCPUWait({ *m_renderer->GetFence().get().Get() }, m_renderer->GetCurrentFenceValue(), 
+        TypedD3D::Helpers::D3D12::AppendCPUWait({ *m_renderer->fence.get().Get() }, m_renderer->GetCurrentFrameFenceValue(), 
             [&]()
             {
-                TypedD3D::Helpers::D3D12::GPUWork(*m_renderer->GetCommandQueue().get().Get(), *m_renderer->GetFence().get().Get(), m_renderer->GetCurrentFenceValue(),
+                TypedD3D::Helpers::D3D12::AppendSignalFenceGPU(*m_renderer->commandQueue.get().Get(), *m_renderer->fence.get().Get(), m_renderer->GetCurrentFrameFenceValue(),
                     [&](TypedD3D::Direct<ID3D12CommandQueue> commandQueue)
                     {
                         TypedD3D::Helpers::D3D12::RecordAndExecute(*m_commandList.Get(), *m_allocatorManager.CreateOrGetAllocator(m_renderer->GetCurrentFrameIndex()).Get(), *commandQueue.Get(),

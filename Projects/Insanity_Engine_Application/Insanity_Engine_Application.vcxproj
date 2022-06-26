@@ -63,7 +63,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;INSANITY_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/TypedD3D/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -80,7 +80,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Projects/Insanity_Engine_Math;$(SolutionDir)Projects/DirectXTex-master;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX11;$(SolutionDir)Projects/Insanity_Engine_Rendering_Common;$(SolutionDir)Projects/Insanity_Engine_Rendering;$(SolutionDir)Projects/Insanity_Engine_Rendering_DX12;$(SolutionDir)Projects/SDL2-2.0.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -94,16 +94,11 @@
     <ClInclude Include="Application\Application.h" />
     <ClInclude Include="Application\ApplicationSettings.h" />
     <ClInclude Include="DX11\Renderer\StaticMesh.h" />
-    <ClInclude Include="Rendering\Device.h" />
-    <ClInclude Include="Rendering\Window.h" />
-    <ClInclude Include="Rendering\WindowBackend.h" />
     <ClInclude Include="Utility\Align.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\Application.cpp" />
     <ClCompile Include="Insanity_Engine_Application.cpp" />
-    <ClCompile Include="Rendering\Device.cpp" />
-    <ClCompile Include="Rendering\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DirectXTex-master\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
@@ -111,6 +106,9 @@
     </ProjectReference>
     <ProjectReference Include="..\Insanity_Engine_Math\Insanity_Engine_Math.vcxproj">
       <Project>{83ddfcd4-19d0-4022-99f0-0009f8f706d7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Insanity_Engine_Rendering\Insanity_Engine_Rendering.vcxproj">
+      <Project>{a18ed5aa-ec5e-43be-a3ab-406245039dcd}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Insanity_Engine_Rendering_Common\Insanity_Engine_Rendering_Common.vcxproj">
       <Project>{6c51a3d2-eee8-4298-8ced-da956d76a10a}</Project>
