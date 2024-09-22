@@ -114,10 +114,22 @@ namespace InsanityEngine
 
 	SpritePipelineDX11::SpritePipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
+		struct TemporaryWorkingPath
+		{
+			std::filesystem::path oldPath = std::filesystem::current_path();
+			TemporaryWorkingPath(std::filesystem::path path)
+			{
+				std::filesystem::current_path(path);
+			}
+			~TemporaryWorkingPath()
+			{
+				std::filesystem::current_path(oldPath);
+			}
+		};
 		//TODO: Figure out how to not hardcode this
-		auto relative = std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" };
+		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" } };
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile((relative / std::filesystem::path{ "Rendering/DX11/VertexShader.hlsl" }).c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Rendering/DX11/VertexShader.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
 		std::array inputElement
 		{
@@ -180,7 +192,7 @@ namespace InsanityEngine
 		layout = device->CreateInputLayout(inputElement, *vertexBlob.Get());
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile((relative / std::filesystem::path{ "Rendering/DX11/PixelShader.hlsl" }).c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Rendering/DX11/PixelShader.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
 		pixelShader = device->CreatePixelShader(*pixelBlob.Get(), nullptr);
 
 		{
