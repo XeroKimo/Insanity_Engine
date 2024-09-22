@@ -18,69 +18,12 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="source\D3D11\Constants.h" />
-    <ClInclude Include="source\D3D11\Device.h" />
-    <ClInclude Include="source\D3D11\DeviceChild.h" />
-    <ClInclude Include="source\D3D11\DeviceContext.h" />
-    <ClInclude Include="source\D3D11\InputLayout.h" />
-    <ClInclude Include="source\D3D11\Resources.h" />
-    <ClInclude Include="source\D3D11\ResourceViews.h" />
-    <ClInclude Include="source\D3D11\Shaders.h" />
-    <ClInclude Include="source\D3D11\States.h" />
-    <ClInclude Include="source\D3D12Wrappers.h" />
-    <ClInclude Include="source\D3D12\CommandAllocator.h" />
-    <ClInclude Include="source\D3D12\CommandQueue.h" />
-    <ClInclude Include="source\D3D12\Resource.h" />
-    <ClInclude Include="source\DXGI\Adapter.h" />
-    <ClInclude Include="source\DXGI\Factory.h" />
-    <ClInclude Include="source\DXGI\SwapChain.h" />
-    <ClInclude Include="expected.hpp" />
-    <ClInclude Include="source\Internal\IUnknownWrapper.h" />
-    <ClInclude Include="source\D3D12\DescriptorHeap.h" />
-    <ClInclude Include="source\Internal\D3D12\Meta.h" />
-    <ClInclude Include="source\D3D12\PipelineState.h" />
-    <ClInclude Include="d3dx12.h" />
-    <ClInclude Include="source\Helpers\COMHelpers.h" />
-    <ClInclude Include="source\Helpers\CommonHelpers.h" />
-    <ClInclude Include="source\Helpers\D3D12Helpers.h" />
-    <ClInclude Include="source\D3D12\CommandList.h" />
-    <ClInclude Include="source\D3D12\Device.h" />
-    <ClInclude Include="source\Helpers\DXGIHelpers.h" />
-    <ClInclude Include="source\Internal\d3dConcepts.h" />
-    <ClInclude Include="source\Wrappers.h" />
-    <ClInclude Include="span_tuple.h" />
-    <ClInclude Include="TypedD3D12.h" />
-    <ClInclude Include="TypedD3D11.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="source\Helpers\D3D12Helpers.cpp" />
-    <ClCompile Include="TypedDXGI.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="gsl\algorithm" />
-    <None Include="gsl\assert" />
-    <None Include="gsl\byte" />
-    <None Include="gsl\gsl" />
-    <None Include="gsl\gsl_algorithm" />
-    <None Include="gsl\gsl_assert" />
-    <None Include="gsl\gsl_byte" />
-    <None Include="gsl\gsl_narrow" />
-    <None Include="gsl\gsl_util" />
-    <None Include="gsl\narrow" />
-    <None Include="gsl\pointers" />
-    <None Include="gsl\span" />
-    <None Include="gsl\span_ext" />
-    <None Include="gsl\string_span" />
-    <None Include="gsl\util" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>16.0</VCProjectVersion>
+    <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</ProjectGuid>
-    <RootNamespace>TypedD3D12</RootNamespace>
+    <ProjectGuid>{a98531dd-e584-4213-b092-735e7d8cf8e8}</ProjectGuid>
+    <RootNamespace>InsanityEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>TypedD3D</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -127,26 +70,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>$(SolutionDir)Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -156,16 +79,12 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -178,7 +97,6 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -187,32 +105,26 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;d3d11.lib</AdditionalDependencies>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -221,7 +133,6 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -230,9 +141,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
-    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
