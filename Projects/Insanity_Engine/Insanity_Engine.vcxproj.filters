@@ -18,5 +18,15 @@
     <ClCompile Include="build.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Rendering\DX11\RendererDX11.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\DX11\RendererDX11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Rendering\DX11\PixelShader.hlsl" />
+    <FxCompile Include="Rendering\DX11\VertexShader.hlsl" />
   </ItemGroup>
 </Project>
