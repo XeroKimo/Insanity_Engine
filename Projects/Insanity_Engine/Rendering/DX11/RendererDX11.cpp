@@ -14,6 +14,7 @@
 module InsanityEngine.RendererDX11;
 
 using namespace TypedD3D;
+import xk.Math;
 
 namespace InsanityEngine
 {
@@ -51,20 +52,20 @@ namespace InsanityEngine
 
 	Camera::Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective) :
 		viewPerspectiveTransform
+	{
+		perspective * xk::Math::Matrix<float, 4, 4> {
+			1, 0, 0, -position.X(),
+			0, 1, 0, -position.Y(),
+			0, 0, 1, -position.Z(),
+			0, 0, 0, 1
+		} *xk::Math::Matrix<float, 4, 4>
 		{
-			perspective * xk::Math::Matrix<float, 4, 4> {
-				1, 0, 0, -position.X(),
-				0, 1, 0, -position.Y(),
-				0, 0, 1, -position.Z(),
-				0, 0, 0, 1
-			} * xk::Math::Matrix<float, 4, 4>
-			{
-				std::cos(-xk::Math::Radian<float>(angle)._value), -std::sin(-xk::Math::Radian<float>(angle)._value), 0, 0,
-				std::sin(-xk::Math::Radian<float>(angle)._value), std::cos(-xk::Math::Radian<float>(angle)._value), 0, 0,
-				0, 0, 1, 0,
-				0, 0, 0, 1
-			}
+			std::cos(-xk::Math::Radian<float>(angle)._value), -std::sin(-xk::Math::Radian<float>(angle)._value), 0, 0,
+			std::sin(-xk::Math::Radian<float>(angle)._value), std::cos(-xk::Math::Radian<float>(angle)._value), 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
 		}
+	}
 	{
 	}
 
@@ -78,29 +79,29 @@ namespace InsanityEngine
 
 	void SpriteRenderInterfaceDX11::Draw(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, xk::Math::Aliases::Matrix4x4 transform)
 	{
-		UpdateConstantBuffer(m_renderer.GetDeviceContext().Get(), m_spriteRenderer.instanceBuffer.Get(), [&transform](D3D11_MAPPED_SUBRESOURCE data)
-			{
-				std::memcpy(data.pData, &transform, sizeof(transform));
-			});
+		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.instanceBuffer, [&transform](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &transform, sizeof(transform));
+		});
 		TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ m_spriteRenderer.vertexBuffer, m_spriteRenderer.instanceBuffer };
 		std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
 		std::array<UINT, 2> offsets{ 0, 0 };
 		m_renderer.GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
-		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture);
+		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
 		m_renderer.GetDeviceContext()->DrawInstanced(6, 1, 0, 0);
 	}
 
 	void SpriteRenderInterfaceDX11::DrawMultiple(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, std::span<xk::Math::Aliases::Matrix4x4> transform)
 	{
-		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture);
+		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
 
 		for(size_t i = 0; i < transform.size();)
 		{
 			size_t amountToDraw = transform.size() > instanceBufferElementMaxCount ? instanceBufferElementMaxCount : transform.size();
 			UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.instanceBuffer, [&transform, i, amountToDraw](D3D11_MAPPED_SUBRESOURCE data)
-				{
-					std::memcpy(data.pData, &transform[i], sizeof(xk::Math::Aliases::Matrix4x4) * amountToDraw);
-				});
+			{
+				std::memcpy(data.pData, &transform[i], sizeof(xk::Math::Aliases::Matrix4x4) * amountToDraw);
+			});
 
 			TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ m_spriteRenderer.vertexBuffer, m_spriteRenderer.instanceBuffer };
 			std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
@@ -265,6 +266,30 @@ namespace InsanityEngine
 				.StructureByteStride = 0
 			};
 			cameraBuffer = device->CreateBuffer(bufferDesc);
+		}
+
+		{
+			D3D11_TEXTURE2D_DESC bufferDesc
+			{
+				.Width = 1,
+				.Height = 1,
+				.MipLevels = 0,
+				.ArraySize = 1,
+				.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM,
+				.SampleDesc = { 1, 0 },
+				.Usage = D3D11_USAGE_IMMUTABLE,
+				.BindFlags = D3D11_BIND_SHADER_RESOURCE,
+				.CPUAccessFlags = 0,
+				.MiscFlags = 0,
+			};
+
+			xk::Math::Color color{ { 255, 255, 255, 255 } };
+			D3D11_SUBRESOURCE_DATA data{};
+			data.pSysMem = &color;
+			data.SysMemPitch = 4;
+			auto tempBuffer = device->CreateTexture2D(bufferDesc, &data);
+
+			defaultTexture = device->CreateShaderResourceView(tempBuffer);
 		}
 	}
 
