@@ -140,4 +140,70 @@ namespace InsanityEngine
 		m_renderer.GetDeviceContext()->VSSetConstantBuffers(SpritePipelineDX11::VSPerCameraCBufferSlot, m_spriteRenderer.cameraBuffer);
 		func(camera);
 	}
+
+	export struct DebugPipelineDX11;
+
+	export class DebugRenderInterfaceDX11
+	{
+	private:
+		RendererDX11& m_renderer;
+		DebugPipelineDX11& m_debugRenderer;
+
+	public:
+		DebugRenderInterfaceDX11(RendererDX11& renderer, DebugPipelineDX11& debugRenderer) :
+			m_renderer{ renderer },
+			m_debugRenderer{ debugRenderer }
+		{
+		}
+
+	public:
+		void DrawLine(xk::Math::Vector<float, 3> start, xk::Math::Vector<float, 3> end);
+		
+		template<size_t Count>
+		void DrawLine(std::array<xk::Math::Vector<float, 3>, Count> points)
+		{
+			DrawLine(std::span{ points });
+		}
+
+		void DrawLine(std::span<xk::Math::Vector<float, 3>> points);
+
+
+		template<std::invocable<Camera> Func>
+		void CameraPass(const Camera& camera, Func func);
+	};
+
+	struct DebugPipelineDX11
+	{
+		TypedD3D11::Wrapper<ID3D11Buffer> cameraBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> vertexBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> batchBuffer;
+		TypedD3D11::Wrapper<ID3D11InputLayout> layout;
+		TypedD3D11::Wrapper<ID3D11VertexShader> vertexShader;
+		TypedD3D11::Wrapper<ID3D11PixelShader> pixelShader;
+
+		static constexpr UINT PSPerBatchCBufferSlot = 0;
+		static constexpr UINT VSPerCameraCBufferSlot = 1;
+
+		inline static constexpr size_t maxPointsPerBatch = 1024;
+	public:
+		DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext);
+
+		void Bind(RendererDX11& renderer);
+
+		DebugRenderInterfaceDX11 MakeRenderInterface(RendererDX11& renderer)
+		{
+			return { renderer, *this };
+		}
+	};
+
+	template<std::invocable<Camera> Func>
+	void DebugRenderInterfaceDX11::CameraPass(const Camera& camera, Func func)
+	{
+		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
+		});
+		m_renderer.GetDeviceContext()->VSSetConstantBuffers(DebugPipelineDX11::VSPerCameraCBufferSlot, m_debugRenderer.cameraBuffer);
+		func(camera);
+	}
 }

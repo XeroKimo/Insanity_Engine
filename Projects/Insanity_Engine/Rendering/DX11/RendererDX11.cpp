@@ -161,7 +161,7 @@ namespace InsanityEngine
 		//TODO: Figure out how to not hardcode this
 		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" } };
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/VertexShader.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/SpriteVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
 		std::array inputElement
 		{
@@ -224,7 +224,7 @@ namespace InsanityEngine
 		layout = device->CreateInputLayout(inputElement, *vertexBlob.Get());
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/PixelShader.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/SpritePS.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
 		pixelShader = device->CreatePixelShader(*pixelBlob.Get(), nullptr);
 
 		{
@@ -340,5 +340,139 @@ namespace InsanityEngine
 		viewports.Height = desc.Height;
 		renderer.GetDeviceContext()->RSSetViewports(viewports);
 		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
+
+
+	void DebugRenderInterfaceDX11::DrawLine(xk::Math::Vector<float, 3> start, xk::Math::Vector<float, 3> end)
+	{
+		std::array points{ start, end };
+		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.vertexBuffer, [&points](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &points, sizeof(points));
+		});
+
+		m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
+		//m_renderer.GetDeviceContext()->PSSetConstantBuffers(0, m_debugRenderer.batchBuffer);
+		m_renderer.GetDeviceContext()->Draw(2, 0);
+	}
+
+	void DebugRenderInterfaceDX11::DrawLine(std::span<xk::Math::Vector<float, 3>> points)
+	{
+		for(size_t i = 0; i < points.size();)
+		{
+			size_t amountToDraw = (std::min)(points.size() - i, DebugPipelineDX11::maxPointsPerBatch);
+			UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.vertexBuffer, [&](D3D11_MAPPED_SUBRESOURCE data)
+			{
+				std::memcpy(data.pData, &points[i], sizeof(xk::Math::Vector<float, 3>) * amountToDraw);
+			});
+			i += amountToDraw;
+			m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
+			m_renderer.GetDeviceContext()->Draw(amountToDraw, 0);
+		}
+	}
+
+	DebugPipelineDX11::DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
+	{
+		struct TemporaryWorkingPath
+		{
+			std::filesystem::path oldPath = std::filesystem::current_path();
+			TemporaryWorkingPath(std::filesystem::path path)
+			{
+				std::filesystem::current_path(path);
+			}
+			~TemporaryWorkingPath()
+			{
+				std::filesystem::current_path(oldPath);
+			}
+		};
+		//TODO: Figure out how to not hardcode this
+		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" } };
+		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/DebugVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
+		std::array inputElement
+		{
+			D3D11_INPUT_ELEMENT_DESC{
+				.SemanticName = "POSITION",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32B32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = 0,
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0,
+			}
+		};
+
+		layout = device->CreateInputLayout(inputElement, *vertexBlob.Get());
+
+		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/DebugPS.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		pixelShader = device->CreatePixelShader(*pixelBlob.Get(), nullptr);
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(Vertex) * maxPointsPerBatch,
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_VERTEX_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+
+			vertexBuffer = device->CreateBuffer(bufferDesc);
+		}
+
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(xk::Math::Aliases::Matrix4x4),
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+			cameraBuffer = device->CreateBuffer(bufferDesc);
+		}
+
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(xk::Math::Vector<float, 4>),
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+			batchBuffer = device->CreateBuffer(bufferDesc);
+		}
+	}
+
+	void DebugPipelineDX11::Bind(RendererDX11& renderer)
+	{
+		renderer.GetDeviceContext()->IASetInputLayout(layout);
+		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
+		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
+
+		UpdateConstantBuffer(renderer.GetDeviceContext(), batchBuffer, [](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			xk::Math::Vector<float, 4> color{ 1, 0, 0, 1 };
+			std::memcpy(data.pData, &color, sizeof(color));
+		});
+		renderer.GetDeviceContext()->PSSetConstantBuffers(0, batchBuffer);
+		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
+		D3D11_VIEWPORT viewports;
+		viewports.TopLeftX = 0;
+		viewports.TopLeftY = 0;
+		viewports.MinDepth = 0;
+		viewports.MaxDepth = 1;
+		viewports.Width = desc.Width;
+		viewports.Height = desc.Height;
+		renderer.GetDeviceContext()->RSSetViewports(viewports);
+		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
 	}
 }
