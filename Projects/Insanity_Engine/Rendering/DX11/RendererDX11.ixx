@@ -7,6 +7,7 @@ module;
 #include <span>
 #include <concepts>
 #include <type_traits>
+#include <filesystem>
 
 export module InsanityEngine.RendererDX11;
 export import TypedD3D11;
@@ -16,6 +17,8 @@ using namespace TypedD3D;
 
 namespace InsanityEngine
 {
+	export TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device);
+
 	export class RendererDX11;
 
 	export template<class Func>

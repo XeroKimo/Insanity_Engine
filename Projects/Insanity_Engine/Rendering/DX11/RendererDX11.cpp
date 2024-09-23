@@ -8,16 +8,47 @@
 #include <wrl/client.h>
 #include <d3dcompiler.h>
 #include <cmath>
-
 #include <filesystem>
+
+#include <SDL2/SDL_image.h>
 
 module InsanityEngine.RendererDX11;
 
 using namespace TypedD3D;
-import xk.Math;
 
 namespace InsanityEngine
 {
+	TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device)
+	{
+		SDL_Surface* surface = IMG_Load(path.string().c_str());
+		D3D11_TEXTURE2D_DESC textDesc
+		{
+			.Width = static_cast<UINT>(surface->w),
+			.Height = static_cast<UINT>(surface->h),
+			.MipLevels = 1,
+			.ArraySize = 1,
+			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+			.SampleDesc = { 1, 0 },
+			.Usage = D3D11_USAGE_DEFAULT,
+			.BindFlags = D3D11_BIND_SHADER_RESOURCE,
+			.CPUAccessFlags = 0,
+			.MiscFlags = 0
+		};
+
+		D3D11_SUBRESOURCE_DATA data{};
+		data.pSysMem = surface->pixels;
+		data.SysMemPitch = surface->pitch;
+		TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
+		{
+			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+			.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+			.Texture2D = { 0, 1 }
+		};
+
+		return device->CreateShaderResourceView(buffer, &viewDesc);
+	}
+
 	RendererDX11::RendererDX11(HWND handle)
 	{
 		TypedDXGI::Wrapper<IDXGIFactory2> factory = TypedDXGI::CreateFactory1<IDXGIFactory2>();
