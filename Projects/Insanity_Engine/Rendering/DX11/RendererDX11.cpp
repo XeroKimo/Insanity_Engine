@@ -396,6 +396,15 @@ namespace InsanityEngine
 		DrawLine(points);
 	}
 
+	void DebugRenderInterfaceDX11::SetColor(xk::Math::Vector<float, 4> rgba)
+	{
+		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.batchBuffer, [rgba](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &rgba, sizeof(rgba));
+		});
+		m_renderer.GetDeviceContext()->PSSetConstantBuffers(0, m_debugRenderer.batchBuffer);
+	}
+
 	DebugPipelineDX11::DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
 		struct TemporaryWorkingPath
@@ -483,12 +492,6 @@ namespace InsanityEngine
 		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
 		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
 
-		UpdateConstantBuffer(renderer.GetDeviceContext(), batchBuffer, [](D3D11_MAPPED_SUBRESOURCE data)
-		{
-			xk::Math::Vector<float, 4> color{ 1, 0, 0, 1 };
-			std::memcpy(data.pData, &color, sizeof(color));
-		});
-		renderer.GetDeviceContext()->PSSetConstantBuffers(0, batchBuffer);
 		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
 		D3D11_VIEWPORT viewports;
 		viewports.TopLeftX = 0;

@@ -170,6 +170,7 @@ namespace InsanityEngine
 		void DrawSquare(xk::Math::Vector<float, 3> center, xk::Math::Vector<float, 3> halfSize);
 		void DrawCircle(xk::Math::Vector<float, 3> center, float radius);
 
+		void SetColor(xk::Math::Vector<float, 4> rgba);
 
 		template<std::invocable<Camera> Func>
 		void CameraPass(const Camera& camera, Func func);
