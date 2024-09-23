@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #include <SDL2/SDL_image.h>
+#include <numbers>
 
 module InsanityEngine.RendererDX11;
 
@@ -369,6 +370,30 @@ namespace InsanityEngine
 			m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
 			m_renderer.GetDeviceContext()->Draw(amountToDraw, 0);
 		}
+	}
+
+	void DebugRenderInterfaceDX11::DrawSquare(xk::Math::Vector<float, 3> center, xk::Math::Vector<float, 3> halfSize)
+	{
+		const xk::Math::Vector<float, 3> bl = center - halfSize;
+		const xk::Math::Vector<float, 3> tr = center + halfSize;
+		const xk::Math::Vector<float, 3> tl{ bl.X(), tr.Y() };
+		const xk::Math::Vector<float, 3> br{ tr.X(), bl.Y() };
+
+		DrawLine(std::array{ bl, tl, tr, br, bl});
+	}
+
+	void DebugRenderInterfaceDX11::DrawCircle(xk::Math::Vector<float, 3> center, float radius)
+	{
+		static constexpr size_t pointResolution = 32;
+		std::array<xk::Math::Vector<float, 3>, pointResolution + 1> points;
+
+		float angleIncrements = std::numbers::pi * 2 / (points.size() - 1);
+		for(size_t i = 0; i < points.size(); i++)
+		{
+			points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements * i), std::sin(angleIncrements * i), 0 } * radius;
+		}
+
+		DrawLine(points);
 	}
 
 	DebugPipelineDX11::DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)

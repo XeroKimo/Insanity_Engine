@@ -167,6 +167,9 @@ namespace InsanityEngine
 
 		void DrawLine(std::span<xk::Math::Vector<float, 3>> points);
 
+		void DrawSquare(xk::Math::Vector<float, 3> center, xk::Math::Vector<float, 3> halfSize);
+		void DrawCircle(xk::Math::Vector<float, 3> center, float radius);
+
 
 		template<std::invocable<Camera> Func>
 		void CameraPass(const Camera& camera, Func func);

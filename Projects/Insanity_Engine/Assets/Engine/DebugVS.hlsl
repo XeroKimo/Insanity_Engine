@@ -16,6 +16,6 @@ cbuffer PerCamera : register(b1)
 VS_OUT main(VS_IN input) : SV_POSITION
 {
     VS_OUT output;
-    output.position = float4(input.position, 1);
+    output.position = mul(cameraTransform, float4(input.position, 1));
     return output;
 }
