@@ -41,9 +41,10 @@ namespace InsanityEngine
 			std::vector<char> pixels;
 			pixels.resize(surface->w * surface->h * 4);
 			char* refPixels = static_cast<char*>(surface->pixels);
+			surface->format->palette->colors[0].a = 0;
 			for(int i = 0; i < pixels.size(); i += 4)
 			{
-				SDL_Color color = surface->format->palette->colors[refPixels[i / 4]];
+				SDL_Color color = surface->format->palette->colors[i / 4];
 				pixels[i] = color.r;
 				pixels[i + 1] = color.g;
 				pixels[i + 2] = color.b;
@@ -142,7 +143,7 @@ namespace InsanityEngine
 		xk::Math::Vector<float, 2> uv;
 	};
 
-	static constexpr size_t instanceBufferElementMaxCount = 256;
+	static constexpr UINT instanceBufferElementMaxCount = 256;
 
 	void SpriteRenderInterfaceDX11::Draw(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, xk::Math::Aliases::Matrix4x4 transform)
 	{
@@ -164,7 +165,7 @@ namespace InsanityEngine
 
 		for(size_t i = 0; i < transform.size();)
 		{
-			size_t amountToDraw = transform.size() > instanceBufferElementMaxCount ? instanceBufferElementMaxCount : transform.size();
+			UINT amountToDraw = transform.size() > instanceBufferElementMaxCount ? instanceBufferElementMaxCount : static_cast<UINT>(transform.size());
 			UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.instanceBuffer, [&transform, i, amountToDraw](D3D11_MAPPED_SUBRESOURCE data)
 			{
 				std::memcpy(data.pData, &transform[i], sizeof(xk::Math::Aliases::Matrix4x4) * amountToDraw);
@@ -358,6 +359,26 @@ namespace InsanityEngine
 
 			defaultTexture = device->CreateShaderResourceView(tempBuffer);
 		}
+
+		{
+			D3D11_BLEND_DESC desc
+			{
+				.AlphaToCoverageEnable = false,
+				.IndependentBlendEnable = false,
+				.RenderTarget = {
+					{
+						.BlendEnable = true,
+						.SrcBlend = D3D11_BLEND_SRC_ALPHA,
+						.DestBlend = D3D11_BLEND_INV_SRC_ALPHA,
+						.BlendOp = D3D11_BLEND_OP_ADD,
+						.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA,
+						.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA,
+						.BlendOpAlpha = D3D11_BLEND_OP_ADD,
+						.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
+					}}
+			};
+			blendState = device->CreateBlendState(desc);
+		}
 	}
 
 	void SpritePipelineDX11::Bind(RendererDX11& renderer)
@@ -365,6 +386,7 @@ namespace InsanityEngine
 		renderer.GetDeviceContext()->IASetInputLayout(layout);
 		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
 		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
+		renderer.GetDeviceContext()->OMSetBlendState(blendState, std::nullopt, 0xff'ff'ff'ff);
 
 		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
 		D3D11_VIEWPORT viewports;
@@ -372,8 +394,8 @@ namespace InsanityEngine
 		viewports.TopLeftY = 0;
 		viewports.MinDepth = 0;
 		viewports.MaxDepth = 1;
-		viewports.Width = desc.Width;
-		viewports.Height = desc.Height;
+		viewports.Width = static_cast<FLOAT>(desc.Width);
+		viewports.Height = static_cast<FLOAT>(desc.Height);
 		renderer.GetDeviceContext()->RSSetViewports(viewports);
 		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
@@ -381,15 +403,7 @@ namespace InsanityEngine
 
 	void DebugRenderInterfaceDX11::DrawLine(xk::Math::Vector<float, 3> start, xk::Math::Vector<float, 3> end)
 	{
-		std::array points{ start, end };
-		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.vertexBuffer, [&points](D3D11_MAPPED_SUBRESOURCE data)
-		{
-			std::memcpy(data.pData, &points, sizeof(points));
-		});
-
-		m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
-		//m_renderer.GetDeviceContext()->PSSetConstantBuffers(0, m_debugRenderer.batchBuffer);
-		m_renderer.GetDeviceContext()->Draw(2, 0);
+		DrawLine(std::array{ start, end });
 	}
 
 	void DebugRenderInterfaceDX11::DrawLine(std::span<xk::Math::Vector<float, 3>> points)
@@ -407,6 +421,20 @@ namespace InsanityEngine
 		}
 	}
 
+	void DebugRenderInterfaceDX11::DrawConnectedLines(std::span<xk::Math::Vector<float, 3>> points)
+	{
+		std::vector<xk::Math::Vector<float, 3>> connectedPoints;
+		connectedPoints.resize(points.size() * 2);
+
+		for(size_t i = 0; i < connectedPoints.size(); i += 2)
+		{
+			connectedPoints[i] = points[i / 2];
+			connectedPoints[(i + connectedPoints.size() - 1) % connectedPoints.size()] = connectedPoints[i];
+		}
+
+		DrawLine(connectedPoints);
+	}
+
 	void DebugRenderInterfaceDX11::DrawSquare(xk::Math::Vector<float, 3> center, xk::Math::Vector<float, 3> halfSize)
 	{
 		const xk::Math::Vector<float, 3> bl = center - halfSize;
@@ -414,21 +442,23 @@ namespace InsanityEngine
 		const xk::Math::Vector<float, 3> tl{ bl.X(), tr.Y() };
 		const xk::Math::Vector<float, 3> br{ tr.X(), bl.Y() };
 
-		DrawLine(std::array{ bl, tl, tr, br, bl});
+		//DrawLine(std::array{ bl, tl, tl, tr, tr, br, br, bl });
+		DrawConnectedLines(std::array{ bl, tl, tr, br });
 	}
 
 	void DebugRenderInterfaceDX11::DrawCircle(xk::Math::Vector<float, 3> center, float radius)
 	{
-		static constexpr size_t pointResolution = 32;
-		std::array<xk::Math::Vector<float, 3>, pointResolution + 1> points;
+		static constexpr size_t pointResolution = 64;
+		std::array<xk::Math::Vector<float, 3>, pointResolution> points;
 
-		float angleIncrements = std::numbers::pi * 2 / (points.size() - 1);
+		float angleIncrements = std::numbers::pi * 2 / (pointResolution);
 		for(size_t i = 0; i < points.size(); i++)
 		{
-			points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements * i), std::sin(angleIncrements * i), 0 } * radius;
+			points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements* i), std::sin(angleIncrements* i), 0 } *radius;
+			//points[(i + points.size() - 1) % points.size()] = points[i];
 		}
 
-		DrawLine(points);
+		DrawConnectedLines(points);
 	}
 
 	void DebugRenderInterfaceDX11::SetColor(xk::Math::Vector<float, 4> rgba)
@@ -533,9 +563,9 @@ namespace InsanityEngine
 		viewports.TopLeftY = 0;
 		viewports.MinDepth = 0;
 		viewports.MaxDepth = 1;
-		viewports.Width = desc.Width;
-		viewports.Height = desc.Height;
+		viewports.Width = static_cast<FLOAT>(desc.Width);
+		viewports.Height = static_cast<FLOAT>(desc.Height);
 		renderer.GetDeviceContext()->RSSetViewports(viewports);
-		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	}
 }
