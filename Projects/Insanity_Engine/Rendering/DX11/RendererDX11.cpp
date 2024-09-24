@@ -36,18 +36,48 @@ namespace InsanityEngine
 			.MiscFlags = 0
 		};
 
-		D3D11_SUBRESOURCE_DATA data{};
-		data.pSysMem = surface->pixels;
-		data.SysMemPitch = surface->pitch;
-		TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
-		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
+		if(SDL_PIXELTYPE(surface->format->format) == SDL_PIXELTYPE_INDEX8)
 		{
-			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-			.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
-			.Texture2D = { 0, 1 }
-		};
+			std::vector<char> pixels;
+			pixels.resize(surface->w * surface->h * 4);
+			char* refPixels = static_cast<char*>(surface->pixels);
+			for(int i = 0; i < pixels.size(); i += 4)
+			{
+				SDL_Color color = surface->format->palette->colors[refPixels[i / 4]];
+				pixels[i] = color.r;
+				pixels[i + 1] = color.g;
+				pixels[i + 2] = color.b;
+				pixels[i + 3] = color.a;
+			}
 
-		return device->CreateShaderResourceView(buffer, &viewDesc);
+			D3D11_SUBRESOURCE_DATA data{};
+			data.pSysMem = pixels.data();
+			data.SysMemPitch = surface->pitch * 4;
+			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
+			{
+				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+				.Texture2D = { 0, 1 }
+			};
+
+			return device->CreateShaderResourceView(buffer, &viewDesc);
+		}
+		else
+		{
+			D3D11_SUBRESOURCE_DATA data{};
+			data.pSysMem = surface->pixels;
+			data.SysMemPitch = surface->pitch;
+			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
+			{
+				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+				.Texture2D = { 0, 1 }
+			};
+
+			return device->CreateShaderResourceView(buffer, &viewDesc);
+		}
 	}
 
 	RendererDX11::RendererDX11(HWND handle)
@@ -74,6 +104,11 @@ namespace InsanityEngine
 
 		m_debugDevice = TypedD3D::Cast<ID3D11Debug>(m_device.AsComPtr());
 		m_backBuffer = m_device->CreateRenderTargetView(m_swapChain->GetBuffer<ID3D11Resource>(0));
+
+		auto desc = TypedD3D::Cast<ID3D11Texture2D>(m_swapChain->GetBuffer<ID3D11Resource>(0))->GetDesc();
+		desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		m_backDepthBuffer = m_device->CreateDepthStencilView(m_device->CreateTexture2D(desc));
 	}
 
 	RendererDX11::~RendererDX11()
