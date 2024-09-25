@@ -44,7 +44,7 @@ namespace InsanityEngine
 			surface->format->palette->colors[0].a = 0;
 			for(int i = 0; i < pixels.size(); i += 4)
 			{
-				SDL_Color color = surface->format->palette->colors[i / 4];
+				SDL_Color color = surface->format->palette->colors[refPixels[i / 4]];
 				pixels[i] = color.r;
 				pixels[i + 1] = color.g;
 				pixels[i + 2] = color.b;
