@@ -12,7 +12,7 @@
 
 #include <SDL2/SDL_image.h>
 #include <numbers>
-
+#include <cassert>
 module InsanityEngine.RendererDX11;
 
 using namespace TypedD3D;
@@ -39,12 +39,17 @@ namespace InsanityEngine
 		if(SDL_PIXELTYPE(surface->format->format) == SDL_PIXELTYPE_INDEX8)
 		{
 			std::vector<char> pixels;
-			pixels.resize(surface->w * surface->h * 4);
+			pixels.resize(surface->pitch * surface->h * 4);
 			char* refPixels = static_cast<char*>(surface->pixels);
 			surface->format->palette->colors[0].a = 0;
+
 			for(int i = 0; i < pixels.size(); i += 4)
 			{
-				SDL_Color color = surface->format->palette->colors[refPixels[i / 4]];
+				int paletteIndex = refPixels[i / 4];
+				int x = (i / 4) % surface->w;
+				int y = (i / 4) / surface->h;
+				assert(paletteIndex < surface->format->palette->ncolors);
+				SDL_Color color = surface->format->palette->colors[paletteIndex];
 				pixels[i] = color.r;
 				pixels[i + 1] = color.g;
 				pixels[i + 2] = color.b;
