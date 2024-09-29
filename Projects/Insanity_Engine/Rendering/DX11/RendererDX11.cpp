@@ -364,7 +364,20 @@ namespace InsanityEngine
 
 			defaultTexture = device->CreateShaderResourceView(tempBuffer);
 		}
-
+		{
+			D3D11_DEPTH_STENCIL_DESC desc
+			{
+				.DepthEnable = true,
+				.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL,
+				.DepthFunc = D3D11_COMPARISON_LESS,
+				.StencilEnable = false,
+				.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK,
+				.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK,
+				.FrontFace = {},
+				.BackFace = {}
+			};
+			depthState = device->CreateDepthStencilState(desc);
+		}
 		{
 			D3D11_BLEND_DESC desc
 			{
@@ -392,7 +405,7 @@ namespace InsanityEngine
 		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
 		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
 		renderer.GetDeviceContext()->OMSetBlendState(blendState, std::nullopt, 0xff'ff'ff'ff);
-
+		renderer.GetDeviceContext()->OMSetDepthStencilState(depthState, 0xff'ff'ff'ff);
 		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
 		D3D11_VIEWPORT viewports;
 		viewports.TopLeftX = 0;

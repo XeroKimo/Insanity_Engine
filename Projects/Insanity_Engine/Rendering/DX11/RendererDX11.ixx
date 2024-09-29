@@ -113,6 +113,7 @@ namespace InsanityEngine
 		TypedD3D11::Wrapper<ID3D11VertexShader> vertexShader;
 		TypedD3D11::Wrapper<ID3D11PixelShader> pixelShader;
 		TypedD3D11::Wrapper<ID3D11ShaderResourceView> defaultTexture;
+		TypedD3D11::Wrapper<ID3D11DepthStencilState> depthState;
 		TypedD3D11::Wrapper<ID3D11BlendState> blendState;
 
 	public:
