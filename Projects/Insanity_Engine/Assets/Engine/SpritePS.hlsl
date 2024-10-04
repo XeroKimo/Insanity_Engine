@@ -6,12 +6,9 @@ struct VS_OUT
 
 Texture2D main_texture : register(t0);
 
-SamplerState smp
-{
-    Filter = MIN_MAG_MIP_POINT;
-};
+SamplerState point_sampler : register(s0);
 
 float4 main(VS_OUT input) : SV_TARGET
 {
-    return main_texture.Sample(smp, input.uv);
+    return main_texture.Sample(point_sampler, input.uv);
 }

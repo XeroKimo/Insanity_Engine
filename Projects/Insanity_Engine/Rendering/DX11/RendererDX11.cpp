@@ -397,6 +397,22 @@ namespace InsanityEngine
 			};
 			blendState = device->CreateBlendState(desc);
 		}
+		{
+			D3D11_SAMPLER_DESC desc
+			{
+				.Filter = D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
+				.AddressU = D3D11_TEXTURE_ADDRESS_WRAP,
+				.AddressV = D3D11_TEXTURE_ADDRESS_WRAP,
+				.AddressW = D3D11_TEXTURE_ADDRESS_WRAP,
+				.MipLODBias = 0,
+				.MaxAnisotropy = 16,
+				.ComparisonFunc = D3D11_COMPARISON_NEVER,
+				.BorderColor = { 0, 0, 0, 1 },
+				.MinLOD = std::numeric_limits<float>::lowest(),
+				.MaxLOD = (std::numeric_limits<float>::max)()
+			};
+			pointSampler = device->CreateSamplerState(desc);
+		}
 	}
 
 	void SpritePipelineDX11::Bind(RendererDX11& renderer)
@@ -404,6 +420,7 @@ namespace InsanityEngine
 		renderer.GetDeviceContext()->IASetInputLayout(layout);
 		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
 		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
+		renderer.GetDeviceContext()->PSSetSamplers(0, pointSampler);
 		renderer.GetDeviceContext()->OMSetBlendState(blendState, std::nullopt, 0xff'ff'ff'ff);
 		renderer.GetDeviceContext()->OMSetDepthStencilState(depthState, 0xff'ff'ff'ff);
 		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
