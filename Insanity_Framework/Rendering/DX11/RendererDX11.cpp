@@ -14,11 +14,11 @@ module;
 #include <SDL2/SDL_image.h>
 #include <numbers>
 #include <cassert>
-module InsanityEngine.RendererDX11;
+module InsanityFramework.RendererDX11;
 
 using namespace TypedD3D;
 
-namespace InsanityEngine
+namespace InsanityFramework
 {
 	TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device)
 	{
@@ -202,7 +202,7 @@ namespace InsanityEngine
 			}
 		};
 		//TODO: Figure out how to not hardcode this
-		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" } };
+		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" } };
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
 		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/SpriteVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
@@ -521,7 +521,7 @@ namespace InsanityEngine
 			}
 		};
 		//TODO: Figure out how to not hardcode this
-		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Projects/Insanity_Engine/" } };
+		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" } };
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
 		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/DebugVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);

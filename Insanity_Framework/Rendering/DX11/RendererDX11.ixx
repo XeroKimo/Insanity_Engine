@@ -9,13 +9,13 @@ module;
 #include <type_traits>
 #include <filesystem>
 
-export module InsanityEngine.RendererDX11;
+export module InsanityFramework.RendererDX11;
 export import TypedD3D11;
 export import TypedDXGI;
 export import xk.Math;
 using namespace TypedD3D;
 
-namespace InsanityEngine
+namespace InsanityFramework
 {
 	export TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device);
 
