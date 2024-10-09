@@ -22,7 +22,7 @@ namespace InsanityEngine
 	export class RendererDX11;
 
 	export template<class Func>
-		void UpdateConstantBuffer(TypedD3D11::Wrapper<ID3D11DeviceContext> context, TypedD3D11::Wrapper<ID3D11Resource> resource, Func func)
+	void UpdateConstantBuffer(TypedD3D::Wrapper<ID3D11DeviceContext> context, TypedD3D::Wrapper<ID3D11Resource> resource, Func func)
 	{
 		D3D11_MAPPED_SUBRESOURCE data = context->Map(resource, 0, D3D11_MAP_WRITE_DISCARD, 0);
 		func(data);
@@ -30,7 +30,7 @@ namespace InsanityEngine
 	}
 
 	export template<std::invocable<D3D11_MAPPED_SUBRESOURCE> Func>
-		void UpdateConstantBufferNoOverwrite(TypedD3D11::Wrapper<ID3D11DeviceContext> context, TypedD3D11::Wrapper<ID3D11Resource> resource, Func func)
+	void UpdateConstantBufferNoOverwrite(TypedD3D::Wrapper<ID3D11DeviceContext> context, TypedD3D::Wrapper<ID3D11Resource> resource, Func func)
 	{
 		D3D11_MAPPED_SUBRESOURCE data = context->Map(resource, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0);
 		func(data);

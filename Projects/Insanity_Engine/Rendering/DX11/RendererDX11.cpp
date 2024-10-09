@@ -1,3 +1,4 @@
+module;
 #include <dxgi1_6.h>
 #include <d3d11.h>
 #include <utility>
@@ -452,7 +453,7 @@ namespace InsanityEngine
 			});
 			i += amountToDraw;
 			m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
-			m_renderer.GetDeviceContext()->Draw(amountToDraw, 0);
+			m_renderer.GetDeviceContext()->Draw(static_cast<UINT>(amountToDraw), 0);
 		}
 	}
 
@@ -486,10 +487,10 @@ namespace InsanityEngine
 		static constexpr size_t pointResolution = 64;
 		std::array<xk::Math::Vector<float, 3>, pointResolution> points;
 
-		float angleIncrements = std::numbers::pi * 2 / (pointResolution);
+		float angleIncrements = static_cast<float>(std::numbers::pi_v<double> * 2 / (pointResolution));
 		for(size_t i = 0; i < points.size(); i++)
 		{
-			points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements* i), std::sin(angleIncrements* i), 0 } *radius;
+			points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements* i), std::sin(angleIncrements* i), 0 } * radius;
 			//points[(i + points.size() - 1) % points.size()] = points[i];
 		}
 
