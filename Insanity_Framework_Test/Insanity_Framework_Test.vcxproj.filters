@@ -15,23 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="build.cpp">
+    <ClCompile Include="Insanity_Framework_Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\DX11\RendererDX11.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\DX11\RendererDX11.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ECS.ixx">
+    <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Assets\Engine\SpritePS.hlsl" />
-    <FxCompile Include="Assets\Engine\SpriteVS.hlsl" />
-    <FxCompile Include="Assets\Engine\DebugVS.hlsl" />
-    <FxCompile Include="Assets\Engine\DebugPS.hlsl" />
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
