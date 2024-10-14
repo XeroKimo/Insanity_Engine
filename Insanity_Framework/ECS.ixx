@@ -70,6 +70,394 @@ namespace InsanityFramework
 		Reparent_Keep_World_Transform,
 	};
 
+	template<class Func>
+	struct ReturnType;
+
+	template<class Ret, class... Params>
+	struct ReturnType<Ret(*)(Params...)>
+	{
+		using type = Ret;
+	};
+
+	template<class Ty, class Ret, class... Params>
+	struct ReturnType<Ret(Ty::*)(Params...)>
+	{
+		using type = Ret;
+	};
+
+	template<class Ty, class Ret, class... Params>
+	struct ReturnType<Ret(Ty::*)(Params...) const>
+	{
+		using type = Ret;
+	};
+
+	
+	template<auto Setter, auto Getter>
+	class TransformProxyType;
+
+	template<auto Setter, auto Getter, size_t Index>
+	class VectorProxyType
+	{
+		using proxy_type = VectorProxyType<Setter, Getter, Index>;
+		//inline static const auto Setter = &TransformNode::SetLocalPosition;
+		//inline static const auto Getter = &TransformNode::GetLocalPosition;
+		using value_type = typename ReturnType<decltype(Getter)>::type::value_type;
+
+	private:
+		TransformNode* node;
+
+	public:
+		void Set(value_type value)
+		{
+			auto temp = std::invoke(Getter, node);
+			temp[Index] = value;
+			std::invoke(Setter, node, temp);
+		}
+		value_type Get() const { return std::invoke(Getter, node)[Index]; }
+
+	public:
+		VectorProxyType(TransformNode* node) :
+			node{ node }
+		{
+
+		}
+
+		value_type operator=(const value_type& other)
+		{
+			Set(other);
+			return Get();
+		}
+
+		friend bool operator==(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() == rh;
+		}
+
+		friend bool operator==(const value_type& lh, const proxy_type& rh)
+		{
+			return lh == rh.Get();
+		}
+
+		value_type operator-() const
+		{
+			return -Get();
+		}
+
+		value_type operator+=(const value_type& other)
+		{
+			Set(Get() + other);
+			return Get();
+		}
+
+		value_type operator-=(const value_type& other)
+		{
+			Set(Get() - other);
+			return Get();
+		}
+
+		value_type operator*=(const value_type& other)
+		{
+			Set(Get() * other);
+			return Get();
+		}
+
+		value_type operator/=(const value_type& other)
+		{
+			Set(Get() * other);
+			return Get();
+		}
+
+		friend value_type operator+(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() + rh;
+		}
+
+		friend value_type operator+(const value_type& lh, const proxy_type& rh)
+		{
+			return lh + rh.Get();
+		}
+
+		friend value_type operator-(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() - rh;
+		}
+
+		friend value_type operator-(const value_type& lh, const proxy_type& rh)
+		{
+			return lh - rh.Get();
+		}
+
+		friend value_type operator*(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() * rh;
+		}
+
+		friend value_type operator*(const value_type& lh, const proxy_type& rh)
+		{
+			return lh * rh.Get();
+		}
+
+		friend value_type operator/(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() / rh;
+		}
+
+		friend value_type operator/(const value_type& lh, const proxy_type& rh)
+		{
+			return lh / rh.Get();
+		}
+
+		value_type operator=(const proxy_type& other)
+		{
+			return operator=(other.Get());
+		}
+
+		friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() == rh.Get();
+		}
+
+		value_type operator+=(const proxy_type& other)
+		{
+			return operator+=(other.Get());
+		}
+
+		value_type operator-=(const proxy_type& other)
+		{
+			return operator-=(other.Get());
+		}
+
+		value_type operator*=(const proxy_type& other)
+		{
+			return operator*=(other.Get());
+		}
+
+		value_type operator/=(const proxy_type& other)
+		{
+			return operator/=(other.Get());
+		}
+
+		friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() + rh;
+		}
+
+		friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() - rh;
+		}
+
+		friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() * rh;
+		}
+
+		friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() / rh;
+		}
+
+		operator value_type() const { return Get(); }
+	};
+
+	template<auto Setter, auto Getter>
+		requires std::same_as<typename ReturnType<decltype(Getter)>::type, xk::Math::Vector<float, 3>>
+	class TransformProxyType<Setter, Getter>
+	{
+		using proxy_type = TransformProxyType<Setter, Getter>;
+		using value_type = typename ReturnType<decltype(Getter)>::type;
+		using underlying_type = value_type::value_type;
+
+	private:
+		TransformNode* node;
+
+	public:
+		void Set(value_type value) { std::invoke(Setter, node, value); }
+		value_type Get() const { return std::invoke(Getter, node); }
+
+	public:
+		TransformProxyType(TransformNode* node) :
+			node{ node }
+		{
+
+		}
+
+		value_type operator=(const value_type& other)
+		{
+			Set(other);
+			return Get();
+		}
+
+		friend bool operator==(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() == rh;
+		}
+
+		friend bool operator==(const value_type& lh, const proxy_type& rh)
+		{
+			return lh == rh.Get();
+		}
+
+		value_type operator+=(const value_type& other)
+		{
+			Set(Get() + other);
+			return Get();
+		}
+
+		value_type operator-=(const value_type& other)
+		{
+			Set(Get() - other);
+			return Get();
+		}
+
+		value_type operator-() const
+		{
+			return -Get();
+		}
+
+		//value_type operator*=(const value_type& other)
+		//{
+		//	Set(Get() * other);
+		//	return Get();
+		//}
+
+		//value_type operator/=(const value_type& other)
+		//{
+		//	Set(Get() * other);
+		//	return Get();
+		//}
+
+		friend value_type operator+(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() + rh;
+		}
+
+		friend value_type operator+(const value_type& lh, const proxy_type& rh)
+		{
+			return lh + rh.Get();
+		}
+
+		friend value_type operator-(const proxy_type& lh, const value_type& rh)
+		{
+			return lh.Get() - rh;
+		}
+
+		friend value_type operator-(const value_type& lh, const proxy_type& rh)
+		{
+			return lh - rh.Get();
+		}
+
+		//friend value_type operator*(const proxy_type& lh, const value_type& rh)
+		//{
+		//	return lh.Get() * rh;
+		//}
+
+		//friend value_type operator*(const value_type& lh, const proxy_type& rh)
+		//{
+		//	return lh * rh.Get();
+		//}
+
+		//friend value_type operator/(const proxy_type& lh, const value_type& rh)
+		//{
+		//	return lh.Get() / rh;
+		//}
+
+		//friend value_type operator/(const value_type& lh, const proxy_type& rh)
+		//{
+		//	return lh / rh.Get();
+		//}
+
+		value_type operator=(const proxy_type& other)
+		{
+			return operator=(other.Get());
+		}
+
+		friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() == rh.Get();
+		}
+
+		value_type operator+=(const proxy_type& other)
+		{
+			return operator+=(other.Get());
+		}
+
+		value_type operator-=(const proxy_type& other)
+		{
+			return operator-=(other.Get());
+		}
+
+		//value_type operator*=(const proxy_type& other)
+		//{
+		//	return operator*=(other.Get());
+		//}
+
+		//value_type operator/=(const proxy_type& other)
+		//{
+		//	return operator/=(other.Get());
+		//}
+
+		friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() + rh;
+		}
+
+		friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+		{
+			return lh.Get() - rh;
+		}
+
+		//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+		//{
+		//	return lh.Get() * rh;
+		//}
+
+		//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+		//{
+		//	return lh.Get() / rh;
+		//}
+
+		value_type operator*=(const underlying_type& other)
+		{
+			Set(Get() * other);
+			return Get();
+		}
+
+		value_type operator/=(const underlying_type& other)
+		{
+			Set(Get() * other);
+			return Get();
+		}
+
+		friend value_type operator*(const proxy_type& lh, const underlying_type& rh)
+		{
+			return lh.Get() * rh;
+		}
+
+		friend value_type operator*(const underlying_type& lh, const proxy_type& rh)
+		{
+			return lh * rh.Get();
+		}
+
+		friend value_type operator/(const proxy_type& lh, const underlying_type& rh)
+		{
+			return lh.Get() / rh;
+		}
+
+		//friend value_type operator/(const underlying_type& lh, const proxy_type& rh)
+		//{
+		//	return lh / rh.Get();
+		//}
+
+		VectorProxyType<Setter, Getter, 0> X() { return { node }; };
+		VectorProxyType<Setter, Getter, 1> Y() { return { node }; };
+		VectorProxyType<Setter, Getter, 2> Z() { return { node }; };
+
+		template<size_t... Index>
+		auto Swizzle() { return Get().Swizzle<Index...>(); }
+
+		operator value_type() const { return Get(); }
+	};
 
 	export class TransformNode
 	{
@@ -373,193 +761,7 @@ namespace InsanityFramework
 
 		class LocalTransformProxy
 		{
-			class PositionProxy
-			{
-				using proxy_type = PositionProxy;
-				inline static const auto Setter = &TransformNode::SetLocalPosition;
-				inline static const auto Getter = &TransformNode::GetLocalPosition;
-				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
-				using underlying_type = value_type::value_type;
-
-			private:
-				TransformNode* node;
-
-			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
-				value_type Get() const { return std::invoke(Getter, node); }
-
-			public:
-				PositionProxy(TransformNode* node) :
-					node{ node }
-				{
-
-				}
-
-				value_type operator=(const value_type& other)
-				{
-					Set(other);
-					return Get();
-				}
-
-				friend bool operator==(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() == rh;
-				}
-
-				friend bool operator==(const value_type& lh, const proxy_type& rh)
-				{
-					return lh == rh.Get();
-				}
-
-				value_type operator+=(const value_type& other)
-				{
-					Set(Get() + other);
-					return Get();
-				}
-
-				value_type operator-=(const value_type& other)
-				{
-					Set(Get() - other);
-					return Get();
-				}
-
-				//value_type operator*=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				//value_type operator/=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator+(const value_type& lh, const proxy_type& rh)
-				{
-					return lh + rh.Get();
-				}
-
-				friend value_type operator-(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				friend value_type operator-(const value_type& lh, const proxy_type& rh)
-				{
-					return lh - rh.Get();
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator*(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh * rh.Get();
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				//friend value_type operator/(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				value_type operator=(const proxy_type& other)
-				{
-					return operator=(other.Get());
-				}
-
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() == rh.Get();
-				}
-
-				value_type operator+=(const proxy_type& other)
-				{
-					return operator+=(other.Get());
-				}
-
-				value_type operator-=(const proxy_type& other)
-				{
-					return operator-=(other.Get());
-				}
-
-				//value_type operator*=(const proxy_type& other)
-				//{
-				//	return operator*=(other.Get());
-				//}
-
-				//value_type operator/=(const proxy_type& other)
-				//{
-				//	return operator/=(other.Get());
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				value_type operator*=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				value_type operator/=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				friend value_type operator*(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() * rh;
-				}
-
-				friend value_type operator*(const underlying_type& lh, const proxy_type& rh)
-				{
-					return lh * rh.Get();
-				}
-
-				friend value_type operator/(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() / rh;
-				}
-
-				//friend value_type operator/(const underlying_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				operator value_type() const { return Get(); }
-			};
-
+			using PositionProxy = TransformProxyType<&TransformNode::SetLocalPosition, &TransformNode::GetLocalPosition>;
 			class RotationProxy
 			{
 				using proxy_type = RotationProxy;
@@ -746,193 +948,7 @@ namespace InsanityFramework
 
 				operator value_type() const { return Get(); }
 			};
-
-			class ScaleProxy
-			{
-				using proxy_type = ScaleProxy;
-				inline static const auto Setter = &TransformNode::SetLocalScale;
-				inline static const auto Getter = &TransformNode::GetLocalScale;
-				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
-				using underlying_type = value_type::value_type;
-
-			private:
-				TransformNode* node;
-
-			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
-				value_type Get() const { return std::invoke(Getter, node); }
-
-			public:
-				ScaleProxy(TransformNode* node) :
-					node{ node }
-				{
-
-				}
-
-				value_type operator=(const value_type& other)
-				{
-					Set(other);
-					return Get();
-				}
-
-				friend bool operator==(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() == rh;
-				}
-
-				friend bool operator==(const value_type& lh, const proxy_type& rh)
-				{
-					return lh == rh.Get();
-				}
-
-				value_type operator+=(const value_type& other)
-				{
-					Set(Get() + other);
-					return Get();
-				}
-
-				value_type operator-=(const value_type& other)
-				{
-					Set(Get() - other);
-					return Get();
-				}
-
-				//value_type operator*=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				//value_type operator/=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator+(const value_type& lh, const proxy_type& rh)
-				{
-					return lh + rh.Get();
-				}
-
-				friend value_type operator-(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				friend value_type operator-(const value_type& lh, const proxy_type& rh)
-				{
-					return lh - rh.Get();
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator*(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh * rh.Get();
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				//friend value_type operator/(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				value_type operator=(const proxy_type& other)
-				{
-					return operator=(other.Get());
-				}
-
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() == rh.Get();
-				}
-
-				value_type operator+=(const proxy_type& other)
-				{
-					return operator+=(other.Get());
-				}
-
-				value_type operator-=(const proxy_type& other)
-				{
-					return operator-=(other.Get());
-				}
-
-				//value_type operator*=(const proxy_type& other)
-				//{
-				//	return operator*=(other.Get());
-				//}
-
-				//value_type operator/=(const proxy_type& other)
-				//{
-				//	return operator/=(other.Get());
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				value_type operator*=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				value_type operator/=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				friend value_type operator*(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() * rh;
-				}
-
-				friend value_type operator*(const underlying_type& lh, const proxy_type& rh)
-				{
-					return lh * rh.Get();
-				}
-
-				friend value_type operator/(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() / rh;
-				}
-
-				//friend value_type operator/(const underlying_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				operator value_type() const { return Get(); }
-			};
+			using ScaleProxy = TransformProxyType<&TransformNode::SetLocalScale, &TransformNode::GetLocalScale>;
 
 
 			using proxy_type = LocalTransformProxy;
@@ -1041,193 +1057,7 @@ namespace InsanityFramework
 
 		class WorldTransformProxy
 		{
-			class PositionProxy
-			{
-				using proxy_type = PositionProxy;
-				inline static const auto Setter = &TransformNode::SetWorldPosition;
-				inline static const auto Getter = &TransformNode::GetWorldPosition;
-				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
-				using underlying_type = value_type::value_type;
-
-			private:
-				TransformNode* node;
-
-			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
-				value_type Get() const { return std::invoke(Getter, node); }
-
-			public:
-				PositionProxy(TransformNode* node) :
-					node{ node }
-				{
-
-				}
-
-				value_type operator=(const value_type& other)
-				{
-					Set(other);
-					return Get();
-				}
-
-				friend bool operator==(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() == rh;
-				}
-
-				friend bool operator==(const value_type& lh, const proxy_type& rh)
-				{
-					return lh == rh.Get();
-				}
-
-				value_type operator+=(const value_type& other)
-				{
-					Set(Get() + other);
-					return Get();
-				}
-
-				value_type operator-=(const value_type& other)
-				{
-					Set(Get() - other);
-					return Get();
-				}
-
-				//value_type operator*=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				//value_type operator/=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator+(const value_type& lh, const proxy_type& rh)
-				{
-					return lh + rh.Get();
-				}
-
-				friend value_type operator-(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				friend value_type operator-(const value_type& lh, const proxy_type& rh)
-				{
-					return lh - rh.Get();
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator*(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh * rh.Get();
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				//friend value_type operator/(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				value_type operator=(const proxy_type& other)
-				{
-					return operator=(other.Get());
-				}
-
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() == rh.Get();
-				}
-
-				value_type operator+=(const proxy_type& other)
-				{
-					return operator+=(other.Get());
-				}
-
-				value_type operator-=(const proxy_type& other)
-				{
-					return operator-=(other.Get());
-				}
-
-				//value_type operator*=(const proxy_type& other)
-				//{
-				//	return operator*=(other.Get());
-				//}
-
-				//value_type operator/=(const proxy_type& other)
-				//{
-				//	return operator/=(other.Get());
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				value_type operator*=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				value_type operator/=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				friend value_type operator*(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() * rh;
-				}
-
-				friend value_type operator*(const underlying_type& lh, const proxy_type& rh)
-				{
-					return lh * rh.Get();
-				}
-
-				friend value_type operator/(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() / rh;
-				}
-
-				//friend value_type operator/(const underlying_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				operator value_type() const { return Get(); }
-			};
-
+			using PositionProxy = TransformProxyType<&TransformNode::SetWorldPosition, &TransformNode::GetWorldPosition>;
 			class RotationProxy
 			{
 				using proxy_type = RotationProxy;
@@ -1414,194 +1244,7 @@ namespace InsanityFramework
 
 				operator value_type() const { return Get(); }
 			};
-
-			class ScaleProxy
-			{
-				using proxy_type = ScaleProxy;
-				inline static const auto Setter = &TransformNode::SetWorldScale;
-				inline static const auto Getter = &TransformNode::GetWorldScale;
-				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
-				using underlying_type = value_type::value_type;
-
-			private:
-				TransformNode* node;
-
-			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
-				value_type Get() const { return std::invoke(Getter, node); }
-
-			public:
-				ScaleProxy(TransformNode* node) :
-					node{ node }
-				{
-
-				}
-
-				value_type operator=(const value_type& other)
-				{
-					Set(other);
-					return Get();
-				}
-
-				friend bool operator==(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() == rh;
-				}
-
-				friend bool operator==(const value_type& lh, const proxy_type& rh)
-				{
-					return lh == rh.Get();
-				}
-
-				value_type operator+=(const value_type& other)
-				{
-					Set(Get() + other);
-					return Get();
-				}
-
-				value_type operator-=(const value_type& other)
-				{
-					Set(Get() - other);
-					return Get();
-				}
-
-				//value_type operator*=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				//value_type operator/=(const value_type& other)
-				//{
-				//	Set(Get() * other);
-				//	return Get();
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator+(const value_type& lh, const proxy_type& rh)
-				{
-					return lh + rh.Get();
-				}
-
-				friend value_type operator-(const proxy_type& lh, const value_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				friend value_type operator-(const value_type& lh, const proxy_type& rh)
-				{
-					return lh - rh.Get();
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator*(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh * rh.Get();
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const value_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				//friend value_type operator/(const value_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				value_type operator=(const proxy_type& other)
-				{
-					return operator=(other.Get());
-				}
-
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() == rh.Get();
-				}
-
-				value_type operator+=(const proxy_type& other)
-				{
-					return operator+=(other.Get());
-				}
-
-				value_type operator-=(const proxy_type& other)
-				{
-					return operator-=(other.Get());
-				}
-
-				//value_type operator*=(const proxy_type& other)
-				//{
-				//	return operator*=(other.Get());
-				//}
-
-				//value_type operator/=(const proxy_type& other)
-				//{
-				//	return operator/=(other.Get());
-				//}
-
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() + rh;
-				}
-
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
-				{
-					return lh.Get() - rh;
-				}
-
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() * rh;
-				//}
-
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
-				//{
-				//	return lh.Get() / rh;
-				//}
-
-				value_type operator*=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				value_type operator/=(const underlying_type& other)
-				{
-					Set(Get() * other);
-					return Get();
-				}
-
-				friend value_type operator*(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() * rh;
-				}
-
-				friend value_type operator*(const underlying_type& lh, const proxy_type& rh)
-				{
-					return lh * rh.Get();
-				}
-
-				friend value_type operator/(const proxy_type& lh, const underlying_type& rh)
-				{
-					return lh.Get() / rh;
-				}
-
-				//friend value_type operator/(const underlying_type& lh, const proxy_type& rh)
-				//{
-				//	return lh / rh.Get();
-				//}
-
-				operator value_type() const { return Get(); }
-			};
-
+			using ScaleProxy = TransformProxyType<&TransformNode::SetWorldScale, &TransformNode::GetWorldScale>;
 
 			using proxy_type = WorldTransformProxy;
 			inline static const auto Setter = &TransformNode::SetWorldTransform;
@@ -1707,4 +1350,6 @@ namespace InsanityFramework
 			operator value_type() const { return Get(); }
 		};
 	};
+
+
 }
