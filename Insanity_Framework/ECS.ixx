@@ -40,8 +40,27 @@ namespace InsanityFramework
 
 	export class TransformNode;
 
-	export struct LocalTransformType : Transform {};
-	export struct WorldTransformType : Transform {};
+	export struct LocalTransformType
+	{
+		Transform value;
+	};
+
+	export struct WorldTransformType
+	{
+		Transform value;
+	};
+
+	export struct LocalTransformInitializer
+	{
+		TransformNode* parent = nullptr;
+		LocalTransformType transform;
+	};
+
+	export struct WorldTransformInitializer
+	{
+		TransformNode* parent = nullptr;
+		WorldTransformType transform;
+	};
 
 	enum class TransformDestructorLogic
 	{
@@ -70,6 +89,24 @@ namespace InsanityFramework
 
 	public:
 		TransformNode() = default;
+
+		TransformNode(TransformNode* parent)
+		{
+			SetParent(parent);
+		}
+
+		TransformNode(LocalTransformInitializer initializer)
+		{
+			SetParent(initializer.parent);
+			SetLocalTransform(initializer.transform.value);
+		}
+
+		TransformNode(WorldTransformInitializer initializer)
+		{
+			SetParent(initializer.parent);
+			SetWorldTransform(initializer.transform.value);
+		}
+
 		TransformNode(const TransformNode&) = delete;
 		TransformNode(TransformNode&& other) noexcept
 		{
@@ -128,23 +165,6 @@ namespace InsanityFramework
 			}
 
 			SetParent(nullptr);
-		}
-
-		TransformNode(TransformNode* parent)
-		{
-			SetParent(parent);
-		}
-
-		TransformNode(LocalTransformType transform, TransformNode* parent)
-		{
-			SetParent(parent);
-			SetLocalTransform(transform);
-		}
-
-		TransformNode(WorldTransformType transform, TransformNode* parent)
-		{
-			SetParent(parent);
-			SetWorldTransform(transform);
 		}
 
 		void SetParent(TransformNode* newParent)
