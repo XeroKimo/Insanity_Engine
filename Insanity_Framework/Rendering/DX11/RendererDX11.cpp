@@ -10,7 +10,8 @@ module;
 #include <d3dcompiler.h>
 #include <cmath>
 #include <filesystem>
-
+#include <d3dcommon.h>
+#include <dxgidebug.h>
 #include <SDL2/SDL_image.h>
 #include <numbers>
 #include <cassert>
@@ -61,14 +62,16 @@ namespace InsanityFramework
 			data.pSysMem = pixels.data();
 			data.SysMemPitch = surface->pitch * 4;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+			buffer->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
 			{
 				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
 				.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
 				.Texture2D = { 0, 1 }
 			};
-
-			return device->CreateShaderResourceView(buffer, &viewDesc);
+			auto temp = device->CreateShaderResourceView(buffer, &viewDesc);
+			temp->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+			return temp;
 		}
 		else
 		{
@@ -76,6 +79,7 @@ namespace InsanityFramework
 			data.pSysMem = surface->pixels;
 			data.SysMemPitch = surface->pitch;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+			buffer->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
 			{
 				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -83,7 +87,9 @@ namespace InsanityFramework
 				.Texture2D = { 0, 1 }
 			};
 
-			return device->CreateShaderResourceView(buffer, &viewDesc);
+			auto temp = device->CreateShaderResourceView(buffer, &viewDesc);
+			temp->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+			return temp;
 		}
 	}
 
@@ -121,7 +127,9 @@ namespace InsanityFramework
 	RendererDX11::~RendererDX11()
 	{
 		if(m_debugDevice)
-			m_debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_FLAGS::D3D11_RLDO_DETAIL);
+		{
+			m_debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_FLAGS::D3D11_RLDO_SUMMARY | D3D11_RLDO_FLAGS::D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+		}
 	}
 
 	Camera::Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective) :

@@ -66,6 +66,11 @@ namespace InsanityFramework
 			func(pipeline.MakeRenderInterface(*this));
 		}
 
+		void DebugPrintMemory()
+		{
+			m_debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+		}
+
 		TypedD3D11::Wrapper<ID3D11Device> GetDevice() const { return m_device; }
 		TypedD3D11::Wrapper<ID3D11DeviceContext> GetDeviceContext() const { return m_deviceContext; }
 		TypedD3D11::Wrapper<IDXGISwapChain1> GetSwapChain() const { return m_swapChain; }
