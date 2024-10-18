@@ -6,6 +6,7 @@
 			"name": "sdl2",
 			"platform": "windows"
 		},
+		"sdl2-image",
 		{
 			"name": "glm",
 			"platform": "windows"
