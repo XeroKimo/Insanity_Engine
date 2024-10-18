@@ -11,7 +11,9 @@ module;
 #include <cmath>
 #include <filesystem>
 #include <d3dcommon.h>
+#ifdef _DEBUG
 #include <dxgidebug.h>
+#endif
 #include <SDL2/SDL_image.h>
 #include <numbers>
 #include <cassert>
@@ -62,7 +64,10 @@ namespace InsanityFramework
 			data.pSysMem = pixels.data();
 			data.SysMemPitch = surface->pitch * 4;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+
+#ifdef _DEBUG
 			buffer->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+#endif
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
 			{
 				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -70,7 +75,9 @@ namespace InsanityFramework
 				.Texture2D = { 0, 1 }
 			};
 			auto temp = device->CreateShaderResourceView(buffer, &viewDesc);
+#ifdef _DEBUG
 			temp->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+#endif
 			return temp;
 		}
 		else
@@ -79,7 +86,9 @@ namespace InsanityFramework
 			data.pSysMem = surface->pixels;
 			data.SysMemPitch = surface->pitch;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
+#ifdef _DEBUG
 			buffer->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+#endif
 			D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc
 			{
 				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -88,7 +97,10 @@ namespace InsanityFramework
 			};
 
 			auto temp = device->CreateShaderResourceView(buffer, &viewDesc);
+
+#ifdef _DEBUG
 			temp->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
+#endif
 			return temp;
 		}
 	}
