@@ -18,6 +18,7 @@ module;
 #include <numbers>
 #include <cassert>
 module InsanityFramework.RendererDX11;
+import SDL2pp;
 
 using namespace TypedD3D;
 
@@ -25,11 +26,11 @@ namespace InsanityFramework
 {
 	TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device)
 	{
-		SDL_Surface* surface = IMG_Load(path.string().c_str());
+		SDL2pp::unique_ptr<SDL_Surface> surface = IMG_Load(path.string().c_str());
 		D3D11_TEXTURE2D_DESC textDesc
 		{
-			.Width = static_cast<UINT>(surface->w),
-			.Height = static_cast<UINT>(surface->h),
+			.Width = static_cast<UINT>(surface.get()->w),
+			.Height = static_cast<UINT>(surface.get()->h),
 			.MipLevels = 1,
 			.ArraySize = 1,
 			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -40,20 +41,20 @@ namespace InsanityFramework
 			.MiscFlags = 0
 		};
 
-		if(SDL_PIXELTYPE(surface->format->format) == SDL_PIXELTYPE_INDEX8)
+		if(SDL_PIXELTYPE(surface.get()->format->format) == SDL_PIXELTYPE_INDEX8)
 		{
 			std::vector<char> pixels;
-			pixels.resize(surface->pitch * surface->h * 4);
-			char* refPixels = static_cast<char*>(surface->pixels);
-			surface->format->palette->colors[0].a = 0;
+			pixels.resize(surface.get()->pitch * surface.get()->h * 4);
+			char* refPixels = static_cast<char*>(surface.get()->pixels);
+			surface.get()->format->palette->colors[0].a = 0;
 
 			for(int i = 0; i < pixels.size(); i += 4)
 			{
 				int paletteIndex = refPixels[i / 4];
-				int x = (i / 4) % surface->w;
-				int y = (i / 4) / surface->h;
-				assert(paletteIndex < surface->format->palette->ncolors);
-				SDL_Color color = surface->format->palette->colors[paletteIndex];
+				int x = (i / 4) % surface.get()->w;
+				int y = (i / 4) / surface.get()->h;
+				assert(paletteIndex < surface.get()->format->palette->ncolors);
+				SDL_Color color = surface.get()->format->palette->colors[paletteIndex];
 				pixels[i] = color.r;
 				pixels[i + 1] = color.g;
 				pixels[i + 2] = color.b;
@@ -62,7 +63,7 @@ namespace InsanityFramework
 
 			D3D11_SUBRESOURCE_DATA data{};
 			data.pSysMem = pixels.data();
-			data.SysMemPitch = surface->pitch * 4;
+			data.SysMemPitch = surface.get()->pitch * 4;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
 
 #ifdef _DEBUG
@@ -83,8 +84,8 @@ namespace InsanityFramework
 		else
 		{
 			D3D11_SUBRESOURCE_DATA data{};
-			data.pSysMem = surface->pixels;
-			data.SysMemPitch = surface->pitch;
+			data.pSysMem = surface.get()->pixels;
+			data.SysMemPitch = surface.get()->pitch;
 			TypedD3D11::Wrapper<ID3D11Texture2D> buffer = device->CreateTexture2D(textDesc, &data);
 #ifdef _DEBUG
 			buffer->SetPrivateData(WKPDID_D3DDebugObjectName, path.stem().string().size(), path.stem().string().data());
