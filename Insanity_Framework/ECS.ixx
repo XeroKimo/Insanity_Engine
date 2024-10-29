@@ -193,22 +193,24 @@ namespace InsanityFramework
 	};
 
 	
-	template<auto Setter, auto Getter>
+	template<bool IsConst, auto Setter, auto Getter>
 	class TransformProxyType;
 
-	template<auto Setter, auto Getter, size_t Index>
+	template<bool IsConst, auto Setter, auto Getter, size_t Index>
 	class VectorProxyType
 	{
-		using proxy_type = VectorProxyType<Setter, Getter, Index>;
-		//inline static const auto Setter = &TransformNode::SetLocalPosition;
-		//inline static const auto Getter = &TransformNode::GetLocalPosition;
+		using proxy_type = VectorProxyType<IsConst, Setter, Getter, Index>;
+
+		template<bool OtherConst>
+		using proxy_template_type = VectorProxyType<OtherConst, Setter, Getter, Index>;
 		using value_type = typename ReturnType<decltype(Getter)>::type::value_type;
+		using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
 
 	private:
-		TransformNode* node;
+		node_pointer_type node;
 
 	public:
-		void Set(value_type value)
+		void Set(value_type value) requires(!IsConst)
 		{
 			auto temp = std::invoke(Getter, node);
 			temp[Index] = value;
@@ -217,13 +219,13 @@ namespace InsanityFramework
 		value_type Get() const { return std::invoke(Getter, node)[Index]; }
 
 	public:
-		VectorProxyType(TransformNode* node) :
+		VectorProxyType(node_pointer_type node) :
 			node{ node }
 		{
 
 		}
 
-		value_type operator=(const value_type& other)
+		value_type operator=(const value_type& other) requires(!IsConst)
 		{
 			Set(other);
 			return Get();
@@ -244,25 +246,25 @@ namespace InsanityFramework
 			return -Get();
 		}
 
-		value_type operator+=(const value_type& other)
+		value_type operator+=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() + other);
 			return Get();
 		}
 
-		value_type operator-=(const value_type& other)
+		value_type operator-=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() - other);
 			return Get();
 		}
 
-		value_type operator*=(const value_type& other)
+		value_type operator*=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() * other);
 			return Get();
 		}
 
-		value_type operator/=(const value_type& other)
+		value_type operator/=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() * other);
 			return Get();
@@ -308,52 +310,62 @@ namespace InsanityFramework
 			return lh / rh.Get();
 		}
 
-		value_type operator=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator=(other.Get());
 		}
 
-		friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() == rh.Get();
 		}
 
-		value_type operator+=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator+=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator+=(other.Get());
 		}
 
-		value_type operator-=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator-=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator-=(other.Get());
 		}
 
-		value_type operator*=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator*=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator*=(other.Get());
 		}
 
-		value_type operator/=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator/=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator/=(other.Get());
 		}
 
-		friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() + rh;
 		}
 
-		friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() - rh;
 		}
 
-		friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator*(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() * rh;
 		}
 
-		friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator/(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() / rh;
 		}
@@ -361,29 +373,33 @@ namespace InsanityFramework
 		operator value_type() const { return Get(); }
 	};
 
-	template<auto Setter, auto Getter>
+	template<bool IsConst, auto Setter, auto Getter>
 		requires std::same_as<typename ReturnType<decltype(Getter)>::type, xk::Math::Vector<float, 3>>
-	class TransformProxyType<Setter, Getter>
+	class TransformProxyType<IsConst, Setter, Getter>
 	{
-		using proxy_type = TransformProxyType<Setter, Getter>;
+		using proxy_type = TransformProxyType<IsConst, Setter, Getter>;
+
+		template<bool OtherConst>
+		using proxy_template_type = TransformProxyType<OtherConst, Setter, Getter>;
 		using value_type = typename ReturnType<decltype(Getter)>::type;
 		using underlying_type = value_type::value_type;
+		using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
 
 	private:
-		TransformNode* node;
+		node_pointer_type node;
 
 	public:
-		void Set(value_type value) { std::invoke(Setter, node, value); }
+		void Set(value_type value) requires(!IsConst) { std::invoke(Setter, node, value); }
 		value_type Get() const { return std::invoke(Getter, node); }
 
 	public:
-		TransformProxyType(TransformNode* node) :
+		TransformProxyType(node_pointer_type node) :
 			node{ node }
 		{
 
 		}
 
-		value_type operator=(const value_type& other)
+		value_type operator=(const value_type& other) requires(!IsConst)
 		{
 			Set(other);
 			return Get();
@@ -399,13 +415,13 @@ namespace InsanityFramework
 			return lh == rh.Get();
 		}
 
-		value_type operator+=(const value_type& other)
+		value_type operator+=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() + other);
 			return Get();
 		}
 
-		value_type operator-=(const value_type& other)
+		value_type operator-=(const value_type& other) requires(!IsConst)
 		{
 			Set(Get() - other);
 			return Get();
@@ -468,52 +484,58 @@ namespace InsanityFramework
 		//	return lh / rh.Get();
 		//}
 
-		value_type operator=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator=(other.Get());
 		}
 
-		friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() == rh.Get();
 		}
 
-		value_type operator+=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator+=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator+=(other.Get());
 		}
 
-		value_type operator-=(const proxy_type& other)
+		template<bool OtherConst>
+		value_type operator-=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 		{
 			return operator-=(other.Get());
 		}
 
-		//value_type operator*=(const proxy_type& other)
+		//value_type operator*=(const proxy_template_type<OtherConst>& other)
 		//{
 		//	return operator*=(other.Get());
 		//}
 
-		//value_type operator/=(const proxy_type& other)
+		//value_type operator/=(const proxy_template_type<OtherConst>& other)
 		//{
 		//	return operator/=(other.Get());
 		//}
 
-		friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() + rh;
 		}
 
-		friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+		template<bool OtherConst>
+		friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		{
 			return lh.Get() - rh;
 		}
 
-		//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+		//friend value_type operator*(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		//{
 		//	return lh.Get() * rh;
 		//}
 
-		//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+		//friend value_type operator/(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 		//{
 		//	return lh.Get() / rh;
 		//}
@@ -550,12 +572,12 @@ namespace InsanityFramework
 		//	return lh / rh.Get();
 		//}
 
-		VectorProxyType<Setter, Getter, 0> X() { return { node }; };
-		VectorProxyType<Setter, Getter, 1> Y() { return { node }; };
-		VectorProxyType<Setter, Getter, 2> Z() { return { node }; };
+		VectorProxyType<IsConst, Setter, Getter, 0> X() const { return { node }; };
+		VectorProxyType<IsConst, Setter, Getter, 1> Y() const { return { node }; };
+		VectorProxyType<IsConst, Setter, Getter, 2> Z() const { return { node }; };
 
 		template<size_t... Index>
-		auto Swizzle() { return Get().Swizzle<Index...>(); }
+		auto Swizzle() const { return Get().Swizzle<Index...>(); }
 
 		operator value_type() const { return Get(); }
 	};
@@ -563,7 +585,10 @@ namespace InsanityFramework
 	export class TransformNode
 	{
 	private:
+		template<bool IsConst>
 		class LocalTransformProxy;
+
+		template<bool IsConst>
 		class WorldTransformProxy;
 
 	private:
@@ -692,12 +717,22 @@ namespace InsanityFramework
 			return { children };
 		}
 
-		LocalTransformProxy LocalTransform()
+		LocalTransformProxy<false> LocalTransform()
 		{
 			return { this };
 		}
 
-		WorldTransformProxy WorldTransform()
+		LocalTransformProxy<true> LocalTransform() const
+		{
+			return { this };
+		}
+
+		WorldTransformProxy<false> WorldTransform()
+		{
+			return { this };
+		}
+
+		WorldTransformProxy<true> WorldTransform() const
 		{
 			return { this };
 		}
@@ -860,32 +895,40 @@ namespace InsanityFramework
 			worldCacheDirty = false;
 		}
 
+		template<bool IsConst>
 		class LocalTransformProxy
 		{
-			using PositionProxy = TransformProxyType<&TransformNode::SetLocalPosition, &TransformNode::GetLocalPosition>;
-			class RotationProxy
+			using PositionProxy = TransformProxyType<IsConst, &TransformNode::SetLocalPosition, &TransformNode::GetLocalPosition>;
+			template<bool IsConst>
+			class RotationProxyType
 			{
-				using proxy_type = RotationProxy;
+				using proxy_type = RotationProxyType<IsConst>;
+
+				template<bool OtherConst>
+				using proxy_template_type = RotationProxyType<OtherConst>;
+
 				inline static const auto Setter = &TransformNode::SetLocalRotation;
 				inline static const auto Getter = &TransformNode::GetLocalRotation;
 				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
-				using underlying_type = value_type::value_type;
+				using underlying_type = value_type::value_type;			
+				using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
+
 
 			private:
-				TransformNode* node;
+				node_pointer_type* node;
 
 			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
+				void Set(value_type value) requires(!IsConst){ std::invoke(Setter, node, value); }
 				value_type Get() const { return std::invoke(Getter, node); }
 
 			public:
-				RotationProxy(TransformNode* node) :
+				RotationProxyType(node_pointer_type* node) :
 					node{ node }
 				{
 
 				}
 
-				value_type operator=(const value_type& other)
+				value_type operator=(const value_type& other) requires(!IsConst)
 				{
 					Set(other);
 					return Get();
@@ -901,13 +944,13 @@ namespace InsanityFramework
 					return lh == rh.Get();
 				}
 
-				value_type operator+=(const value_type& other)
+				value_type operator+=(const value_type& other) requires(!IsConst)
 				{
 					Set(Get() + other);
 					return Get();
 				}
 
-				value_type operator-=(const value_type& other)
+				value_type operator-=(const value_type& other) requires(!IsConst)
 				{
 					Set(Get() - other);
 					return Get();
@@ -965,52 +1008,58 @@ namespace InsanityFramework
 				//	return lh / rh.Get();
 				//}
 
-				value_type operator=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator=(other.Get());
 				}
 
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() == rh.Get();
 				}
 
-				value_type operator+=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator+=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator+=(other.Get());
 				}
 
-				value_type operator-=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator-=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator-=(other.Get());
 				}
 
-				//value_type operator*=(const proxy_type& other)
+				//value_type operator*=(const proxy_template_type<OtherConst>& other)
 				//{
 				//	return operator*=(other.Get());
 				//}
 
-				//value_type operator/=(const proxy_type& other)
+				//value_type operator/=(const proxy_template_type<OtherConst>& other)
 				//{
 				//	return operator/=(other.Get());
 				//}
 
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() + rh;
 				}
 
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() - rh;
 				}
 
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+				//friend value_type operator*(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				//{
 				//	return lh.Get() * rh;
 				//}
 
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+				//friend value_type operator/(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				//{
 				//	return lh.Get() / rh;
 				//}
@@ -1049,33 +1098,37 @@ namespace InsanityFramework
 
 				operator value_type() const { return Get(); }
 			};
-			using ScaleProxy = TransformProxyType<&TransformNode::SetLocalScale, &TransformNode::GetLocalScale>;
+			using RotationProxy = RotationProxyType<IsConst>;
+			using ScaleProxy = TransformProxyType<IsConst, &TransformNode::SetLocalScale, &TransformNode::GetLocalScale>;
 
 
 			using proxy_type = LocalTransformProxy;
+			template<bool OtherConst>
+			using proxy_template_type = LocalTransformProxy<OtherConst>;
 			inline static const auto Setter = &TransformNode::SetLocalTransform;
 			inline static const auto Getter = &TransformNode::GetLocalTransform;
 			using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
+			using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
 
 		private:
-			TransformNode* node;
+			node_pointer_type node;
 
 		public:
-			void Set(value_type value) { std::invoke(Setter, node, value); }
+			void Set(value_type value) requires(!IsConst) { std::invoke(Setter, node, value); }
 			value_type Get() const { return std::invoke(Getter, node); }
 
-			PositionProxy Position() { return PositionProxy{ node }; }
-			RotationProxy Rotation() { return RotationProxy{ node }; }
-			ScaleProxy Scale() { return ScaleProxy{ node }; }
+			PositionProxy Position() const { return PositionProxy{ node }; }
+			RotationProxy Rotation() const { return RotationProxy{ node }; }
+			ScaleProxy Scale()       const { return ScaleProxy{ node }; }
 
 		public:
-			LocalTransformProxy(TransformNode* node) :
+			LocalTransformProxy(node_pointer_type node) :
 				node{ node }
 			{
 
 			}
 
-			value_type operator=(const value_type& other)
+			value_type operator=(const value_type& other) requires (!IsConst) 
 			{
 				Set(other);
 				return Get();
@@ -1091,13 +1144,13 @@ namespace InsanityFramework
 				return lh == rh.Get();
 			}
 
-			value_type operator+=(const value_type& other)
+			value_type operator+=(const value_type& other) requires (!IsConst)
 			{
 				Set(Get() + other);
 				return Get();
 			}
 
-			value_type operator-=(const value_type& other)
+			value_type operator-=(const value_type& other) requires (!IsConst)
 			{
 				Set(Get() - other);
 				return Get();
@@ -1123,32 +1176,38 @@ namespace InsanityFramework
 				return lh - rh.Get();
 			}
 
-			value_type operator=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator=(other.Get());
 			}
 
-			friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() == rh.Get();
 			}
 
-			value_type operator+=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator+=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator+=(other.Get());
 			}
 
-			value_type operator-=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator-=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator-=(other.Get());
 			}
 
-			friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() + rh;
 			}
 
-			friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() - rh;
 			}
@@ -1156,32 +1215,41 @@ namespace InsanityFramework
 			operator value_type() const { return Get(); }
 		};
 
+
+		template<bool IsConst>
 		class WorldTransformProxy
 		{
-			using PositionProxy = TransformProxyType<&TransformNode::SetWorldPosition, &TransformNode::GetWorldPosition>;
-			class RotationProxy
+			using PositionProxy = TransformProxyType<IsConst, &TransformNode::SetWorldPosition, &TransformNode::GetWorldPosition>;
+			template<bool IsConst>
+			class RotationProxyType
 			{
-				using proxy_type = RotationProxy;
+				using proxy_type = RotationProxyType<IsConst>;
+
+				template<bool OtherConst>
+				using proxy_template_type = RotationProxyType<OtherConst>;
+
 				inline static const auto Setter = &TransformNode::SetWorldRotation;
 				inline static const auto Getter = &TransformNode::GetWorldRotation;
 				using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
 				using underlying_type = value_type::value_type;
+				using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
+
 
 			private:
-				TransformNode* node;
+				node_pointer_type node;
 
 			public:
-				void Set(value_type value) { std::invoke(Setter, node, value); }
+				void Set(value_type value)  { std::invoke(Setter, node, value); }
 				value_type Get() const { return std::invoke(Getter, node); }
 
 			public:
-				RotationProxy(TransformNode* node) :
+				RotationProxyType(node_pointer_type node) :
 					node{ node }
 				{
 
 				}
 
-				value_type operator=(const value_type& other)
+				value_type operator=(const value_type& other) requires(!IsConst)
 				{
 					Set(other);
 					return Get();
@@ -1197,13 +1265,13 @@ namespace InsanityFramework
 					return lh == rh.Get();
 				}
 
-				value_type operator+=(const value_type& other)
+				value_type operator+=(const value_type& other) requires(!IsConst)
 				{
 					Set(Get() + other);
 					return Get();
 				}
 
-				value_type operator-=(const value_type& other)
+				value_type operator-=(const value_type& other) requires(!IsConst)
 				{
 					Set(Get() - other);
 					return Get();
@@ -1261,52 +1329,58 @@ namespace InsanityFramework
 				//	return lh / rh.Get();
 				//}
 
-				value_type operator=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator=(other.Get());
 				}
 
-				friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() == rh.Get();
 				}
 
-				value_type operator+=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator+=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator+=(other.Get());
 				}
 
-				value_type operator-=(const proxy_type& other)
+				template<bool OtherConst>
+				value_type operator-=(const proxy_template_type<OtherConst>& other) requires(!IsConst)
 				{
 					return operator-=(other.Get());
 				}
 
-				//value_type operator*=(const proxy_type& other)
+				//value_type operator*=(const proxy_template_type<OtherConst>& other)
 				//{
 				//	return operator*=(other.Get());
 				//}
 
-				//value_type operator/=(const proxy_type& other)
+				//value_type operator/=(const proxy_template_type<OtherConst>& other)
 				//{
 				//	return operator/=(other.Get());
 				//}
 
-				friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() + rh;
 				}
 
-				friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+				template<bool OtherConst>
+				friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				{
 					return lh.Get() - rh;
 				}
 
-				//friend value_type operator*(const proxy_type& lh, const proxy_type& rh)
+				//friend value_type operator*(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				//{
 				//	return lh.Get() * rh;
 				//}
 
-				//friend value_type operator/(const proxy_type& lh, const proxy_type& rh)
+				//friend value_type operator/(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 				//{
 				//	return lh.Get() / rh;
 				//}
@@ -1345,32 +1419,38 @@ namespace InsanityFramework
 
 				operator value_type() const { return Get(); }
 			};
-			using ScaleProxy = TransformProxyType<&TransformNode::SetWorldScale, &TransformNode::GetWorldScale>;
+			using RotationProxy = RotationProxyType<IsConst>;
+			using ScaleProxy = TransformProxyType<IsConst, &TransformNode::SetWorldScale, &TransformNode::GetWorldScale>;
 
 			using proxy_type = WorldTransformProxy;
+
+			template<bool OtherConst>
+			using proxy_template_type = WorldTransformProxy<OtherConst>;
+
 			inline static const auto Setter = &TransformNode::SetWorldTransform;
 			inline static const auto Getter = &TransformNode::GetWorldTransform;
 			using value_type = decltype(std::invoke(Getter, std::declval<TransformNode*>()));
+			using node_pointer_type = std::conditional_t<IsConst, const TransformNode*, TransformNode*>;
 
 		private:
-			TransformNode* node;
+			node_pointer_type node;
 
 		public:
-			void Set(value_type value) { std::invoke(Setter, node, value); }
+			void Set(value_type value) requires (!IsConst) { std::invoke(Setter, node, value); }
 			value_type Get() const { return std::invoke(Getter, node); }
 
-			PositionProxy Position() { return PositionProxy{ node }; }
-			RotationProxy Rotation() { return RotationProxy{ node }; }
-			ScaleProxy Scale() { return ScaleProxy{ node }; }
+			PositionProxy Position() const { return PositionProxy{ node }; }
+			RotationProxy Rotation() const { return RotationProxy{ node }; }
+			ScaleProxy Scale() const { return ScaleProxy{ node }; }
 
 		public:
-			WorldTransformProxy(TransformNode* node) :
+			WorldTransformProxy(node_pointer_type node) :
 				node{ node }
 			{
 
 			}
 
-			value_type operator=(const value_type& other)
+			value_type operator=(const value_type& other) requires (!IsConst)
 			{
 				Set(other);
 				return Get();
@@ -1386,14 +1466,14 @@ namespace InsanityFramework
 				return lh == rh.Get();
 			}
 
-			value_type operator+=(const value_type& other)
+			value_type operator+=(const value_type& other) requires (!IsConst)
 			{
 				Set(Get() + other);
 				return Get();
 			}
 
-			value_type operator-=(const value_type& other)
-			{
+			value_type operator-=(const value_type& other) requires (!IsConst)
+			{ 
 				Set(Get() - other);
 				return Get();
 			}
@@ -1418,32 +1498,38 @@ namespace InsanityFramework
 				return lh - rh.Get();
 			}
 
-			value_type operator=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator=(other.Get());
 			}
 
-			friend bool operator==(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend bool operator==(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() == rh.Get();
 			}
 
-			value_type operator+=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator+=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator+=(other.Get());
 			}
 
-			value_type operator-=(const proxy_type& other)
+			template<bool OtherConst>
+			value_type operator-=(const proxy_template_type<OtherConst>& other) requires (!IsConst)
 			{
 				return operator-=(other.Get());
 			}
 
-			friend value_type operator+(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend value_type operator+(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() + rh;
 			}
 
-			friend value_type operator-(const proxy_type& lh, const proxy_type& rh)
+			template<bool OtherConst>
+			friend value_type operator-(const proxy_type& lh, const proxy_template_type<OtherConst>& rh)
 			{
 				return lh.Get() - rh;
 			}
