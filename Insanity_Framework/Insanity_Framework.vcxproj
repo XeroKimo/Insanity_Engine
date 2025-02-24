@@ -53,26 +53,17 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ExceptionHierarchy\ExceptionHierarchy\ExceptionHierarchy.vcxproj">
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)ExceptionHierarchy\ExceptionHierarchy\ExceptionHierarchy.vcxproj">
       <Project>{bb10395f-ced5-4f0d-bc01-8740a181207d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\TypedD3D\TypedD3D\TypedD3D12.vcxproj">
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)TypedD3D\TypedD3D\TypedD3D12.vcxproj">
       <Project>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\xkMath\xkMath\xkMath.vcxproj">
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)xkMath\xkMath\xkMath.vcxproj">
       <Project>{68f6959a-8c53-4752-9cde-f5fcaea62413}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\xkSDL2Wrapper\SDLWrapper\SDLWrapper.vcxproj">
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)xkSDL2Wrapper\SDLWrapper\SDLWrapper.vcxproj">
       <Project>{b8b03f35-4ef4-4964-8993-b1801007c8b3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\ExceptionHierarchy\ExceptionHierarchy\ExceptionHierarchy.vcxproj">
-      <Project>{bb10395f-ced5-4f0d-bc01-8740a181207d}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\TypedD3D\TypedD3D\TypedD3D12.vcxproj">
-      <Project>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\xkMath\xkMath\xkMath.vcxproj">
-      <Project>{68f6959a-8c53-4752-9cde-f5fcaea62413}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -116,15 +107,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

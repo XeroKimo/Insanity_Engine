@@ -915,14 +915,14 @@ namespace InsanityFramework
 
 
 			private:
-				node_pointer_type* node;
+				node_pointer_type node;
 
 			public:
 				void Set(value_type value) requires(!IsConst){ std::invoke(Setter, node, value); }
 				value_type Get() const { return std::invoke(Getter, node); }
 
 			public:
-				RotationProxyType(node_pointer_type* node) :
+				RotationProxyType(node_pointer_type node) :
 					node{ node }
 				{
 
