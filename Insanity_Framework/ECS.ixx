@@ -8,6 +8,7 @@ module;
 #include <typeindex>
 #include <unordered_map>
 #include <memory>
+#include <optional>
 
 export module InsanityFramework.ECS;
 export import xk.Math;
@@ -25,6 +26,8 @@ namespace InsanityFramework
 	export template<bool isConst>
 	class AnyRefT
 	{
+		template<bool OtherConst>
+		friend class AnyRefT;
 	private:
 		const std::type_info* type;
 		std::conditional_t<isConst, const void*, void*> ptr;
@@ -35,6 +38,13 @@ namespace InsanityFramework
 		AnyRefT(Ty& obj) :
 			type{ &typeid(Ty) },
 			ptr{ &obj }
+		{
+
+		}
+
+		AnyRefT(const AnyRefT<false>& other) requires (isConst) :
+			type{ other.type },
+			ptr{ other.ptr }
 		{
 
 		}
@@ -1920,19 +1930,112 @@ namespace InsanityFramework
 		virtual ~SceneSystem() = default;
 	};
 
+	template<class Ty>
+	concept IsSceneClass = requires(Ty t, Scene* scene)
+	{
+		t.LoadResources(scene);
+		t.LoadSystems(scene);
+		t.LoadObjects(scene);
+	};
+
+	export class SceneClass
+	{
+		struct Base
+		{
+			virtual ~Base() = default;
+
+			virtual void LoadResources(Scene* scene) = 0;
+			virtual void LoadSystems(Scene* scene) = 0;
+			virtual void LoadObjects(Scene* scene) = 0;
+		};
+
+		template<IsSceneClass Ty>
+		struct Impl final : Base
+		{
+			Ty data;
+
+			Impl(Ty data) : data{ std::move(data) }
+			{
+
+			}
+
+			void LoadResources(Scene* scene)
+			{
+				data.LoadResources(scene);
+			}
+
+			void LoadSystems(Scene* scene)
+			{
+				data.LoadSystems(scene);
+			}
+
+			void LoadObjects(Scene* scene)
+			{
+				data.LoadObjects(scene);
+			}
+		};
+
+		std::unique_ptr<Base> ptr;
+
+	public:
+		template<IsSceneClass Ty>
+		SceneClass(Ty&& t) :
+			ptr{ std::make_unique<Impl<Ty>>(std::forward<Ty>(t)) }
+		{
+
+		}
+
+		void LoadResources(Scene* scene)
+		{
+			ptr->LoadResources(scene);
+		}
+
+		void LoadSystems(Scene* scene)
+		{
+			ptr->LoadSystems(scene);
+		}
+
+		void LoadObjects(Scene* scene)
+		{
+			ptr->LoadObjects(scene);
+		}
+	};
+
+	void InternalRegisterGlobalSystem(std::type_index index, AnyRef system);
+	void InternalUnregisterGlobalSystem(std::type_index index);
+	AnyRef InternalGetGlobalSystem(std::type_index index);
+
+	export template<class Ty>
+		void RegisterGlobalSystem(Ty& system)
+	{
+		InternalRegisterGlobalSystem(typeid(Ty), system);
+	}
+
+	export template<class Ty>
+		void UnregisterGlobalSystem()
+	{
+		InternalUnregisterGlobalSystem(typeid(Ty));
+	}
+
+	export template<class Ty>
+		Ty& GetGlobalSystem()
+	{
+		return InternalGetGlobalSystem(typeid(Ty)).As<Ty>();
+	}
+
 	export class Scene : public SystemsViewer
 	{
 	private:
-		std::unordered_map<std::type_index, AnyRef> externalSystems;
 		std::unordered_map<std::type_index, std::unique_ptr<SceneSystem>> sceneSystems;
 		ObjectManager objectManager;
 
 	public:
-		Scene(std::unordered_map<std::type_index, AnyRef> externalSystems) :
-			externalSystems{ externalSystems },
+		Scene(SceneClass sceneClass) :
 			objectManager{ *this }
 		{
-
+			sceneClass.LoadResources(this);
+			sceneClass.LoadSystems(this);
+			sceneClass.LoadObjects(this);
 		}
 
 		template<std::derived_from<Object> Ty, class... ConstructorArgs>
@@ -1978,13 +2081,13 @@ namespace InsanityFramework
 		template<class Ty>
 		Ty& GetExternalSystem()
 		{
-			return externalSystems.at(typeid(Ty)).As<Ty>();
+			return GetGlobalSystem<Ty>();
 		}
 
 		template<class Ty>
 		const Ty& GetExternalSystem() const
 		{
-			return externalSystems.at(typeid(Ty)).As<Ty>();
+			return GetGlobalSystem<Ty>();
 		}
 
 		template<std::derived_from<SceneSystem> Ty, class... ConstructorArgs>
@@ -2011,16 +2114,67 @@ namespace InsanityFramework
 
 		AnyRef GetSystem(const std::type_info& type) final
 		{
-			if(externalSystems.contains(type))
-				return externalSystems.at(type);
-			return sceneSystems.at(type);
+			if(sceneSystems.contains(type))
+				return sceneSystems.at(type);
+			return InternalGetGlobalSystem(type);
 		}
 
 		AnyConstRef GetSystem(const std::type_info& type) const final
 		{
-			if(externalSystems.contains(type))
-				return externalSystems.at(type);
-			return sceneSystems.at(type);
+			if(sceneSystems.contains(type))
+				return sceneSystems.at(type);
+			return InternalGetGlobalSystem(type);
 		}
 	};
+
+	export class SceneManager
+	{
+	private:
+		std::unique_ptr<Scene> scene;
+		std::optional<SceneClass> pendingScene;
+
+	public:
+		void LoadScene(SceneClass sceneClass)
+		{
+			pendingScene = std::move(sceneClass);
+		}
+
+		void WaitForScene()
+		{
+			scene = nullptr;
+			scene = std::make_unique<Scene>(std::move(pendingScene.value()));
+			pendingScene = std::nullopt;
+		}
+
+		bool HasPendingLoadScene()
+		{
+			return pendingScene.has_value();
+		}
+
+		Scene& GetActiveScene() { return *scene; }
+		const Scene& GetActiveScene() const { return *scene; }
+	};
+}
+
+
+module:private;
+
+namespace InsanityFramework
+{
+	std::unordered_map<std::type_index, AnyRef> systems;
+
+	void InternalRegisterGlobalSystem(std::type_index index, AnyRef system)
+	{
+		systems.insert({ index, system });
+	}
+
+	void InternalUnregisterGlobalSystem(std::type_index index)
+	{
+		systems.erase(index);
+	}
+
+	AnyRef InternalGetGlobalSystem(std::type_index index)
+	{
+		return systems.at(index);
+	}
 }
