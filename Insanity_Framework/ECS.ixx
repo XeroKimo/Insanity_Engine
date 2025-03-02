@@ -12,6 +12,7 @@ module;
 
 export module InsanityFramework.ECS;
 export import xk.Math;
+export import InsanityFramework.AnyRef;
 
 namespace InsanityFramework
 {
@@ -20,106 +21,6 @@ namespace InsanityFramework
 
 	export class Scene;
 	export enum class VirtualConstructorPassthrough {};
-
-
-
-	export template<bool isConst>
-	class AnyRefT
-	{
-		template<bool OtherConst>
-		friend class AnyRefT;
-	private:
-		const std::type_info* type;
-		std::conditional_t<isConst, const void*, void*> ptr;
-
-	public:
-		template<class Ty>
-			requires (!std::same_as<AnyRefT, Ty>)
-		AnyRefT(Ty& obj) :
-			type{ &typeid(Ty) },
-			ptr{ &obj }
-		{
-
-		}
-
-		AnyRefT(const AnyRefT<false>& other) requires (isConst) :
-			type{ other.type },
-			ptr{ other.ptr }
-		{
-
-		}
-
-		AnyRefT(const AnyRefT& other) :
-			type{ other.type },
-			ptr{ other.ptr }
-		{
-
-		}
-
-		AnyRefT(AnyRefT&& other) noexcept :
-			type{ std::exchange(other.type, nullptr) },
-			ptr{ std::exchange(other.ptr, nullptr) }
-		{
-
-		}
-
-		template<class Ty>
-		Ty& operator=(const Ty& obj)
-		{
-			auto& self = As<Ty>();
-			self = obj;
-			return self;
-		}
-
-		template<class Ty>
-		Ty& operator=(Ty&& obj)
-		{
-			auto& self = As<Ty>();
-			self = std::move(obj);
-			return self;
-		}
-
-		template<class Ty>
-		Ty& As()
-		{
-			if(*type != typeid(Ty))
-				throw std::exception{};
-
-			return *static_cast<Ty*>(ptr);
-		}
-
-		template<class Ty>
-		const Ty& As() const
-		{
-			if(*type != typeid(Ty))
-				throw std::exception{};
-
-			return *static_cast<const Ty*>(ptr);
-		}
-	};
-
-	export using AnyRef = AnyRefT<false>;
-	export using AnyConstRef = AnyRefT<true>;
-
-	export class SystemsViewer
-	{
-
-	public:
-		virtual AnyRef GetSystem(const std::type_info& type) = 0;
-		virtual AnyConstRef GetSystem(const std::type_info& type) const = 0;
-
-		template<class Ty>
-		Ty& GetSystem()
-		{
-			return GetSystem(typeid(Ty)).As<Ty>();
-		}
-
-		template<class Ty>
-		const Ty& GetSystem() const
-		{
-			return GetSystem(typeid(Ty)).As<Ty>();
-		}
-	};
 
 	export struct Transform
 	{
@@ -1643,14 +1544,9 @@ namespace InsanityFramework
 		std::unordered_map<std::type_index, std::vector<Object*>> objects;
 		std::vector<Object*> queuedConstruction;
 		std::vector<Object*> queuedDestruction;
-		SystemsViewer* systems;
 
 	public:
-		ObjectManager(SystemsViewer& systems) :
-			systems{ &systems }
-		{
-
-		}
+		ObjectManager() = default;
 		ObjectManager(const ObjectManager&) = delete;
 		ObjectManager(ObjectManager&& other) noexcept :
 			objects{ std::move(other).objects },
@@ -1753,12 +1649,6 @@ namespace InsanityFramework
 		}
 
 		void FlushLifetimes();
-
-		template<class Ty>
-		Ty& GetSystem() { return systems->GetSystem<Ty>(); }
-
-		template<class Ty>
-		const Ty& GetSystem() const { return systems->GetSystem<Ty>(); }
 	};
 
 	template<std::derived_from<InsanityFramework::Object> Ty>
@@ -1799,12 +1689,6 @@ namespace InsanityFramework
 		{
 			manager->DeleteObject(object);
 		}
-
-		template<class Ty>
-		Ty& GetSystem() { return manager->GetSystem<Ty>(); }
-
-		template<class Ty>
-		const Ty& GetSystem() const { return manager->GetSystem<Ty>(); }
 	};
 
 	export class Object : public virtual ObjectInterface
@@ -2023,15 +1907,14 @@ namespace InsanityFramework
 		return InternalGetGlobalSystem(typeid(Ty)).As<Ty>();
 	}
 
-	export class Scene : public SystemsViewer
+	export class Scene
 	{
 	private:
 		std::unordered_map<std::type_index, std::unique_ptr<SceneSystem>> sceneSystems;
 		ObjectManager objectManager;
 
 	public:
-		Scene(SceneClass sceneClass) :
-			objectManager{ *this }
+		Scene(SceneClass sceneClass)
 		{
 			sceneClass.LoadResources(this);
 			sceneClass.LoadSystems(this);
@@ -2112,14 +1995,14 @@ namespace InsanityFramework
 			return static_cast<const Ty&>(*sceneSystems.at(typeid(Ty)));
 		}
 
-		AnyRef GetSystem(const std::type_info& type) final
+		AnyRef GetSystem(const std::type_info& type)
 		{
 			if(sceneSystems.contains(type))
 				return sceneSystems.at(type);
 			return InternalGetGlobalSystem(type);
 		}
 
-		AnyConstRef GetSystem(const std::type_info& type) const final
+		AnyConstRef GetSystem(const std::type_info& type) const
 		{
 			if(sceneSystems.contains(type))
 				return sceneSystems.at(type);
