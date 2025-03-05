@@ -9,6 +9,9 @@ module;
 #include <unordered_map>
 #include <memory>
 #include <optional>
+#include <any>
+#include <utility>
+#include <tuple>
 
 export module InsanityFramework.ECS;
 export import xk.Math;
@@ -1814,74 +1817,74 @@ namespace InsanityFramework
 		virtual ~SceneSystem() = default;
 	};
 
-	template<class Ty>
-	concept IsSceneClass = requires(Ty t, Scene* scene)
+	export template<class Ty, class... Params>
+	concept IsSceneClass = requires(Ty t, Params... params)
 	{
-		t.LoadResources(scene);
-		t.LoadSystems(scene);
-		t.LoadObjects(scene);
+		requires std::constructible_from<Ty, Scene*>;
+		t.LoadResources(params...);
+		t.LoadSystems(params...);
+		t.LoadObjects(params...);
 	};
 
-	export class SceneClass
+	export class SceneClassFactory
 	{
 		struct Base
 		{
 			virtual ~Base() = default;
 
-			virtual void LoadResources(Scene* scene) = 0;
-			virtual void LoadSystems(Scene* scene) = 0;
-			virtual void LoadObjects(Scene* scene) = 0;
+			virtual MoveOnlyAny CreateClass(Scene* scene) = 0;
 		};
 
-		template<IsSceneClass Ty>
+		template<class Ty, class... Params>
+			requires IsSceneClass<Ty, Params...>
 		struct Impl final : Base
 		{
-			Ty data;
+			std::tuple<Params&&...> data;
 
-			Impl(Ty data) : data{ std::move(data) }
+			Impl(Params&&... data) : data{ std::forward<Params>(data)... }
 			{
 
 			}
 
-			void LoadResources(Scene* scene)
+			MoveOnlyAny CreateClass(Scene* scene)
 			{
-				data.LoadResources(scene);
-			}
+				Ty sceneClass{ scene };
 
-			void LoadSystems(Scene* scene)
-			{
-				data.LoadSystems(scene);
-			}
+				if constexpr(sizeof...(Params) > 0)
+				{
+					std::apply([&sceneClass](Params&&... params)
+					{
+						sceneClass.LoadResources(std::forward<Params>(params...));
+						sceneClass.LoadSystems(std::forward<Params>(params...));
+						sceneClass.LoadObjects(std::forward<Params>(params...));
+					}, data);
+				}
+				else
+				{
+					sceneClass.LoadResources();
+					sceneClass.LoadSystems();
+					sceneClass.LoadObjects();
+				}
 
-			void LoadObjects(Scene* scene)
-			{
-				data.LoadObjects(scene);
+				return sceneClass;
 			}
 		};
 
 		std::unique_ptr<Base> ptr;
 
 	public:
-		template<IsSceneClass Ty>
-		SceneClass(Ty&& t) :
-			ptr{ std::make_unique<Impl<Ty>>(std::forward<Ty>(t)) }
+
+		template<class Ty, class... Params>
+			requires IsSceneClass<Ty, Params...>
+		SceneClassFactory(std::type_identity<Ty>, Params&&... params) :
+			ptr{ std::make_unique<Impl<Ty, Params...>>(std::forward<Params>(params)...) }
 		{
 
 		}
 
-		void LoadResources(Scene* scene)
+		MoveOnlyAny CreateClass(Scene* scene)
 		{
-			ptr->LoadResources(scene);
-		}
-
-		void LoadSystems(Scene* scene)
-		{
-			ptr->LoadSystems(scene);
-		}
-
-		void LoadObjects(Scene* scene)
-		{
-			ptr->LoadObjects(scene);
+			return ptr->CreateClass(scene);
 		}
 	};
 
@@ -1912,13 +1915,13 @@ namespace InsanityFramework
 	private:
 		std::unordered_map<std::type_index, std::unique_ptr<SceneSystem>> sceneSystems;
 		ObjectManager objectManager;
+		MoveOnlyAny sceneClass;
 
 	public:
-		Scene(SceneClass sceneClass)
+		Scene(SceneClassFactory factory) :
+			sceneClass{ factory.CreateClass(this) }
 		{
-			sceneClass.LoadResources(this);
-			sceneClass.LoadSystems(this);
-			sceneClass.LoadObjects(this);
+
 		}
 
 		template<std::derived_from<Object> Ty, class... ConstructorArgs>
@@ -1959,6 +1962,18 @@ namespace InsanityFramework
 		void FlushLifetimes()
 		{
 			objectManager.FlushLifetimes();
+		}
+
+		template<class Ty>
+		Ty& GetClass()
+		{
+			return sceneClass.As<Ty>();
+		}
+
+		template<class Ty>
+		const Ty& GetClass() const
+		{
+			return sceneClass.As<Ty>();
 		}
 
 		template<class Ty>
@@ -2014,12 +2029,18 @@ namespace InsanityFramework
 	{
 	private:
 		std::unique_ptr<Scene> scene;
-		std::optional<SceneClass> pendingScene;
+		std::optional<SceneClassFactory> pendingScene;
 
 	public:
-		void LoadScene(SceneClass sceneClass)
+		template<class Ty, class... Params>
+		void LoadScene(Params&&... params)
 		{
-			pendingScene = std::move(sceneClass);
+			LoadScene(SceneClassFactory(std::type_identity<Ty>{}, std::forward<Params>(params)... ));
+		}
+
+		void LoadScene(SceneClassFactory factory)
+		{
+			pendingScene = std::move(factory);
 		}
 
 		void WaitForScene()
