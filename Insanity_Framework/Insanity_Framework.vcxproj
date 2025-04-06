@@ -23,6 +23,7 @@
     <ClCompile Include="AssetLoader.ixx" />
     <ClCompile Include="build.cpp" />
     <ClCompile Include="ECS.ixx" />
+    <ClCompile Include="Memory.ixx" />
     <ClCompile Include="Rendering\DX11\RendererDX11.cpp" />
     <ClCompile Include="Rendering\DX11\RendererDX11.ixx" />
   </ItemGroup>
