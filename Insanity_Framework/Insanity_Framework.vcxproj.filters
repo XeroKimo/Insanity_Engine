@@ -36,6 +36,9 @@
     <ClCompile Include="Memory.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ECS2.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Assets\Engine\SpritePS.hlsl" />
