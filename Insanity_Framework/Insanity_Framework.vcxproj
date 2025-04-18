@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Allocator.ixx" />
     <ClCompile Include="AnyRef.ixx" />
     <ClCompile Include="AssetLoader.ixx" />
     <ClCompile Include="build.cpp" />
