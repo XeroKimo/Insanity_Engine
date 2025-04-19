@@ -10,6 +10,7 @@ module;
 
 export module InsanityFramework.ECS2;
 import InsanityFramework.Memory;
+import InsanityFramework.Allocator;
 
 namespace InsanityFramework
 {
@@ -52,87 +53,15 @@ namespace InsanityFramework
 		SceneConstructorKey(SceneManager* manager) : manager{ manager } {}
 	};
 
-	class ObjectPage
+	class ObjectPage : public IntrusiveForwardListNode<ObjectPage>
 	{
-		struct Block
-		{
-			Block* next = nullptr;
-			Block* previous = nullptr;
-			size_t dataBlockSize;
-			bool inUse = false;
-
-			Block* Split(size_t requestedSize)
-			{
-				size_t alignedSize = AlignCeil<size_t>(requestedSize + sizeof(Block), 8);
-
-				if(alignedSize >= dataBlockSize)
-					return nullptr;
-
-				Block* newBlock = new(OffsetFromEnd(alignedSize)) Block{ .dataBlockSize = requestedSize };
-
-				if(next)
-				{
-					next->previous = newBlock;
-					newBlock->next = next;
-				}
-				newBlock->previous = this;
-				next = newBlock;
-
-				dataBlockSize -= alignedSize;
-
-				return newBlock;
-			}
-
-			Block* SplitOrSelf(size_t requestedSize)
-			{
-				Block* split = Split(requestedSize);
-
-				if(split)
-					return split;
-
-				return (requestedSize == dataBlockSize) ? this : nullptr;
-			}
-
-			bool MergeNext()
-			{
-				if(!next || next->inUse)
-					return false;
-
-				Block* toBeMerged = next;
-				next = toBeMerged->next;
-				if(next)
-					next->previous = this;
-
-				dataBlockSize += toBeMerged->BlockSize();
-				std::destroy_at(toBeMerged);
-
-				return true;
-			}
-
-			bool MergePrevious()
-			{
-				if(!previous || previous->inUse)
-					return false;
-
-				return previous->MergeNext();
-			}
-
-			Block* OffsetFromEnd(size_t requestedSize)
-			{
-				assert(requestedSize < dataBlockSize);
-				return static_cast<Block*>(OffsetPointer(this, dataBlockSize - requestedSize));
-			}
-
-			size_t BlockSize() const { return dataBlockSize + sizeof(Block); }
-
-			void* DataAddress() { return OffsetPointerAs<Block>(this, 1); }
-		};
-
 		static constexpr size_t pageSize = AlignNextPow2<size_t>(8'000'000);
+
+
 		SceneManager* sceneManager;
 		Scene* scene;
-		ObjectPage* next;
-		Block* First() { return static_cast<Block*>(OffsetPointerAs<ObjectPage>(this, 1)); }
+		FreeListAllocator allocator;
+
 
 	public:
 		void* operator new(size_t size)
@@ -148,47 +77,19 @@ namespace InsanityFramework
 	public:
 		ObjectPage(SceneManager* manager, Scene* scene) :
 			sceneManager{ manager },
-			scene{ scene }
+			scene{ scene },
+			allocator{ {IncrementPointerAs<ObjectPage>(this, 1), pageSize - sizeof(ObjectPage) } }
 		{
-			new(First()) Block{ .dataBlockSize = pageSize - sizeof(ObjectPage) - sizeof(Block) };
 		}
 
 		void* Allocate(size_t requestedSize)
 		{
-			Block* block = First();
-			while(block->inUse)
-			{
-				block = block->next;
-				if(!block)
-					return nullptr;
-
-				block = block->SplitOrSelf(requestedSize);
-			}
-
-			block->inUse = true;
-			return block->DataAddress();
+			return allocator.Allocate(requestedSize);
 		}
 
 		void Free(void* pointer)
 		{
-			Block* block = GetBlock(pointer);
-
-			if(block->MergePrevious())
-				return;
-
-			block->inUse = false;
-		}
-
-		ObjectPage* NextPage() const
-		{
-			return next;
-		}
-
-		void AppendPage(ObjectPage* page)
-		{
-			assert(!next);
-
-			next = page;
+			allocator.Free(pointer);
 		}
 
 		SceneManager* GetSceneManager() const { return sceneManager; }
@@ -197,11 +98,6 @@ namespace InsanityFramework
 		static ObjectPage* GetPageFromPointer(void* ptr)
 		{
 			return std::launder(static_cast<ObjectPage*>(AlignFloorPow2(ptr, pageSize)));
-		}
-	private:
-		Block* GetBlock(void* pointer)
-		{
-			return static_cast<Block*>(OffsetPointerAs<Block>(pointer, -1));
 		}
 	};
 
@@ -220,7 +116,7 @@ namespace InsanityFramework
 		{
 			while(pages)
 			{
-				delete std::exchange(pages, pages->NextPage());
+				delete std::exchange(pages, pages->Next());
 			}
 		}
 
@@ -231,11 +127,11 @@ namespace InsanityFramework
 			while(!ptr)
 			{
 				ObjectPage* oldPage = currentPage;
-				currentPage = currentPage->NextPage();
+				currentPage = currentPage->Next();
 				if(!currentPage)
 				{
 					currentPage = new ObjectPage(oldPage->GetSceneManager(), oldPage->GetScene());
-					oldPage->AppendPage(currentPage);
+					oldPage->Append(currentPage);
 				}
 				ptr = currentPage->Allocate(size);
 			}
@@ -282,17 +178,11 @@ namespace InsanityFramework
 	class ScenePage
 	{
 	public:
-		struct Block
-		{
-			Block* nextFree = nullptr;
-			std::optional<Scene> scene;
-		};
-
 		static constexpr size_t minimumBlocksPerPage = 16;
 
 		static constexpr size_t PageSize()
 		{
-			return AlignNextPow2(sizeof(ScenePage) + sizeof(Block) * minimumBlocksPerPage);
+			return AlignNextPow2(sizeof(ScenePage) + sizeof(PoolAllocator<sizeof(Scene)>::alignedBucketSize) * minimumBlocksPerPage + 1);
 		}
 
 		static ScenePage* GetPageFromPointer(void* ptr)
@@ -303,65 +193,23 @@ namespace InsanityFramework
 	private:
 		ScenePage* next;
 		SceneManager* manager;
-		Block* freeList;
+		PoolAllocator<sizeof(Scene)> allocator;
 
 	public:
 		ScenePage(SceneManager* manager) :
-			manager{ manager }
+			manager{ manager },
+			allocator{ { this + 1, PageSize() - sizeof(ScenePage) } }
 		{
-			Block* begin = BlockBegin();
-			Block* end = BlockEnd();
-
-			freeList = std::construct_at(begin);
-			begin++;
-			for(; begin != end; begin++)
-			{
-				auto oldHead = std::exchange(freeList, std::construct_at(begin));
-				freeList->nextFree = oldHead;
-			}
 		}
 
-		~ScenePage()
+		void* Allocate()
 		{
-			Block* begin = BlockBegin();
-			Block* end = BlockEnd();
-
-			for(; begin != end; begin++)
-			{
-				//Detect for leaks
-				assert(!begin->scene.has_value());
-			}
+			return allocator.Allocate(sizeof(Scene));
 		}
 
-		Scene* ConstructScene(SceneConstructorKey key) noexcept
+		void Free(void* ptr)
 		{
-			if(!freeList)
-				return nullptr;
-
-			auto selectedBlock = freeList;
-			freeList = std::exchange(selectedBlock->nextFree, nullptr);
-			selectedBlock->scene = Scene{ key };
-
-			return &selectedBlock->scene.value();
-		}
-
-		void DestroyScene(Scene* scene)
-		{
-			assert(GetPageFromPointer(scene) == this);
-
-			Block* block = FindBlock(scene);
-			block->scene = {};
-			block->nextFree = std::exchange(freeList, block);
-		}
-
-		Block* BlockBegin()
-		{
-			return static_cast<Block*>(OffsetPointer(this, sizeof(ScenePage)));
-		}
-
-		Block* BlockEnd()
-		{
-			return BlockBegin() + (PageSize() - sizeof(ScenePage)) / sizeof(Block); 
+			allocator.Free(ptr);
 		}
 
 		void AppendPage(ScenePage* page) noexcept
@@ -387,6 +235,7 @@ namespace InsanityFramework
 
 		SceneManager* GetSceneManager() const noexcept { return manager; }
 
+	public:
 		void* operator new(size_t size)
 		{
 			return ::operator new(PageSize(), std::align_val_t{ PageSize() });
@@ -395,18 +244,6 @@ namespace InsanityFramework
 		void operator delete(void* ptr)
 		{
 			::operator delete(ptr, std::align_val_t{ PageSize() });
-		}
-
-	private:
-		Block* FindBlock(Scene* scene)
-		{
-			Block* firstBlock = BlockBegin();
-			std::ptrdiff_t offset = std::floor((reinterpret_cast<char*>(scene) - reinterpret_cast<char*>(firstBlock)) / sizeof(Block));
-			Block* match = firstBlock + offset;
-
-			assert(match->scene.has_value());
-			assert(&match->scene.value() == scene);
-			return match;
 		}
 	};
 
@@ -429,11 +266,11 @@ namespace InsanityFramework
 			}
 		}
 
-		Scene* Construct(SceneConstructorKey key)
+		void* Allocate()
 		{
 			ScenePage* currentPage = pages;
-			Scene* scene = currentPage->ConstructScene(key);
-			while(!scene)
+			void* ptr = pages->Allocate();
+			while(!ptr)
 			{
 				ScenePage* oldPage = currentPage;
 				currentPage = currentPage->NextPage();
@@ -443,15 +280,14 @@ namespace InsanityFramework
 					oldPage->AppendPage(currentPage);
 				}
 
-				scene = currentPage->ConstructScene(key);
+				ptr = currentPage->Allocate();
 			}
-
-			return scene;
+			return ptr;
 		}
 
-		void Destruct(Scene* scene)
+		void Free(void* ptr)
 		{
-			ScenePage::GetPageFromPointer(scene)->DestroyScene(scene);
+			ScenePage::GetPageFromPointer(ptr)->Free(ptr);
 		}
 	};
 
@@ -556,7 +392,7 @@ namespace InsanityFramework
 			if(!pendingSceneLoader)
 				return;
 
-			Scene* scene = sceneAllocator.Construct(SceneConstructorKey{ this });
+			Scene* scene = std::construct_at(static_cast<Scene*>(sceneAllocator.Allocate()), SceneConstructorKey{ this });
 			SceneClass* sceneClass = pendingSceneLoader->Load(scene);
 
 			UnloadScene();
@@ -573,7 +409,9 @@ namespace InsanityFramework
 			{
 				scenes.back().sceneClass->Unload();
 				scenes.back().scene->DeleteUnregisteredObject(scenes.back().sceneClass);
-				sceneAllocator.Destruct(scenes.back().scene);
+
+				std::destroy_at(scenes.back().scene);
+				sceneAllocator.Free(scenes.back().scene);
 				scenes.pop_back();
 			}
 		}

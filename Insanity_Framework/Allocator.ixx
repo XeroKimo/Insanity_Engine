@@ -3,6 +3,7 @@ module;
 #include <cstdint>
 #include <bit>
 #include <memory>
+#include <cassert>
 
 export module InsanityFramework.Allocator;
 import InsanityFramework.Memory;
@@ -11,13 +12,14 @@ namespace InsanityFramework
 {
 	class BufferView
 	{
-		void* buffer = nullptr;
+		std::byte* buffer = nullptr;
 		std::size_t size = 0;
 
 	public:
 		BufferView() = default;
+
 		BufferView(void* bufferStart, std::size_t size) :
-			buffer{ bufferStart },
+			buffer{ static_cast<std::byte*>(bufferStart) },
 			size{ size }
 		{
 
@@ -26,35 +28,45 @@ namespace InsanityFramework
 		void* Raw() const noexcept { return buffer; }
 
 		template<class Ty>
-		Ty* RawAs() const noexcept { return static_cast<Ty*>(buffer); }
+		Ty* RawAs() const noexcept { return static_cast<Ty*>(Raw()); }
 
 		std::size_t Size() const { return size; }
 
 		BufferView SplitFromStart(std::size_t offset)
 		{
 			return (offset <= size) ? 
-				BufferView{ static_cast<char*>(buffer) + offset, size - offset } :
+				BufferView{ buffer + offset, size - offset } :
 				BufferView{ nullptr, 0 };
 		}
 
 		BufferView SplitFromStart(std::size_t offset, std::size_t newSize)
 		{
 			return (offset <= newSize && newSize <= size) ?
-				BufferView{ static_cast<char*>(buffer) + offset, newSize } :
+				BufferView{ buffer + offset, newSize } :
 				BufferView{ nullptr, 0 };
 		}
 
 		BufferView SplitFromEnd(std::size_t offset)
 		{
 			return (offset <= size) ?
-				BufferView{ static_cast<char*>(buffer) + size - offset, offset } :
+				BufferView{ buffer + size - offset, offset } :
 				BufferView{ nullptr, 0 };
 		}
 
 		BufferView SplitFromEnd(std::size_t offset, std::size_t newSize)
 		{
 			return (newSize <= offset && offset <= size) ?
-				BufferView{ static_cast<char*>(buffer) + size - offset, newSize } :
+				BufferView{ buffer + size - offset, newSize } :
+				BufferView{ nullptr, 0 };
+		}
+
+		BufferView AlignNext(std::size_t alignment)
+		{
+			std::byte* newAddress = static_cast<std::byte*>(AlignCeil(buffer, alignment));
+			assert(buffer < newAddress);
+			std::size_t sizeDifference = newAddress - buffer;
+			return (alignment < size && sizeDifference <= size) ? 
+				BufferView{ newAddress, size - sizeDifference } :
 				BufferView{ nullptr, 0 };
 		}
 
@@ -64,7 +76,7 @@ namespace InsanityFramework
 		operator Ty* () const noexcept { return RawAs<Ty>(); }
 	};
 
-	template<class Ty>
+	export template<class Ty>
 	class IntrusiveListNode
 	{
 		Ty* next = nullptr;
@@ -100,7 +112,7 @@ namespace InsanityFramework
 		}
 
 		//Removes itself from the list and returns itself
-		Ty* Splice() noexcept
+		Ty* RemoveSelf() noexcept
 		{
 			if(previous)
 			{
@@ -120,7 +132,7 @@ namespace InsanityFramework
 		Ty* Previous() const noexcept { return previous; }
 	};
 
-	template<class Ty>
+	export template<class Ty>
 	class IntrusiveForwardListNode
 	{
 		Ty* next = nullptr;
@@ -131,17 +143,15 @@ namespace InsanityFramework
 		{
 			if(next)
 			{
-				next->previous = ptr;
 				ptr->next = next;
 			}
-			ptr->previous = this;
 			next = ptr;
 
 			return ptr;
 		}
 
 		//Removes the next item on the list and returns it
-		Ty* SpliceNext() noexcept
+		Ty* RemoveNext() noexcept
 		{
 			Ty* oldNext = next;
 
@@ -151,6 +161,22 @@ namespace InsanityFramework
 			return oldNext;
 		}
 
+		//Only works assuming we are the first in the list
+		//Removes itself and returns itself
+		Ty* RemoveSelf() noexcept
+		{
+			next = nullptr;
+			return static_cast<Ty*>(this);
+		}
+
+
+		//Only works assuming we are the first in the list
+		//Removes itself and returns next
+		Ty* RemoveSelfAndGetNext() noexcept
+		{
+			return std::exchange(next, nullptr);
+		}
+
 		Ty* Next() const noexcept { return next; }
 	};
 
@@ -158,6 +184,8 @@ namespace InsanityFramework
 	{
 	private:
 		std::size_t dataRegionSize;
+
+	public:
 		bool inUse = false;
 
 	public:
@@ -181,11 +209,13 @@ namespace InsanityFramework
 
 		bool MergeNext()
 		{
+			assert(!inUse);
+
 			if(!Next() || Next()->inUse)
 				return false;
 
 			dataRegionSize += Next()->dataRegionSize;
-			std::destroy_at(Next()->Splice());
+			std::destroy_at(Next()->RemoveSelf());
 			return true;
 		}
 
@@ -194,12 +224,10 @@ namespace InsanityFramework
 			return { this + 1, dataRegionSize };
 		}
 
-		bool SetInUse(bool use) { inUse = use; }
-		bool InUse() const noexcept { return inUse; }
 		std::size_t Size() const noexcept { return dataRegionSize; }
 	};
 
-	class FreeListAllocator
+	export class FreeListAllocator
 	{
 		BufferView buffer;
 	public:
@@ -209,11 +237,20 @@ namespace InsanityFramework
 			std::construct_at<FreeListHeader>(buffer, buffer.Size() - sizeof(FreeListHeader));
 		}
 
+		~FreeListAllocator()
+		{
+			FreeListHeader* current = First();
+			while(current)
+			{
+				std::destroy_at(std::exchange(current, current->Next()));
+			}
+		}
+
 	public:
 		void* Allocate(std::size_t size)
 		{
 			FreeListHeader* currentHeader = First();
-			while(currentHeader && currentHeader->InUse() && currentHeader->Size() >= size)
+			while(currentHeader && currentHeader->inUse && currentHeader->Size() >= size)
 			{
 				currentHeader = currentHeader->Next();
 			}
@@ -224,18 +261,18 @@ namespace InsanityFramework
 			if(currentHeader->Size() > size)
 				currentHeader = currentHeader->Split(size);
 
-			currentHeader->SetInUse(true);
+			currentHeader->inUse = true;
 			return currentHeader->DataRegion();
 		}
 
 		void Free(void* ptr)
 		{
 			FreeListHeader* header = GetHeaderFromPointer(ptr);
-			header->SetInUse(false);
+			header->inUse = false;
 
 			header->MergeNext();
 			header = header->Previous();
-			if(header && !header->InUse())
+			if(header && !header->inUse)
 				header->MergeNext();
 		}
 
@@ -248,6 +285,69 @@ namespace InsanityFramework
 		FreeListHeader* GetHeaderFromPointer(void* ptr)
 		{
 			return std::launder(static_cast<FreeListHeader*>(ptr) - 1);
+		}
+	};
+
+	export template<std::size_t BucketSize, std::size_t BucketAlignment = alignof(std::max_align_t)>
+		requires(std::has_single_bit(BucketAlignment))
+	class PoolAllocator
+	{
+		class BucketHeader : public IntrusiveForwardListNode<BucketHeader>
+		{
+		public:
+			BufferView DataRegion() { return { this + 1, BucketSize }; }
+		};
+
+	public:
+		static constexpr std::size_t alignedBucketSize = AlignCeil(BucketSize + sizeof(BucketHeader), BucketAlignment);
+
+	private:
+		BufferView buffer;
+		BucketHeader* freeList = nullptr;
+	public:
+		PoolAllocator() = default;
+		PoolAllocator(BufferView buffer) :
+			buffer{ buffer.AlignNext(BucketAlignment) }
+		{
+			BufferView currentAddress = buffer;
+
+			if(currentAddress.Size() >= alignedBucketSize)
+			{
+				BucketHeader* currentBucket = freeList = std::construct_at(std::exchange(currentAddress, currentAddress.SplitFromStart(alignedBucketSize)).RawAs<BucketHeader>());
+
+				while(currentAddress.Size() >= alignedBucketSize)
+				{
+					BucketHeader* oldBucket = currentBucket;
+					currentBucket = std::construct_at(std::exchange(currentAddress, currentAddress.SplitFromStart(alignedBucketSize)).RawAs<BucketHeader>());
+					oldBucket->Append(currentBucket);
+				}
+			}
+		}
+
+		void* Allocate(std::size_t size)
+		{
+			if(size > BucketSize)
+				return nullptr;
+
+			if(!freeList)
+				return nullptr;
+			
+			BucketHeader* selected = freeList;
+			freeList = freeList->RemoveSelfAndGetNext();
+			return selected->DataRegion();
+		}
+
+		void Free(void* ptr)
+		{
+			BucketHeader* header = GetBucketFromPointer(ptr);
+			header->Append(freeList);
+			freeList = header;
+		}
+
+	private:
+		BucketHeader* GetBucketFromPointer(void* ptr)
+		{
+			return std::launder(static_cast<BucketHeader*>(ptr) - 1);
 		}
 	};
 }

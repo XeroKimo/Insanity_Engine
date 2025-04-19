@@ -11,15 +11,26 @@ export module InsanityFramework.Memory;
 
 namespace InsanityFramework
 {
-	export void* OffsetPointer(void* ptr, std::ptrdiff_t offset)
+	export void* IncrementPointer(void* ptr, std::size_t offset)
 	{
-		return reinterpret_cast<void*>(reinterpret_cast<std::byte*>(ptr) + offset);
+		return static_cast<std::byte*>(ptr) + offset;
+	}
+
+	export void* DecrementPointer(void* ptr, std::size_t offset)
+	{
+		return static_cast<std::byte*>(ptr) - offset;
 	}
 
 	export template<class Ty>
-	void* OffsetPointerAs(void* ptr, std::ptrdiff_t offset)
+	void* IncrementPointerAs(void* ptr, std::size_t offset)
 	{
-		return reinterpret_cast<void*>(reinterpret_cast<std::byte*>(ptr) + sizeof(Ty) * offset);
+		return static_cast<std::byte*>(ptr) + offset * sizeof(Ty);
+	}
+
+	export template<class Ty>
+	void* DecrementPointerAs(void* ptr, std::size_t offset)
+	{
+		return static_cast<std::byte*>(ptr) - offset * sizeof(Ty);
 	}
 
 	//Aligns value to the next power of 2
@@ -29,22 +40,7 @@ namespace InsanityFramework
 	export template<std::unsigned_integral Ty>
 	constexpr Ty AlignNextPow2(Ty value)
 	{
-		value--;
-		value |= value >> 1;
-		value |= value >> 2;
-		value |= value >> 4;
-
-		if constexpr(sizeof(Ty) >= 2)
-			value |= value >> 8;
-
-		if constexpr(sizeof(Ty) >= 4)
-			value |= value >> 16;
-
-		if constexpr(sizeof(Ty) >= 8)
-			value |= value >> 32;
-		value++;
-
-		return value;
+		return std::bit_ceil(value);
 	}
 
 	//Aligns address to the next power of 2
@@ -53,7 +49,7 @@ namespace InsanityFramework
 	//Ex: value = 316, return = 512
 	export void* AlignNextPow2(void* value)
 	{
-		return reinterpret_cast<void*>(AlignNextPow2(std::bit_cast<std::uintptr_t>(value)));
+		return std::bit_cast<void*>(AlignNextPow2(std::bit_cast<std::uintptr_t>(value)));
 	}
 
 	//Aligns value to the previous power of 2
@@ -63,7 +59,7 @@ namespace InsanityFramework
 	export template<std::unsigned_integral Ty>
 	constexpr Ty AlignPreviousPow2(Ty value)
 	{
-		return AlignNextPow2(value) >> 1;
+		return std::bit_floor(value);
 	}	
 
 	//Aligns address to the previous power of 2
@@ -72,7 +68,7 @@ namespace InsanityFramework
 	//Ex: value = 316, return = 256
 	export void* AlignPreviousPow2(void* value)
 	{
-		return reinterpret_cast<void*>(AlignPreviousPow2(std::bit_cast<uintptr_t>(value)));
+		return std::bit_cast<void*>(AlignPreviousPow2(std::bit_cast<uintptr_t>(value)));
 	}
 
 	//Aligns value to the next custom alignment which itself is a power of 2
@@ -81,7 +77,7 @@ namespace InsanityFramework
 	export template<std::unsigned_integral Ty>
 	constexpr Ty AlignCeilPow2(Ty value, Ty alignment)
 	{
-		assert(alignment % 2 == 0);
+		assert(std::has_single_bit(alignment));
 		return value + (~value & (alignment - 1)) + 1;
 	}
 
