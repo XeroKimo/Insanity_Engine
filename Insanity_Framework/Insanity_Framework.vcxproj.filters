@@ -42,6 +42,12 @@
     <ClCompile Include="Allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ECS\Object.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS\Scene.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Assets\Engine\SpritePS.hlsl" />

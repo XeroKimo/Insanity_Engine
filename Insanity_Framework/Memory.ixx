@@ -33,6 +33,11 @@ namespace InsanityFramework
 		return static_cast<std::byte*>(ptr) - offset * sizeof(Ty);
 	}
 
+	export std::ptrdiff_t OffsetOf(void* a, void* b)
+	{
+		return static_cast<std::byte*>(b) - static_cast<std::byte*>(a);
+	}
+
 	//Aligns value to the next power of 2
 	//Ex: value = 17, return = 32
 	//Ex: value = 19, return = 32
