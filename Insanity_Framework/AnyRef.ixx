@@ -155,4 +155,99 @@ namespace InsanityFramework
 			return static_cast<Derived<Ty>*>(ptr.get())->value;
 		}
 	};
+
+
+	export template<bool isConst>
+	class AnyPtrT
+	{
+		template<bool OtherConst>
+		friend class AnyPtrT;
+	private:
+		const std::type_info* type = nullptr;
+		std::conditional_t<isConst, const void*, void*> ptr = nullptr;
+
+	public:
+		AnyPtrT() = default;
+		AnyPtrT(std::nullptr_t) {}
+
+		template<class Ty>
+			requires (!std::same_as<AnyPtrT, Ty>)
+		AnyPtrT(Ty* obj) :
+			type{ &typeid(Ty) },
+			ptr{ obj }
+		{
+
+		}
+
+		AnyPtrT(const AnyPtrT<false>& other) requires (isConst) :
+			type{ other.type },
+			ptr{ other.ptr }
+		{
+
+		}
+
+		AnyPtrT(const AnyPtrT& other) :
+			type{ other.type },
+			ptr{ other.ptr }
+		{
+
+		}
+
+		AnyPtrT(AnyPtrT&& other) noexcept :
+			type{ std::exchange(other.type, nullptr) },
+			ptr{ std::exchange(other.ptr, nullptr) }
+		{
+
+		}
+
+		AnyPtrT& operator=(const AnyPtrT& ptr) = default;
+		AnyPtrT& operator=(AnyPtrT&& ptr) noexcept
+		{
+			type = std::exchange(ptr.type, nullptr);
+			ptr = std::exchange(ptr.ptr, nullptr);
+			return *this;
+		}
+
+		AnyPtrT& operator=(const AnyPtrT<false>& ptr) requires (isConst)
+		{
+			type = ptr.type;
+			ptr = ptr.ptr;
+			return *this;
+		} 
+
+		AnyPtrT& operator=(AnyPtrT<false>&& ptr) noexcept requires (isConst)
+		{
+			type = std::exchange(ptr.type, nullptr);
+			ptr = std::exchange(ptr.ptr, nullptr);
+			return *this;
+		}
+
+		template<class Ty>
+		Ty* operator=(const Ty* obj)
+		{
+			type = &typeid(Ty);
+			ptr = obj;
+			return obj;
+		}
+
+		template<class Ty>
+		Ty* As() const
+		{
+			if(!ptr)
+				return nullptr;
+
+			if(*type != typeid(Ty))
+				throw std::exception{};
+
+			return static_cast<Ty*>(ptr);
+		}
+
+		bool operator==(std::nullptr_t)
+		{
+			return ptr == nullptr; 
+		}
+	};
+
+	export using AnyPtr = AnyPtrT<false>;
+	export using AnyConstPtr = AnyPtrT<true>;
 }

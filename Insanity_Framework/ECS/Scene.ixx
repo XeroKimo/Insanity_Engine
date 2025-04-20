@@ -18,12 +18,25 @@ import InsanityFramework.ECS.Object;
 namespace InsanityFramework
 {
 	export class Scene;
+	export class SceneAllocator;
+	export class GameObject;
+
+	template<std::derived_from<InsanityFramework::GameObject> Ty>
+	class UniqueGameObject;
 
 	export class GameObject : public Object
 	{
 	protected:
 		using Object::Object;
 
+		template<std::derived_from<InsanityFramework::GameObject> Ty>
+		friend class UniqueGameObject;
+
+	private:
+		bool isRoot = true;
+
+	public:
+		bool IsRoot() const noexcept { return isRoot; }
 	};
 
 	export class SceneSystem : public Object
@@ -34,10 +47,12 @@ namespace InsanityFramework
 
 	class Scene
 	{
+		friend SceneAllocator;
+
 	public:
 		struct Key
 		{
-			friend class SceneAllocator;
+			friend SceneAllocator;
 
 		private:
 			Key() = default;
@@ -59,12 +74,29 @@ namespace InsanityFramework
 
 		}
 
+		~Scene()
+		{
+			assert(lifetimeLockCounter == 0);
+			for(auto& [type, objects] : gameObjects)
+			{
+				for(GameObject* object : objects)
+				{
+					if(object->IsRoot())
+						allocator.Delete(object);
+				}
+			}
+		}
+
+		//Creates an object that is not registered with the scene
+		//Must be paired with DeleteObject
 		template<std::derived_from<Object> Ty, class... Args>
 		Ty* NewObject(Args&&... args)
 		{
-			return allocator.New<Ty>(std::forward<Args>(args)...);;
+			return allocator.New<Ty>(std::forward<Args>(args)...);
 		}
 
+		//Creates a game object registered with the scene
+		//Must be paired with DeleteGameObject
 		template<std::derived_from<GameObject> Ty, class... Args>
 		Ty* NewGameObject(Args&&... args)
 		{
@@ -78,11 +110,25 @@ namespace InsanityFramework
 
 		void DeleteObject(Object* object)
 		{
-			allocator.Delete(object);
+			//Don't delete an object owned by another scene.
+			assert(ObjectAllocator::Get(object) == &allocator);
+
+			//Don't call DeleteObject on managed game objects, call DeleteGameObject instead
+			assert(gameObjects.contains(typeid(*object)) &&
+				std::ranges::find(gameObjects[typeid(*object)], object) == gameObjects[typeid(*object)].end());
+
+			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
+			//the scene itself
+			assert(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)] == object);
+
+			return allocator.Delete(object);
 		}
 
 		void DeleteGameObject(GameObject* object)
 		{
+			//Don't delete an object owned by another scene.
+			assert(ObjectAllocator::Get(object) == &allocator);
+
 			if(lifetimeLockCounter == 0)
 			{
 				ImmediateDeleteGameObject(object);
@@ -142,6 +188,7 @@ namespace InsanityFramework
 			return dynamic_cast<const Ty*>(it->second);
 		}
 
+
 		template<std::derived_from<GameObject> Ty, std::invocable<Ty&> Func>
 		void ForEachExactType(Func func)
 		{
@@ -178,6 +225,32 @@ namespace InsanityFramework
 			}
 		}
 
+		template<std::derived_from<GameObject> Ty>
+		std::vector<Ty*> GetGameObjects() const
+		{
+			std::vector<Ty*> output;
+
+			ForEach<Ty>([&output](Ty& obj)
+			{
+				output.push_back(obj);
+			});
+
+			return output;
+		}
+
+		template<std::derived_from<GameObject> Ty>
+		std::vector<Ty*> GetGameObjectsOfExactType() const
+		{
+			std::vector<Ty*> output;
+
+			ForEachExactType<Ty>([&output](Ty& obj)
+			{
+				output.push_back(obj);
+			});
+
+			return output;
+		}
+
 		void LockLifetimes()
 		{
 			lifetimeLockCounter++;
@@ -209,11 +282,231 @@ namespace InsanityFramework
 			queuedDestruction.clear();
 		}
 
+		static Scene* Get(Object* context)
+		{
+			return ObjectAllocator::Get(context)->GetUserData().As<Scene>();
+		}
+
 	private:
 		void ImmediateDeleteGameObject(GameObject* object)
 		{
 			std::erase(gameObjects[typeid(*object)], object);
 			DeleteObject(object);
 		}
+
+	private:
+		void* operator new(std::size_t size, SceneAllocator& allocator);
+
+		void operator delete(void* ptr, SceneAllocator& allocator);
+
+		void operator delete(void* ptr);
+	};
+
+	export class SceneAllocator
+	{
+		friend Scene;
+
+		class Page : public IntrusiveForwardListNode<Page>
+		{
+		public:
+			static constexpr size_t minimumBlocksPerPage = 16;
+
+			static constexpr size_t PageSize()
+			{
+				return AlignNextPow2(sizeof(Page) + sizeof(PoolAllocator<sizeof(Scene)>::alignedBucketSize) * minimumBlocksPerPage + 1);
+			}
+
+			static Page* GetPageFrom(void* ptr)
+			{
+				return std::launder(static_cast<Page*>(AlignFloorPow2(ptr, PageSize())));
+			}
+		private:
+			SceneAllocator* owningAllocator;
+			PoolAllocator<sizeof(Scene)> allocator;
+
+		public:
+			Page(SceneAllocator* owner) :
+				owningAllocator{ owner },
+				allocator{ { this + 1, PageSize() - sizeof(Page) } }
+			{
+
+			}		
+			
+			void* Allocate()
+			{
+				return allocator.Allocate(sizeof(Scene));
+			}
+
+			void Free(void* ptr)
+			{
+				allocator.Free(ptr);
+			}
+
+			SceneAllocator* GetOwner() const { return owningAllocator; }
+
+		public:
+			void* operator new(size_t size)
+			{
+				return ::operator new(PageSize(), std::align_val_t{ PageSize() });
+			}
+
+			void operator delete(void* ptr)
+			{
+				::operator delete(ptr, std::align_val_t{ PageSize() });
+			}
+		};
+
+	private:
+		AnyPtr userData = nullptr;
+		Page* firstPage = new Page(this);
+
+	public:
+		SceneAllocator() = default;
+		SceneAllocator(void* userData) :
+			userData{ userData }
+		{
+
+		}
+
+		Scene* New()
+		{
+			return new(*this) Scene{ Scene::Key{} };
+		}
+
+		static void Delete(Scene* scene)
+		{
+			delete scene;
+		}
+
+		void SetUserData(AnyPtr ptr)
+		{
+			userData = ptr;
+		}
+
+		AnyPtr GetUserData() const
+		{
+			return userData;
+		}
+
+		static SceneAllocator* Get(Scene* ptr)
+		{
+			return Page::GetPageFrom(ptr)->GetOwner();
+		}
+
+	private:
+		void* Allocate()
+		{
+			Page* currentPage = firstPage;
+			void* address = currentPage->Allocate();
+
+			while(!address)
+			{
+				Page* oldPage = currentPage;
+				currentPage = currentPage->Next();
+
+				if(!currentPage)
+				{
+					currentPage = new Page{ this };
+					oldPage->Append(currentPage);
+				}
+
+				address = currentPage->Allocate();
+			}
+
+			return address;
+		}
+
+		static void Free(void* ptr)
+		{
+			Page::GetPageFrom(ptr)->Free(ptr);
+		}
+	};
+
+
+
+	void* Scene::operator new(std::size_t size, SceneAllocator& allocator)
+	{
+		return allocator.New();
+	}
+	void Scene::operator delete(void* ptr, SceneAllocator& allocator)
+	{
+		allocator.Free(ptr);
+	}
+	void Scene::operator delete(void* ptr)
+	{
+		SceneAllocator::Free(ptr);
+	}
+
+
+
+	struct GameObjectDeleter
+	{
+		void operator()(GameObject* ptr)
+		{
+			Scene::Get(ptr)->DeleteGameObject(ptr);
+		}
+	};
+
+	export template<std::derived_from<InsanityFramework::GameObject> Ty>
+	class UniqueGameObject
+	{
+	private:
+		std::unique_ptr<Ty, GameObjectDeleter> ptr;
+
+	public:
+		UniqueGameObject() = default;
+		UniqueGameObject(std::nullptr_t) : ptr{ nullptr } {}
+		UniqueGameObject(Ty* ptr) : ptr{ ptr }
+		{
+			if(ptr)
+				ptr->isRoot = false;
+		}
+		UniqueGameObject(const UniqueGameObject&) = delete;
+		UniqueGameObject(UniqueGameObject&& other) noexcept :
+			ptr{ std::move(other).ptr }
+		{
+
+		}
+
+		UniqueGameObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
+		UniqueGameObject& operator=(const UniqueGameObject&) = delete;
+		UniqueGameObject& operator=(UniqueGameObject&& other) noexcept
+		{
+			UniqueGameObject temp{ std::move(other) };
+			swap(temp);
+			return *this;
+		}
+
+		~UniqueGameObject() = default;
+
+	public:
+		auto release()
+		{
+			ptr->isRoot = true;
+			return ptr.release();
+		}
+
+		void reset(Ty* newPtr) noexcept
+		{
+			ptr.reset(newPtr);
+			if(newPtr)
+				newPtr->isRoot = false;
+		}
+
+		void swap(UniqueGameObject& other) noexcept
+		{
+			ptr.swap(other.ptr);
+		}
+
+		auto get() { return ptr.get(); }
+		auto get() const { return ptr.get(); }
+
+		auto operator->() { return ptr.operator->(); }
+		auto operator->() const { return ptr.operator->(); }
+
+		decltype(auto) operator*() { return (ptr.operator*()); }
+		decltype(auto) operator*() const { return (ptr.operator*()); }
+
+		operator bool() const noexcept { return static_cast<bool>(ptr); }
 	};
 }

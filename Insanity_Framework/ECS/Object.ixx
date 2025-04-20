@@ -8,6 +8,7 @@ module;
 export module InsanityFramework.ECS.Object;
 import InsanityFramework.Memory;
 import InsanityFramework.Allocator;
+import InsanityFramework.AnyRef;
 
 namespace InsanityFramework
 {
@@ -91,7 +92,7 @@ namespace InsanityFramework
 
 
 	private:
-		void* userData = nullptr;
+		AnyPtr userData = nullptr;
 		Page* firstPage = new Page{ this };
 
 	public:
@@ -121,24 +122,17 @@ namespace InsanityFramework
 			delete ptr;
 		}
 
-		void SetUserData(void* ptr)
+		void SetUserData(AnyPtr ptr)
 		{
-			ptr = userData;
+			userData = ptr;
 		}
 
-		template<class Ty = void>
-		Ty* GetUserData() const
+		AnyPtr GetUserData() const
 		{
-			return std::launder(static_cast<Ty*>(userData));
+			return userData;
 		}
 
-		template<class Ty = void>
-		static Ty* GetUserDataFrom(Object* ptr)
-		{
-			return GetAllocatorFrom(ptr)->GetUserData<Ty>();
-		}
-
-		static ObjectAllocator* GetAllocatorFrom(void* ptr)
+		static ObjectAllocator* Get(Object* ptr)
 		{
 			return Page::GetPageFrom(ptr)->GetOwner();
 		}
@@ -184,17 +178,5 @@ namespace InsanityFramework
 	void Object::operator delete(void* ptr)
 	{
 		ObjectAllocator::Free(ptr);
-	}
-
-	export template<std::derived_from<Object> Ty, class... Args>
-	Ty* NewObject(Object* context, Args&&... args)
-	{
-		assert(context);
-		return ObjectAllocator::GetAllocatorFrom(context)->New<Ty>(std::forward<Args>(args)...);
-	}
-
-	export void DeleteObject(Object* ptr)
-	{
-		ObjectAllocator::Delete(ptr);
 	}
 }
