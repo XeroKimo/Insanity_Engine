@@ -13,8 +13,8 @@ module;
 export module InsanityFramework.ECS.Scene;
 import InsanityFramework.Memory;
 import InsanityFramework.Allocator;
-import InsanityFramework.ECS.Object;
-import InsanityFramework.TransformationNode;
+export import InsanityFramework.ECS.Object;
+export import InsanityFramework.TransformationNode;
 
 namespace InsanityFramework
 {
@@ -81,10 +81,10 @@ namespace InsanityFramework
 		ObjectAllocator allocator;
 
 		std::unordered_map<std::type_index, std::vector<GameObject*>> gameObjects;
-		std::unordered_map<std::type_index, SceneSystem*> sceneSystems;
+		std::unordered_map<std::type_index, UniqueObject<SceneSystem>> sceneSystems;
 		std::vector<GameObject*> queuedConstruction;
 		std::vector<GameObject*> queuedDestruction;
-		std::uint32_t lifetimeLockCounter;
+		std::uint32_t lifetimeLockCounter = 0;
 
 	public:
 		Scene(Key) :
@@ -96,20 +96,31 @@ namespace InsanityFramework
 		~Scene()
 		{
 			assert(lifetimeLockCounter == 0);
+			std::vector<GameObject*> rootObjects;
 			for(auto& [type, objects] : gameObjects)
 			{
 				for(GameObject* object : objects)
 				{
 					if(object->IsRoot())
-						allocator.Delete(object);
+						rootObjects.push_back(object);
 				}
+			}
+
+			for(GameObject* object : rootObjects)
+			{
+				allocator.Delete(object);
+			}
+
+			for(auto& [type, object] : sceneSystems)
+			{
+				allocator.Delete(object.release());
 			}
 		}
 
 		//Creates an object that is not registered with the scene
 		//Must be paired with DeleteObject
 		template<std::derived_from<Object> Ty, class... Args>
-		Ty* NewObject(Args&&... args)
+		UniqueObject<Ty> NewObject(Args&&... args)
 		{
 			return allocator.New<Ty>(std::forward<Args>(args)...);
 		}
@@ -117,14 +128,14 @@ namespace InsanityFramework
 		//Creates a game object registered with the scene
 		//Must be paired with DeleteGameObject
 		template<std::derived_from<GameObject> Ty, class... Args>
-		Ty* NewGameObject(Args&&... args)
+		UniqueGameObject<Ty> NewGameObject(Args&&... args)
 		{
-			Ty* object = NewObject<Ty>(std::forward<Args>(args)...);
+			UniqueObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
 			if(lifetimeLockCounter == 0)
-				gameObjects[typeid(Ty)].push_back(object);
+				gameObjects[typeid(Ty)].push_back(object.get());
 			else
-				queuedConstruction.push_back(object);
-			return object;
+				queuedConstruction.push_back(object.get());
+			return object.release();
 		}
 
 		void DeleteObject(Object* object)
@@ -138,9 +149,9 @@ namespace InsanityFramework
 
 			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
 			//the scene itself
-			assert(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)] == object);
+			assert(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object);
 
-			return allocator.Delete(object);
+			allocator.Delete(object);
 		}
 
 		void DeleteGameObject(GameObject* object)
@@ -162,7 +173,7 @@ namespace InsanityFramework
 		Ty& AddSystem(Args&&... args)
 		{
 			auto it = sceneSystems.find(typeid(Ty));
-			if(it == sceneSystems.end())
+			if(it != sceneSystems.end())
 			{
 				throw std::exception("System already added");
 			}
@@ -310,7 +321,7 @@ namespace InsanityFramework
 		void ImmediateDeleteGameObject(GameObject* object)
 		{
 			std::erase(gameObjects[typeid(*object)], object);
-			DeleteObject(object);
+			allocator.Delete(object);
 		}
 
 	private:
@@ -332,7 +343,7 @@ namespace InsanityFramework
 
 			static constexpr size_t PageSize()
 			{
-				return AlignNextPow2(sizeof(Page) + sizeof(PoolAllocator<sizeof(Scene)>::alignedBucketSize) * minimumBlocksPerPage + 1);
+				return AlignNextPow2(sizeof(Page) + PoolAllocator<sizeof(Scene)>::alignedBucketSize * minimumBlocksPerPage);
 			}
 
 			static Page* GetPageFrom(void* ptr)
@@ -381,10 +392,18 @@ namespace InsanityFramework
 
 	public:
 		SceneAllocator() = default;
-		SceneAllocator(void* userData) :
+		SceneAllocator(AnyPtr userData) :
 			userData{ userData }
 		{
 
+		}
+
+		~SceneAllocator()
+		{
+			while(firstPage)
+			{
+				delete std::exchange(firstPage, firstPage->RemoveSelfAndGetNext());
+			}
 		}
 
 		Scene* New()
@@ -445,7 +464,7 @@ namespace InsanityFramework
 
 	void* Scene::operator new(std::size_t size, SceneAllocator& allocator)
 	{
-		return allocator.New();
+		return allocator.Allocate();
 	}
 	void Scene::operator delete(void* ptr, SceneAllocator& allocator)
 	{
@@ -457,6 +476,16 @@ namespace InsanityFramework
 	}
 
 
+
+	export struct SceneDeleter
+	{
+		void operator()(Scene* scene)
+		{
+			SceneAllocator::Delete(scene);
+		}
+	};
+
+	export using SceneUniquePtr = std::unique_ptr<Scene, SceneDeleter>;
 
 	struct GameObjectDeleter
 	{
@@ -527,5 +556,23 @@ namespace InsanityFramework
 		decltype(auto) operator*() const { return (ptr.operator*()); }
 
 		operator bool() const noexcept { return static_cast<bool>(ptr); }
+	};
+
+	export class SceneLifetimeScopeLock
+	{
+	private:
+		Scene& scene;
+
+	public:
+		SceneLifetimeScopeLock(Scene& scene) :
+			scene{ scene }
+		{
+			scene.LockLifetimes();
+		}
+
+		~SceneLifetimeScopeLock()
+		{
+			scene.UnlockLifetimes();
+		}
 	};
 }

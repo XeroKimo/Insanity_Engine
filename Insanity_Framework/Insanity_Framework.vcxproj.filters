@@ -24,9 +24,6 @@
     <ClCompile Include="Rendering\DX11\RendererDX11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ECS.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AssetLoader.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -34,9 +31,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Memory.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ECS2.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Allocator.ixx">
@@ -49,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ECS\TransformationNode.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS\SceneManager.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

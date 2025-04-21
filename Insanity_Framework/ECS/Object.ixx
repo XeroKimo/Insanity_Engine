@@ -94,7 +94,7 @@ namespace InsanityFramework
 
 	public:
 		ObjectAllocator() = default;
-		ObjectAllocator(void* userData) :
+		ObjectAllocator(AnyPtr userData) :
 			userData{ userData }
 		{
 
@@ -176,4 +176,90 @@ namespace InsanityFramework
 	{
 		ObjectAllocator::Free(ptr);
 	}
+
+
+
+	struct ObjectDeleter
+	{
+		void operator()(Object* ptr)
+		{
+			ObjectAllocator::Get(ptr)->Delete(ptr);
+		}
+	};
+
+	export template<std::derived_from<InsanityFramework::Object> Ty>
+	class UniqueObject
+	{
+	private:
+		std::unique_ptr<Ty, ObjectDeleter> ptr;
+
+	public:
+		UniqueObject() = default;
+		UniqueObject(std::nullptr_t) : ptr{ nullptr } {}
+		UniqueObject(Ty* ptr) : ptr{ ptr }
+		{
+
+		}
+		UniqueObject(const UniqueObject&) = delete;
+		UniqueObject(UniqueObject&& other) noexcept :
+			ptr{ std::move(other).ptr }
+		{
+
+		}
+
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueObject(UniqueObject<OtherTy>&& other) noexcept :
+			ptr{ other.release() }
+		{
+
+		}
+
+		UniqueObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
+		UniqueObject& operator=(const UniqueObject&) = delete;
+		UniqueObject& operator=(UniqueObject&& other) noexcept
+		{
+			UniqueObject temp{ std::move(other) };
+			swap(temp);
+			return *this;
+		}
+
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueObject& operator=(UniqueObject<OtherTy>&& other) noexcept
+		{
+			UniqueObject temp{ other.release() };
+			swap(temp);
+			return *this;
+		}
+
+		~UniqueObject() = default;
+
+	public:
+		auto release()
+		{
+			return ptr.release();
+		}
+
+		void reset(Ty* newPtr) noexcept
+		{
+			ptr.reset(newPtr);
+		}
+
+		void swap(UniqueObject& other) noexcept
+		{
+			ptr.swap(other.ptr);
+		}
+
+		auto get() { return ptr.get(); }
+		auto get() const { return ptr.get(); }
+
+		auto operator->() { return ptr.operator->(); }
+		auto operator->() const { return ptr.operator->(); }
+
+		decltype(auto) operator*() { return (ptr.operator*()); }
+		decltype(auto) operator*() const { return (ptr.operator*()); }
+
+		operator bool() const noexcept { return static_cast<bool>(ptr); }
+	};
 }
