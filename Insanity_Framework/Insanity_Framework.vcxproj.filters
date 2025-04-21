@@ -48,6 +48,9 @@
     <ClCompile Include="ECS\SceneManager.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ECS\ExperimentalObjectAPI.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Assets\Engine\SpritePS.hlsl" />

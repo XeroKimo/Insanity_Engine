@@ -149,12 +149,12 @@ namespace InsanityFramework
 			assert(ObjectAllocator::Get(object) == &allocator);
 
 			//Don't call DeleteObject on managed game objects, call DeleteGameObject instead
-			assert(gameObjects.contains(typeid(*object)) &&
-				std::ranges::find(gameObjects[typeid(*object)], object) == gameObjects[typeid(*object)].end());
+			assert(!(gameObjects.contains(typeid(*object)) &&
+				std::ranges::find(gameObjects[typeid(*object)], object) != gameObjects[typeid(*object)].end()));
 
 			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
 			//the scene itself
-			assert(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object);
+			assert(!(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object));
 
 			allocator.Delete(object);
 		}

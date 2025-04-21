@@ -23,6 +23,7 @@
     <ClCompile Include="AnyRef.ixx" />
     <ClCompile Include="AssetLoader.ixx" />
     <ClCompile Include="build.cpp" />
+    <ClCompile Include="ECS\ExperimentalObjectAPI.ixx" />
     <ClCompile Include="ECS\Object.ixx" />
     <ClCompile Include="ECS\Scene.ixx" />
     <ClCompile Include="ECS\SceneManager.ixx" />

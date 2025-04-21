@@ -4,9 +4,13 @@ module;
 #include <optional>
 #include <tuple>
 #include <memory>
+#include <functional>
+#include <unordered_map>
+#include <typeindex>
 
 export module InsanityFramework.ECS.SceneManager;
 export import InsanityFramework.ECS.Scene;
+import InsanityFramework.AnyRef;
 
 namespace InsanityFramework
 {
@@ -121,6 +125,13 @@ namespace InsanityFramework
 		std::vector<SceneLoadPayload> pendingSubscenesLoad;
 
 	public:
+		//Gets invoked when a scene wants to start loading / unloading
+		std::function<void(SceneManager&, Scene&)> onSceneRequestProgress;
+
+		//Gets invoked when a scene wants to stop loading / unloading
+		std::function<void(SceneManager&, Scene&)> onSceneRequestStopProgress;
+
+	public:
 		template<class Ty, class... Args>
 			requires IsSceneLoader<Ty, Args...>
 		void LoadScene(Args&&... args)
@@ -142,9 +153,16 @@ namespace InsanityFramework
 				UnloadAllScenes();
 
 				LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
-				newScene.loader = pendingSceneLoad->Load(newScene.scene.get());
-				scenes.push_back(std::move(newScene));
 
+				if(onSceneRequestProgress)
+					onSceneRequestProgress(*this, *newScene.scene);
+
+				newScene.loader = pendingSceneLoad->Load(newScene.scene.get());
+
+				if(onSceneRequestStopProgress)
+					onSceneRequestStopProgress(*this, *newScene.scene);
+
+				scenes.push_back(std::move(newScene));
 				pendingSceneLoad = std::nullopt;
 				return LoadedSceneResult{ LoadedSceneResult::Type::Scene, 1 };
 			}
@@ -153,7 +171,15 @@ namespace InsanityFramework
 				for(auto& payload : pendingSubscenesLoad)
 				{
 					LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
+
+					if(onSceneRequestProgress)
+						onSceneRequestProgress(*this, *newScene.scene);
+
 					newScene.loader = payload.Load(newScene.scene.get());
+
+					if(onSceneRequestStopProgress)
+						onSceneRequestStopProgress(*this, *newScene.scene);
+
 					scenes.push_back(std::move(newScene));
 				}
 				size_t count = pendingSubscenesLoad.size();
@@ -179,6 +205,8 @@ namespace InsanityFramework
 		{
 			while(!scenes.empty())
 			{
+				if(onSceneRequestProgress)
+					onSceneRequestProgress(*this, *scenes.back().scene);
 				scenes.pop_back();
 			}
 		}
