@@ -31,7 +31,7 @@ namespace InsanityFramework
 		struct Base
 		{
 			virtual ~Base() = default;
-			virtual UniqueObject<SceneLoader> Load(Scene* scene) = 0;
+			virtual SceneUniqueObject<SceneLoader> Load(Scene* scene) = 0;
 		};
 
 		template<class Ty, class... Args>
@@ -45,7 +45,7 @@ namespace InsanityFramework
 
 			}
 
-			UniqueObject<SceneLoader> Load(Scene* scene) final
+			SceneUniqueObject<SceneLoader> Load(Scene* scene) final
 			{
 				auto loader = scene->NewObject<Ty>();
 
@@ -76,7 +76,7 @@ namespace InsanityFramework
 
 		}
 
-		UniqueObject<SceneLoader> Load(Scene* scene)
+		SceneUniqueObject<SceneLoader> Load(Scene* scene)
 		{
 			return ptr->Load(scene);
 		}
@@ -100,7 +100,7 @@ namespace InsanityFramework
 		struct LoadedScenes
 		{
 			SceneUniquePtr scene = nullptr;
-			UniqueObject<SceneLoader> loader = nullptr;
+			SceneUniqueObject<SceneLoader> loader = nullptr;
 
 			LoadedScenes(SceneUniquePtr ptr) : scene{ std::move(ptr) } {}
 			LoadedScenes(const LoadedScenes&) = delete;

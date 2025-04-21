@@ -187,11 +187,14 @@ namespace InsanityFramework
 		}
 	};
 
-	export template<std::derived_from<InsanityFramework::Object> Ty>
+	export template<std::derived_from<InsanityFramework::Object> Ty, class DeleterTy = ObjectDeleter>
 	class UniqueObject
 	{
+		template<std::derived_from<InsanityFramework::Object> Ty, class DeleterTy>
+		friend class UniqueObject;
+
 	private:
-		std::unique_ptr<Ty, ObjectDeleter> ptr;
+		std::unique_ptr<Ty, DeleterTy> ptr;
 
 	public:
 		UniqueObject() = default;
@@ -209,8 +212,8 @@ namespace InsanityFramework
 
 		template<class OtherTy>
 			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueObject(UniqueObject<OtherTy>&& other) noexcept :
-			ptr{ other.release() }
+		UniqueObject(UniqueObject<OtherTy, DeleterTy>&& other) noexcept :
+			ptr{ std::move(other).ptr }
 		{
 
 		}
@@ -226,9 +229,9 @@ namespace InsanityFramework
 
 		template<class OtherTy>
 			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueObject& operator=(UniqueObject<OtherTy>&& other) noexcept
+		UniqueObject& operator=(UniqueObject<OtherTy, DeleterTy>&& other) noexcept
 		{
-			UniqueObject temp{ other.release() };
+			UniqueObject temp{ std::move(other).ptr };
 			swap(temp);
 			return *this;
 		}

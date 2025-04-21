@@ -22,7 +22,12 @@ namespace InsanityFramework
 	export class SceneAllocator;
 	export class GameObject;
 
-	template<std::derived_from<InsanityFramework::GameObject> Ty>
+	struct SceneObjectDeleter;
+
+	export template<std::derived_from<InsanityFramework::Object> Ty>
+	using SceneUniqueObject = UniqueObject<Ty, SceneObjectDeleter>;
+
+	export template<std::derived_from<InsanityFramework::GameObject> Ty>
 	class UniqueGameObject;
 
 	export class GameObject : public Object, public TransformNode
@@ -120,7 +125,7 @@ namespace InsanityFramework
 		//Creates an object that is not registered with the scene
 		//Must be paired with DeleteObject
 		template<std::derived_from<Object> Ty, class... Args>
-		UniqueObject<Ty> NewObject(Args&&... args)
+		SceneUniqueObject<Ty> NewObject(Args&&... args)
 		{
 			return allocator.New<Ty>(std::forward<Args>(args)...);
 		}
@@ -130,12 +135,12 @@ namespace InsanityFramework
 		template<std::derived_from<GameObject> Ty, class... Args>
 		UniqueGameObject<Ty> NewGameObject(Args&&... args)
 		{
-			UniqueObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
+			UniqueGameObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
 			if(lifetimeLockCounter == 0)
 				gameObjects[typeid(Ty)].push_back(object.get());
 			else
 				queuedConstruction.push_back(object.get());
-			return object.release();
+			return object;
 		}
 
 		void DeleteObject(Object* object)
@@ -498,6 +503,9 @@ namespace InsanityFramework
 	export template<std::derived_from<InsanityFramework::GameObject> Ty>
 	class UniqueGameObject
 	{
+		template<std::derived_from<InsanityFramework::GameObject> Ty>
+		friend class UniqueGameObject;
+
 	private:
 		std::unique_ptr<Ty, GameObjectDeleter> ptr;
 
@@ -516,11 +524,28 @@ namespace InsanityFramework
 
 		}
 
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueGameObject(UniqueGameObject<OtherTy>&& other) noexcept :
+			ptr{ std::move(other).ptr }
+		{
+
+		}
+
 		UniqueGameObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
 		UniqueGameObject& operator=(const UniqueGameObject&) = delete;
 		UniqueGameObject& operator=(UniqueGameObject&& other) noexcept
 		{
 			UniqueGameObject temp{ std::move(other) };
+			swap(temp);
+			return *this;
+		}
+
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueGameObject& operator=(UniqueGameObject<OtherTy>&& other) noexcept
+		{
+			UniqueGameObject temp{ std::move(other).ptr };
 			swap(temp);
 			return *this;
 		}
@@ -556,6 +581,14 @@ namespace InsanityFramework
 		decltype(auto) operator*() const { return (ptr.operator*()); }
 
 		operator bool() const noexcept { return static_cast<bool>(ptr); }
+	};
+
+	struct SceneObjectDeleter
+	{
+		void operator()(Object* ptr)
+		{
+			Scene::Get(ptr)->DeleteObject(ptr);
+		}
 	};
 
 	export class SceneLifetimeScopeLock
