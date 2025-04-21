@@ -15,8 +15,6 @@ namespace InsanityFramework
 	export class Object;
 	export class ObjectAllocator;
 
-	export enum class VirtualPassthrough {};
-
 	export class Object
 	{
 		friend ObjectAllocator;
@@ -30,7 +28,6 @@ namespace InsanityFramework
 		};
 
 	protected:
-		Object(VirtualPassthrough) {};
 		Object(Key) {};
 		virtual ~Object() = default;
 

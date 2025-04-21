@@ -14,6 +14,7 @@ export module InsanityFramework.ECS.Scene;
 import InsanityFramework.Memory;
 import InsanityFramework.Allocator;
 import InsanityFramework.ECS.Object;
+import InsanityFramework.TransformationNode;
 
 namespace InsanityFramework
 {
@@ -24,13 +25,31 @@ namespace InsanityFramework
 	template<std::derived_from<InsanityFramework::GameObject> Ty>
 	class UniqueGameObject;
 
-	export class GameObject : public Object
+	export class GameObject : public Object, public TransformNode
 	{
-	protected:
-		using Object::Object;
-
 		template<std::derived_from<InsanityFramework::GameObject> Ty>
 		friend class UniqueGameObject;
+
+	public:
+		using Object::Object;
+
+		GameObject(Key key, TransformNode* parent) :
+			Object{ key },
+			TransformNode{ parent }
+		{
+		}
+
+		GameObject(Key key, LocalTransformInitializer initializer) :
+			Object{ key },
+			TransformNode{ initializer }
+		{
+		}
+
+		GameObject(Key key, WorldTransformInitializer initializer) :
+			Object{ key },
+			TransformNode{ initializer }
+		{
+		}
 
 	private:
 		bool isRoot = true;
