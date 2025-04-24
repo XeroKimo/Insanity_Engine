@@ -63,7 +63,7 @@ namespace InsanityFramework
 		BufferView AlignNext(std::size_t alignment)
 		{
 			std::byte* newAddress = static_cast<std::byte*>(AlignCeil(buffer, alignment));
-			assert(buffer < newAddress);
+			assert(buffer <= newAddress);
 			std::size_t sizeDifference = newAddress - buffer;
 			return (alignment < size && sizeDifference <= size) ? 
 				BufferView{ newAddress, size - sizeDifference } :
@@ -197,7 +197,8 @@ namespace InsanityFramework
 
 		FreeListHeader* Split(std::size_t requestedSize)
 		{
-			std::size_t alignedSize = AlignCeilPow2<size_t>(requestedSize + sizeof(FreeListHeader), 8);
+			static_assert(std::has_single_bit(alignof(FreeListHeader)));
+			std::size_t alignedSize = AlignCeilPow2<size_t>(requestedSize + sizeof(FreeListHeader), alignof(FreeListHeader));
 			if(alignedSize >= dataRegionSize)
 				return nullptr;
 
@@ -234,6 +235,11 @@ namespace InsanityFramework
 		FreeListAllocator(BufferView buffer) :
 			buffer{ buffer }
 		{
+			//Free list allocator assumes that the passed in buffer is aligned to the most aligned type
+			//and the size is a multiple to the most aligned type, in assuming so, simplifies the math
+			//in splitting buffers
+			assert(buffer.Raw() == AlignCeilPow2(buffer.Raw(), alignof(std::max_align_t)));
+			assert(buffer.Size() % alignof(std::max_align_t) == 0);
 			std::construct_at<FreeListHeader>(buffer, buffer.Size() - sizeof(FreeListHeader));
 		}
 
