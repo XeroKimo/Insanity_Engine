@@ -7,3 +7,6 @@
 [submodule "ExceptionHierarchy"]
 	path = ExceptionHierarchy
 	url = https://github.com/XeroKimo/ExceptionHierarchy
+[submodule "xkSDL2Wrapper"]
+	path = xkSDL2Wrapper
+	url = https://github.com/XeroKimo/xkSDL2Wrapper

@@ -22,12 +22,41 @@ namespace InsanityFramework
 		return static_cast<std::byte*>(ptr) - offset;
 	}
 
+	//Pointer arithmatic on a Ty* when it's not a Ty[] is UB
+	//While converting a Ty* to a byte* is valid, it is still
+	//technically UB to do pointer arithmetic on the byte* until p1839 is implemented
+	//but it works in practice
+	export template<class Ty>
+	void* IncrementPointer(Ty* ptr, std::size_t offset)
+	{
+		return IncrementPointerAs<Ty>(ptr, offset);
+	}
+
+
+	//Pointer arithmatic on a Ty* when it's not a Ty[] is UB
+	//While converting a Ty* to a byte* is valid, it is still
+	//technically UB to do pointer arithmetic on the byte* until p1839 is implemented
+	//but it works in practice
+	export template<class Ty>
+	void* DecrementPointer(Ty* ptr, std::size_t offset)
+	{
+		return DecrementPointerAs<Ty>(ptr, offset);
+	}
+
+	//Pointer arithmatic on a Ty* when it's not a Ty[] is UB
+	//While converting a Ty* to a byte* is valid, it is still
+	//technically UB to do pointer arithmetic on the byte* until p1839 is implemented
+	//but it works in practice
 	export template<class Ty>
 	void* IncrementPointerAs(void* ptr, std::size_t offset)
 	{
 		return static_cast<std::byte*>(ptr) + offset * sizeof(Ty);
 	}
 
+	//Pointer arithmatic on a Ty* when it's not a Ty[] is UB
+	//While converting a Ty* to a byte* is valid, it is still
+	//technically UB to do pointer arithmetic on the byte* until p1839 is implemented
+	//but it works in practice
 	export template<class Ty>
 	void* DecrementPointerAs(void* ptr, std::size_t offset)
 	{
@@ -85,7 +114,7 @@ namespace InsanityFramework
 	constexpr Ty AlignCeilPow2(Ty value, Ty alignment)
 	{
 		assert(std::has_single_bit(alignment));
-		return value + (std::numeric_limits<Ty>::max() - (value - 1) & (alignment - 1));
+		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
 	static_assert(AlignCeilPow2(17u, 16u) == 32);
