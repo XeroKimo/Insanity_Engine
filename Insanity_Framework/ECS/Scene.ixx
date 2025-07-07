@@ -225,7 +225,7 @@ namespace InsanityFramework
 
 
 		template<std::derived_from<GameObject> Ty, std::invocable<Ty&> Func>
-		void ForEachExactType(Func func)
+		void ForEachExactType(Func func) const
 		{
 			auto it = gameObjects.find(typeid(Ty));
 			if(it == gameObjects.end())
@@ -241,7 +241,7 @@ namespace InsanityFramework
 		}
 
 		template<class Ty, std::invocable<Ty&> Func>
-		void ForEach(Func func)
+		void ForEach(Func func) const
 		{
 			for(auto& [type, objectVec] : gameObjects)
 			{
@@ -267,7 +267,7 @@ namespace InsanityFramework
 
 			ForEach<Ty>([&output](Ty& obj)
 			{
-				output.push_back(obj);
+				output.push_back(&obj);
 			});
 
 			return output;
