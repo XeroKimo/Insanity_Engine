@@ -24,6 +24,7 @@ using namespace TypedD3D;
 
 namespace InsanityFramework
 {
+
 	TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device)
 	{
 		SDL2pp::unique_ptr<SDL_Surface> surface = IMG_Load(path.string().c_str());
@@ -174,26 +175,26 @@ namespace InsanityFramework
 
 	void SpriteRenderInterfaceDX11::Draw(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, xk::Math::Aliases::Matrix4x4 transform)
 	{
-		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.instanceBuffer, [&transform](D3D11_MAPPED_SUBRESOURCE data)
+		UpdateConstantBuffer(deviceContext, m_spriteRenderer.instanceBuffer, [&transform](D3D11_MAPPED_SUBRESOURCE data)
 		{
 			std::memcpy(data.pData, &transform, sizeof(transform));
 		});
 		TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ m_spriteRenderer.vertexBuffer, m_spriteRenderer.instanceBuffer };
 		std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
 		std::array<UINT, 2> offsets{ 0, 0 };
-		m_renderer.GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
-		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
-		m_renderer.GetDeviceContext()->DrawInstanced(6, 1, 0, 0);
+		deviceContext->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
+		deviceContext->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
+		deviceContext->DrawInstanced(6, 1, 0, 0);
 	}
 
 	void SpriteRenderInterfaceDX11::DrawMultiple(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, std::span<xk::Math::Aliases::Matrix4x4> transform)
 	{
-		m_renderer.GetDeviceContext()->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
+		deviceContext->PSSetShaderResources(0, texture ? texture : m_spriteRenderer.defaultTexture);
 
 		for(size_t i = 0; i < transform.size();)
 		{
 			UINT amountToDraw = transform.size() > instanceBufferElementMaxCount ? instanceBufferElementMaxCount : static_cast<UINT>(transform.size());
-			UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.instanceBuffer, [&transform, i, amountToDraw](D3D11_MAPPED_SUBRESOURCE data)
+			UpdateConstantBuffer(deviceContext, m_spriteRenderer.instanceBuffer, [&transform, i, amountToDraw](D3D11_MAPPED_SUBRESOURCE data)
 			{
 				std::memcpy(data.pData, &transform[i], sizeof(xk::Math::Aliases::Matrix4x4) * amountToDraw);
 			});
@@ -201,31 +202,18 @@ namespace InsanityFramework
 			TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ m_spriteRenderer.vertexBuffer, m_spriteRenderer.instanceBuffer };
 			std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
 			std::array<UINT, 2> offsets{ 0, 0 };
-			m_renderer.GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
+			deviceContext->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
 
-			m_renderer.GetDeviceContext()->DrawInstanced(6, amountToDraw, 0, 0);
+			deviceContext->DrawInstanced(6, amountToDraw, 0, 0);
 			i += amountToDraw;
 		}
 	}
 
 	SpritePipelineDX11::SpritePipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
-		struct TemporaryWorkingPath
-		{
-			std::filesystem::path oldPath = std::filesystem::current_path();
-			TemporaryWorkingPath(std::filesystem::path path)
-			{
-				std::filesystem::current_path(path);
-			}
-			~TemporaryWorkingPath()
-			{
-				std::filesystem::current_path(oldPath);
-			}
-		};
-		//TODO: Figure out how to not hardcode this
-		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" } };
+
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/SpriteVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((engineAssetPath / "Assets/Engine/SpriteVS.hlsl").c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
 		std::array inputElement
 		{
@@ -288,7 +276,7 @@ namespace InsanityFramework
 		layout = device->CreateInputLayout(inputElement, *vertexBlob.Get());
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/SpritePS.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((engineAssetPath / "Assets/Engine/SpritePS.hlsl").c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
 		pixelShader = device->CreatePixelShader(*pixelBlob.Get(), nullptr);
 
 		{
@@ -437,24 +425,15 @@ namespace InsanityFramework
 		}
 	}
 
-	void SpritePipelineDX11::Bind(RendererDX11& renderer)
+	void SpritePipelineDX11::Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
-		renderer.GetDeviceContext()->IASetInputLayout(layout);
-		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
-		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
-		renderer.GetDeviceContext()->PSSetSamplers(0, pointSampler);
-		renderer.GetDeviceContext()->OMSetBlendState(blendState, std::nullopt, 0xff'ff'ff'ff);
-		renderer.GetDeviceContext()->OMSetDepthStencilState(depthState, 0xff'ff'ff'ff);
-		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
-		D3D11_VIEWPORT viewports;
-		viewports.TopLeftX = 0;
-		viewports.TopLeftY = 0;
-		viewports.MinDepth = 0;
-		viewports.MaxDepth = 1;
-		viewports.Width = static_cast<FLOAT>(desc.Width);
-		viewports.Height = static_cast<FLOAT>(desc.Height);
-		renderer.GetDeviceContext()->RSSetViewports(viewports);
-		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		deviceContext->IASetInputLayout(layout);
+		deviceContext->VSSetShader(vertexShader, {});
+		deviceContext->PSSetShader(pixelShader, {});
+		deviceContext->PSSetSamplers(0, pointSampler);
+		deviceContext->OMSetBlendState(blendState, std::nullopt, 0xff'ff'ff'ff);
+		deviceContext->OMSetDepthStencilState(depthState, 0xff'ff'ff'ff);
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 
@@ -529,22 +508,8 @@ namespace InsanityFramework
 
 	DebugPipelineDX11::DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
-		struct TemporaryWorkingPath
-		{
-			std::filesystem::path oldPath = std::filesystem::current_path();
-			TemporaryWorkingPath(std::filesystem::path path)
-			{
-				std::filesystem::current_path(path);
-			}
-			~TemporaryWorkingPath()
-			{
-				std::filesystem::current_path(oldPath);
-			}
-		};
-		//TODO: Figure out how to not hardcode this
-		auto relative = TemporaryWorkingPath{ std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" } };
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/DebugVS.hlsl" }.c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((engineAssetPath / "Assets/Engine/DebugVS.hlsl").c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
 		vertexShader = device->CreateVertexShader(*vertexBlob.Get(), nullptr);
 		std::array inputElement
 		{
@@ -562,7 +527,7 @@ namespace InsanityFramework
 		layout = device->CreateInputLayout(inputElement, *vertexBlob.Get());
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
-		TypedD3D::ThrowIfFailed(D3DCompileFromFile(std::filesystem::path{ "Assets/Engine/DebugPS.hlsl" }.c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((engineAssetPath / "Assets/Engine/DebugPS.hlsl").c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
 		pixelShader = device->CreatePixelShader(*pixelBlob.Get(), nullptr);
 
 		{

@@ -8,6 +8,7 @@ module;
 #include <concepts>
 #include <type_traits>
 #include <filesystem>
+#include <optional>
 
 export module InsanityFramework.RendererDX11;
 export import TypedD3D11;
@@ -20,6 +21,8 @@ namespace InsanityFramework
 	export TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device);
 
 	export class RendererDX11;
+
+	export std::filesystem::path engineAssetPath = std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" };
 
 	export template<class Func>
 	void UpdateConstantBuffer(TypedD3D::Wrapper<ID3D11DeviceContext> context, TypedD3D::Wrapper<ID3D11Resource> resource, Func func)
@@ -37,13 +40,6 @@ namespace InsanityFramework
 		context->Unmap(resource, 0);
 	}
 
-	export template<class Ty>
-		concept RenderPipeline = requires (Ty pipeline, RendererDX11 & renderer)
-	{
-		pipeline.Bind(renderer);
-		requires std::is_class_v<decltype(pipeline.MakeRenderInterface(renderer))>;
-	};
-
 	class RendererDX11
 	{
 	private:
@@ -59,12 +55,6 @@ namespace InsanityFramework
 		~RendererDX11();
 
 	public:
-		template<RenderPipeline Ty, std::invocable<decltype(std::declval<Ty>().MakeRenderInterface(std::declval<RendererDX11&>()))> Func>
-		void BindPipeline(Ty& pipeline, Func func)
-		{
-			pipeline.Bind(*this);
-			func(pipeline.MakeRenderInterface(*this));
-		}
 
 		void DebugPrintMemory()
 		{
@@ -90,18 +80,18 @@ namespace InsanityFramework
 	export class SpriteRenderInterfaceDX11
 	{
 	private:
-		RendererDX11& m_renderer;
+		TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext;
 		SpritePipelineDX11& m_spriteRenderer;
 
 	public:
-		SpriteRenderInterfaceDX11(RendererDX11& renderer, SpritePipelineDX11& spriteRenderer) :
-			m_renderer{ renderer },
+		SpriteRenderInterfaceDX11(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext, SpritePipelineDX11& spriteRenderer) :
+			deviceContext{ deviceContext },
 			m_spriteRenderer{ spriteRenderer }
 		{
 		}
 
-		template<std::invocable<Camera> Func>
-		void CameraPass(const Camera& camera, Func func);
+		template<std::invocable Func>
+		void CameraPass(const Camera& camera, std::optional<TypedD3D11::Wrapper<ID3D11RenderTargetView>> target, Func func);
 
 		void Draw(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, xk::Math::Aliases::Matrix4x4 transform);
 		void DrawMultiple(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture, std::span<xk::Math::Aliases::Matrix4x4> transform);
@@ -132,23 +122,43 @@ namespace InsanityFramework
 	public:
 		SpritePipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext);
 
-		void Bind(RendererDX11& renderer);
+		void Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext);
 
-		SpriteRenderInterfaceDX11 MakeRenderInterface(RendererDX11& renderer)
+		template<std::invocable<SpriteRenderInterfaceDX11> Func>
+		void Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext, Func func)
 		{
-			return { renderer, *this };
+			Bind(deviceContext);
+			func(MakeRenderInterface(deviceContext));
+		}
+
+		SpriteRenderInterfaceDX11 MakeRenderInterface(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
+		{
+			return { deviceContext, *this };
 		}
 	};
 
-	template<std::invocable<Camera> Func>
-	void SpriteRenderInterfaceDX11::CameraPass(const Camera& camera, Func func)
+	template<std::invocable Func>
+	void SpriteRenderInterfaceDX11::CameraPass(const Camera& camera, std::optional<TypedD3D11::Wrapper<ID3D11RenderTargetView>> target, Func func)
 	{
-		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_spriteRenderer.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		if (target)
+		{
+			deviceContext->OMSetRenderTargets(target.value(), nullptr);
+			D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(target.value()->GetResource())->GetDesc();
+			D3D11_VIEWPORT viewports;
+			viewports.TopLeftX = 0;
+			viewports.TopLeftY = 0;
+			viewports.MinDepth = 0;
+			viewports.MaxDepth = 1;
+			viewports.Width = static_cast<FLOAT>(desc.Width);
+			viewports.Height = static_cast<FLOAT>(desc.Height);
+			deviceContext->RSSetViewports(viewports);
+		}
+		UpdateConstantBuffer(deviceContext, m_spriteRenderer.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
 		{
 			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
 		});
-		m_renderer.GetDeviceContext()->VSSetConstantBuffers(SpritePipelineDX11::VSPerCameraCBufferSlot, m_spriteRenderer.cameraBuffer);
-		func(camera);
+		deviceContext->VSSetConstantBuffers(SpritePipelineDX11::VSPerCameraCBufferSlot, m_spriteRenderer.cameraBuffer);
+		func();
 	}
 
 	export struct DebugPipelineDX11;
