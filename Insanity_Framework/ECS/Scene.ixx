@@ -280,7 +280,7 @@ namespace InsanityFramework
 
 			ForEachExactType<Ty>([&output](Ty& obj)
 			{
-				output.push_back(obj);
+				output.push_back(&obj);
 			});
 
 			return output;
