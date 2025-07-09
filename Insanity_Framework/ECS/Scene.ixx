@@ -9,6 +9,7 @@ module;
 #include <typeindex>
 #include <algorithm>
 #include <span>
+#include <functional>
 
 export module InsanityFramework.ECS.Scene;
 import InsanityFramework.Memory;
@@ -92,6 +93,10 @@ namespace InsanityFramework
 		std::uint32_t lifetimeLockCounter = 0;
 
 	public:
+		std::function<void(Object*)> onObjectCreated;
+		std::function<void(Object*)> onObjectDeleted;
+
+	public:
 		Scene(Key) :
 			allocator{ this }
 		{
@@ -127,7 +132,12 @@ namespace InsanityFramework
 		template<std::derived_from<Object> Ty, class... Args>
 		SceneUniqueObject<Ty> NewObject(Args&&... args)
 		{
-			return allocator.New<Ty>(std::forward<Args>(args)...);
+			SceneUniqueObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
+
+			if (onObjectCreated)
+				onObjectCreated(object.get());
+
+			return object;
 		}
 
 		//Creates a game object registered with the scene
@@ -140,6 +150,10 @@ namespace InsanityFramework
 				gameObjects[typeid(Ty)].push_back(object.get());
 			else
 				queuedConstruction.push_back(object.get());
+
+			if (onObjectCreated)
+				onObjectCreated(object.get());
+
 			return object;
 		}
 
@@ -155,6 +169,9 @@ namespace InsanityFramework
 			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
 			//the scene itself
 			assert(!(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object));
+
+			if (onObjectDeleted)
+				onObjectDeleted(object);
 
 			allocator.Delete(object);
 		}
@@ -325,6 +342,9 @@ namespace InsanityFramework
 	private:
 		void ImmediateDeleteGameObject(GameObject* object)
 		{
+			if (onObjectDeleted)
+				onObjectDeleted(object);
+
 			std::erase(gameObjects[typeid(*object)], object);
 			allocator.Delete(object);
 		}
