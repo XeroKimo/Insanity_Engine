@@ -27,7 +27,7 @@ namespace InsanityFramework
 	concept IsSceneLoader = requires(Ty t, Args&&... args)
 	{
 		requires std::derived_from<Ty, SceneLoader>;
-		t.Load(args...);
+		t.Load(std::forward<Args>(args)...);
 	};
 
 	class SceneLoadPayload
@@ -41,7 +41,7 @@ namespace InsanityFramework
 		template<class Ty, class... Args>
 		struct Payload : Base
 		{
-			std::tuple<Args...> args;
+			std::tuple<std::remove_reference_t<Args>...> args;
 
 			Payload(Args&&... args) :
 				args{ std::forward<Args>(args)... }
@@ -55,9 +55,9 @@ namespace InsanityFramework
 
 				if constexpr(sizeof...(Args) > 0)
 				{
-					std::apply([&](Args&&... args)
+					std::apply([&](auto&&... args)
 					{
-						loader->Load(std::forward<Args>(args)...);
+						loader->Load(std::forward<decltype(args)>(args)...);
 					}, args);
 				}
 				else
