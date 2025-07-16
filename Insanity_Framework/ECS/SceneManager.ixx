@@ -140,6 +140,9 @@ namespace InsanityFramework
 		//Gets invoked when a scene wants to start loading / unloading
 		std::function<void(SceneManager&, Scene&)> onSceneRequestUnload;
 
+		//Gets invoked when a scene wants to stop loading / unloading
+		std::function<void(SceneManager&, Scene&)> onSceneUnloadComplete;
+
 	public:
 		template<class Ty, class... Args>
 			requires IsSceneLoader<Ty, Args...>
@@ -237,6 +240,9 @@ namespace InsanityFramework
 
 				if (onSceneRequestStopProgress)
 					onSceneRequestStopProgress(*this, *oldScene.scene);
+
+				if (onSceneUnloadComplete)
+					onSceneUnloadComplete(*this, *oldScene.scene);
 			}
 		}
 	};

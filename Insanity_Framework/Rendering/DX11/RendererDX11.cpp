@@ -17,6 +17,7 @@ module;
 #include <SDL2/SDL_image.h>
 #include <numbers>
 #include <cassert>
+#include <format>
 module InsanityFramework.RendererDX11;
 import SDL2pp;
 
@@ -28,6 +29,10 @@ namespace InsanityFramework
 	TypedD3D11::Wrapper<ID3D11ShaderResourceView> CreateTexture(std::filesystem::path path, TypedD3D11::Wrapper<ID3D11Device> device)
 	{
 		SDL2pp::unique_ptr<SDL_Surface> surface = IMG_Load(path.string().c_str());
+
+		if (!surface)
+			throw std::runtime_error(std::format("File not found: {}", path.string()));
+
 		D3D11_TEXTURE2D_DESC textDesc
 		{
 			.Width = static_cast<UINT>(surface.get()->w),
