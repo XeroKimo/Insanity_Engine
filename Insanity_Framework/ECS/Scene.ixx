@@ -252,7 +252,7 @@ namespace InsanityFramework
 
 			for(GameObject* object : it->second)
 			{
-				func(*static_cast<Ty*>(object, offset));
+				func(*static_cast<Ty*>(object));
 			}
 		}
 
