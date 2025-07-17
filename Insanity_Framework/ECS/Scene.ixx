@@ -248,12 +248,11 @@ namespace InsanityFramework
 			if(it == gameObjects.end())
 				return;
 
-			Ty* temp = dynamic_cast<Ty*>(it->second.front());
+			assert(dynamic_cast<Ty*>(it->second.front() == static_cast<Ty*>(*it->second.front())));
 
-			auto offset = OffsetOf(it->second.front(), temp);
 			for(GameObject* object : it->second)
 			{
-				func(*static_cast<Ty*>(IncrementPointer(object, offset)));
+				func(*static_cast<Ty*>(object, offset));
 			}
 		}
 
@@ -270,9 +269,10 @@ namespace InsanityFramework
 					continue;
 
 				auto offset = OffsetOf(objectVec.front(), temp);
+				assert(static_cast<void*>(temp) == IncrementPointerAs<std::byte>(objectVec.front(), offset));
 				for(GameObject* object : objectVec)
 				{
-					func(*static_cast<Ty*>(IncrementPointer(object, offset)));
+					func(*static_cast<Ty*>(IncrementPointerAs<std::byte>(object, offset)));
 				}
 			}
 		}
