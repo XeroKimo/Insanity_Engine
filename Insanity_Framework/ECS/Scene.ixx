@@ -248,11 +248,16 @@ namespace InsanityFramework
 			if(it == gameObjects.end())
 				return;
 
-			assert(dynamic_cast<Ty*>(it->second.front() == static_cast<Ty*>(*it->second.front())));
+			//Can't directly use static cast in the event of virtual inheritance
+			//This is why we find the offset once and do pointer shenangiens to get it again
+			Ty* temp = dynamic_cast<Ty*>(it->second.front());
+			auto offset = OffsetOf(it->second.front(), temp);
+
+			assert(static_cast<void*>(temp) == IncrementPointer(it->second.front(), offset));
 
 			for(GameObject* object : it->second)
 			{
-				func(*static_cast<Ty*>(object));
+				func(*static_cast<Ty*>(IncrementPointer(object, offset)));
 			}
 		}
 
@@ -269,10 +274,10 @@ namespace InsanityFramework
 					continue;
 
 				auto offset = OffsetOf(objectVec.front(), temp);
-				assert(static_cast<void*>(temp) == IncrementPointerAs<std::byte>(objectVec.front(), offset));
+				assert(static_cast<void*>(temp) == IncrementPointer(objectVec.front(), offset));
 				for(GameObject* object : objectVec)
 				{
-					func(*static_cast<Ty*>(IncrementPointerAs<std::byte>(object, offset)));
+					func(*static_cast<Ty*>(IncrementPointer(object, offset)));
 				}
 			}
 		}

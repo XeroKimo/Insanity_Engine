@@ -48,7 +48,6 @@ namespace InsanityFramework
 		TypedD3D11::Wrapper<ID3D11DeviceContext> m_deviceContext;
 		TypedDXGI::Wrapper<IDXGISwapChain1> m_swapChain;
 		TypedD3D11::Wrapper<ID3D11RenderTargetView> m_backBuffer;
-		TypedD3D11::Wrapper<ID3D11DepthStencilView> m_backDepthBuffer;
 
 	public:
 		RendererDX11(HWND handle);
@@ -65,7 +64,6 @@ namespace InsanityFramework
 		TypedD3D11::Wrapper<ID3D11DeviceContext> GetDeviceContext() const { return m_deviceContext; }
 		TypedD3D11::Wrapper<IDXGISwapChain1> GetSwapChain() const { return m_swapChain; }
 		TypedD3D11::Wrapper<ID3D11RenderTargetView> GetSwapChainBackBuffer() { return m_backBuffer; }
-		TypedD3D11::Wrapper<ID3D11DepthStencilView> GetSwapChainBackDepthBuffer() { return m_backDepthBuffer; }
 	};
 
 	export struct Camera

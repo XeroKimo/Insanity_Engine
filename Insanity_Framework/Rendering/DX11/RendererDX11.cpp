@@ -136,11 +136,6 @@ namespace InsanityFramework
 
 		m_debugDevice = TypedD3D::Cast<ID3D11Debug>(m_device.AsComPtr());
 		m_backBuffer = m_device->CreateRenderTargetView(m_swapChain->GetBuffer<ID3D11Resource>(0));
-
-		auto desc = TypedD3D::Cast<ID3D11Texture2D>(m_swapChain->GetBuffer<ID3D11Resource>(0))->GetDesc();
-		desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		m_backDepthBuffer = m_device->CreateDepthStencilView(m_device->CreateTexture2D(desc));
 	}
 
 	RendererDX11::~RendererDX11()
