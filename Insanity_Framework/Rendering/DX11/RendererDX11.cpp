@@ -452,13 +452,13 @@ namespace InsanityFramework
 		for(size_t i = 0; i < points.size();)
 		{
 			size_t amountToDraw = (std::min)(points.size() - i, DebugPipelineDX11::maxPointsPerBatch);
-			UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.vertexBuffer, [&](D3D11_MAPPED_SUBRESOURCE data)
+			UpdateConstantBuffer(deviceContext, m_debugRenderer.vertexBuffer, [&](D3D11_MAPPED_SUBRESOURCE data)
 			{
 				std::memcpy(data.pData, &points[i], sizeof(xk::Math::Vector<float, 3>) * amountToDraw);
 			});
 			i += amountToDraw;
-			m_renderer.GetDeviceContext()->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
-			m_renderer.GetDeviceContext()->Draw(static_cast<UINT>(amountToDraw), 0);
+			deviceContext->IASetVertexBuffers(0, m_debugRenderer.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
+			deviceContext->Draw(static_cast<UINT>(amountToDraw), 0);
 		}
 	}
 
@@ -504,11 +504,11 @@ namespace InsanityFramework
 
 	void DebugRenderInterfaceDX11::SetColor(xk::Math::Vector<float, 4> rgba)
 	{
-		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.batchBuffer, [rgba](D3D11_MAPPED_SUBRESOURCE data)
+		UpdateConstantBuffer(deviceContext, m_debugRenderer.batchBuffer, [rgba](D3D11_MAPPED_SUBRESOURCE data)
 		{
 			std::memcpy(data.pData, &rgba, sizeof(rgba));
 		});
-		m_renderer.GetDeviceContext()->PSSetConstantBuffers(0, m_debugRenderer.batchBuffer);
+		deviceContext->PSSetConstantBuffers(0, m_debugRenderer.batchBuffer);
 	}
 
 	DebugPipelineDX11::DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
@@ -578,21 +578,11 @@ namespace InsanityFramework
 		}
 	}
 
-	void DebugPipelineDX11::Bind(RendererDX11& renderer)
+	void DebugPipelineDX11::Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
 	{
-		renderer.GetDeviceContext()->IASetInputLayout(layout);
-		renderer.GetDeviceContext()->VSSetShader(vertexShader, {});
-		renderer.GetDeviceContext()->PSSetShader(pixelShader, {});
-
-		D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(renderer.GetSwapChainBackBuffer()->GetResource())->GetDesc();
-		D3D11_VIEWPORT viewports;
-		viewports.TopLeftX = 0;
-		viewports.TopLeftY = 0;
-		viewports.MinDepth = 0;
-		viewports.MaxDepth = 1;
-		viewports.Width = static_cast<FLOAT>(desc.Width);
-		viewports.Height = static_cast<FLOAT>(desc.Height);
-		renderer.GetDeviceContext()->RSSetViewports(viewports);
-		renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		deviceContext->IASetInputLayout(layout);
+		deviceContext->VSSetShader(vertexShader, {});
+		deviceContext->PSSetShader(pixelShader, {});
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	}
 }

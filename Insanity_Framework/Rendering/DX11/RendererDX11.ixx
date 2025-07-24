@@ -166,12 +166,12 @@ namespace InsanityFramework
 	export class DebugRenderInterfaceDX11
 	{
 	private:
-		RendererDX11& m_renderer;
+		TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext;
 		DebugPipelineDX11& m_debugRenderer;
 
 	public:
-		DebugRenderInterfaceDX11(RendererDX11& renderer, DebugPipelineDX11& debugRenderer) :
-			m_renderer{ renderer },
+		DebugRenderInterfaceDX11(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext, DebugPipelineDX11& debugRenderer) :
+			deviceContext{ deviceContext },
 			m_debugRenderer{ debugRenderer }
 		{
 		}
@@ -199,8 +199,8 @@ namespace InsanityFramework
 
 		void SetColor(xk::Math::Vector<float, 4> rgba);
 
-		template<std::invocable<Camera> Func>
-		void CameraPass(const Camera& camera, Func func);
+		template<std::invocable Func>
+		void CameraPass(const Camera& camera, std::optional<TypedD3D11::Wrapper<ID3D11RenderTargetView>> target, Func func);
 	};
 
 	struct DebugPipelineDX11
@@ -219,22 +219,44 @@ namespace InsanityFramework
 	public:
 		DebugPipelineDX11(TypedD3D11::Wrapper<ID3D11Device> device, TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext);
 
-		void Bind(RendererDX11& renderer);
 
-		DebugRenderInterfaceDX11 MakeRenderInterface(RendererDX11& renderer)
+		void Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext);
+
+		template<class Func>
+		void Bind(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext, Func func)
 		{
-			return { renderer, *this };
+			Bind(deviceContext);
+			func(MakeRenderInterface(deviceContext));
+		}
+
+		DebugRenderInterfaceDX11 MakeRenderInterface(TypedD3D11::Wrapper<ID3D11DeviceContext> deviceContext)
+		{
+			return { deviceContext, *this };
 		}
 	};
 
-	template<std::invocable<Camera> Func>
-	void DebugRenderInterfaceDX11::CameraPass(const Camera& camera, Func func)
+	template<std::invocable Func>
+	void DebugRenderInterfaceDX11::CameraPass(const Camera& camera, std::optional<TypedD3D11::Wrapper<ID3D11RenderTargetView>> target, Func func)
 	{
-		UpdateConstantBuffer(m_renderer.GetDeviceContext(), m_debugRenderer.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		if (target)
+		{
+			deviceContext->OMSetRenderTargets(target.value(), nullptr);
+			D3D11_TEXTURE2D_DESC desc = TypedD3D::Cast<ID3D11Texture2D>(target.value()->GetResource())->GetDesc();
+			D3D11_VIEWPORT viewports;
+			viewports.TopLeftX = 0;
+			viewports.TopLeftY = 0;
+			viewports.MinDepth = 0;
+			viewports.MaxDepth = 1;
+			viewports.Width = static_cast<FLOAT>(desc.Width);
+			viewports.Height = static_cast<FLOAT>(desc.Height);
+			deviceContext->RSSetViewports(viewports);
+		}
+
+		UpdateConstantBuffer(deviceContext, m_debugRenderer.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
 		{
 			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
 		});
-		m_renderer.GetDeviceContext()->VSSetConstantBuffers(DebugPipelineDX11::VSPerCameraCBufferSlot, m_debugRenderer.cameraBuffer);
-		func(camera);
+		deviceContext->VSSetConstantBuffers(DebugPipelineDX11::VSPerCameraCBufferSlot, m_debugRenderer.cameraBuffer);
+		func();
 	}
 }
