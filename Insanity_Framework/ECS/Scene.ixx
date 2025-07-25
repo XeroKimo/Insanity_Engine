@@ -70,6 +70,13 @@ namespace InsanityFramework
 		using Object::Object;
 	};
 
+	struct SceneCallbacks
+	{
+		virtual void OnObjectCreated(Object* object) {}
+		virtual void OnObjectDestroyed(Object* object) {}
+	};
+	export SceneCallbacks defaultSceneCallbacks;
+
 	class Scene
 	{
 		friend SceneAllocator;
@@ -93,8 +100,7 @@ namespace InsanityFramework
 		std::uint32_t lifetimeLockCounter = 0;
 
 	public:
-		std::function<void(Object*)> onObjectCreated;
-		std::function<void(Object*)> onObjectDeleted;
+		inline static SceneCallbacks* callbacks = &defaultSceneCallbacks;
 
 	public:
 		Scene(Key) :
@@ -134,8 +140,7 @@ namespace InsanityFramework
 		{
 			SceneUniqueObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
 
-			if (onObjectCreated)
-				onObjectCreated(object.get());
+			callbacks->OnObjectCreated(object.get());
 
 			return object;
 		}
@@ -151,8 +156,7 @@ namespace InsanityFramework
 			else
 				queuedConstruction.push_back(object.get());
 
-			if (onObjectCreated)
-				onObjectCreated(object.get());
+			callbacks->OnObjectCreated(object.get());
 
 			return object;
 		}
@@ -170,8 +174,7 @@ namespace InsanityFramework
 			//the scene itself
 			assert(!(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object));
 
-			if (onObjectDeleted)
-				onObjectDeleted(object);
+			callbacks->OnObjectDestroyed(object);
 
 			allocator.Delete(object);
 		}
@@ -347,9 +350,7 @@ namespace InsanityFramework
 	private:
 		void ImmediateDeleteGameObject(GameObject* object)
 		{
-			if (onObjectDeleted)
-				onObjectDeleted(object);
-
+			callbacks->OnObjectDestroyed(object);
 			std::erase(gameObjects[typeid(*object)], object);
 			allocator.Delete(object);
 		}

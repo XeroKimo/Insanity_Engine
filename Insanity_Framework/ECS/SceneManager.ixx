@@ -98,6 +98,19 @@ namespace InsanityFramework
 		std::size_t count = 0;
 	};
 
+	export class SceneManager;
+	export struct SceneManagerCallbacks
+	{
+		virtual void OnSceneRequestLoad(SceneManager& manager, Scene& scene) {}
+		virtual void OnSceneRequestProgress(SceneManager& manager, Scene& scene) {}
+		virtual void OnSceneRequestStopProgress(SceneManager& manager, Scene& scene) {}
+		virtual void OnSceneLoadComplete(SceneManager& manager, Scene& scene) {}
+		virtual void OnSceneRequestUnload(SceneManager& manager, Scene& scene) {}
+		virtual void OnSceneUnloadComplete(SceneManager& manager, Scene& scene) {}
+	};
+
+	export SceneManagerCallbacks defaultSceneManagerCallback;
+
 	export class SceneManager
 	{
 	public:
@@ -125,23 +138,7 @@ namespace InsanityFramework
 		std::vector<SceneLoadPayload> pendingSubscenesLoad;
 
 	public:
-		//Gets invoked when a scene wants to start loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneRequestLoad;
-
-		//Gets invoked when a scene wants to start loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneRequestProgress;
-
-		//Gets invoked when a scene wants to stop loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneRequestStopProgress;
-
-		//Gets invoked when a scene wants to stop loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneLoadComplete;
-
-		//Gets invoked when a scene wants to start loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneRequestUnload;
-
-		//Gets invoked when a scene wants to stop loading / unloading
-		std::function<void(SceneManager&, Scene&)> onSceneUnloadComplete;
+		SceneManagerCallbacks* callbacks = &defaultSceneManagerCallback;
 
 	public:
 		template<class Ty, class... Args>
@@ -166,19 +163,13 @@ namespace InsanityFramework
 
 				LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
 
-				if(onSceneRequestLoad)
-					onSceneRequestLoad(*this, *newScene.scene);
-
-				if(onSceneRequestProgress)
-					onSceneRequestProgress(*this, *newScene.scene);
+				callbacks->OnSceneRequestLoad(*this, *newScene.scene);
+				callbacks->OnSceneRequestProgress(*this, *newScene.scene);
 
 				newScene.loader = pendingSceneLoad->Load(newScene.scene.get());
 
-				if(onSceneRequestStopProgress)
-					onSceneRequestStopProgress(*this, *newScene.scene);
-
-				if(onSceneLoadComplete)
-					onSceneLoadComplete(*this, *newScene.scene);
+				callbacks->OnSceneRequestStopProgress(*this, *newScene.scene);
+				callbacks->OnSceneLoadComplete(*this, *newScene.scene);
 
 				scenes.push_back(std::move(newScene));
 				pendingSceneLoad = std::nullopt;
@@ -190,19 +181,13 @@ namespace InsanityFramework
 				{
 					LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
 
-					if (onSceneRequestLoad)
-						onSceneRequestLoad(*this, *newScene.scene);
-
-					if(onSceneRequestProgress)
-						onSceneRequestProgress(*this, *newScene.scene);
+					callbacks->OnSceneRequestLoad(*this, *newScene.scene);
+					callbacks->OnSceneRequestProgress(*this, *newScene.scene);
 
 					newScene.loader = payload.Load(newScene.scene.get());
 
-					if(onSceneRequestStopProgress)
-						onSceneRequestStopProgress(*this, *newScene.scene);
-
-					if (onSceneLoadComplete)
-						onSceneLoadComplete(*this, *newScene.scene);
+					callbacks->OnSceneRequestStopProgress(*this, *newScene.scene);
+					callbacks->OnSceneLoadComplete(*this, *newScene.scene);
 
 					scenes.push_back(std::move(newScene));
 				}
@@ -232,17 +217,11 @@ namespace InsanityFramework
 				auto oldScene = std::move(scenes.back());
 				scenes.pop_back();
 
-				if (onSceneRequestUnload)
-					onSceneRequestUnload(*this, *oldScene.scene);
 
-				if(onSceneRequestProgress)
-					onSceneRequestProgress(*this, *oldScene.scene);
-
-				if (onSceneRequestStopProgress)
-					onSceneRequestStopProgress(*this, *oldScene.scene);
-
-				if (onSceneUnloadComplete)
-					onSceneUnloadComplete(*this, *oldScene.scene);
+				callbacks->OnSceneRequestUnload(*this, *oldScene.scene);
+				callbacks->OnSceneRequestProgress(*this, *oldScene.scene);
+				callbacks->OnSceneRequestStopProgress(*this, *oldScene.scene);
+				callbacks->OnSceneUnloadComplete(*this, *oldScene.scene);
 			}
 		}
 	};
