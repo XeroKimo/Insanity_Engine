@@ -10,6 +10,7 @@ module;
 
 export module InsanityFramework.ECS.SceneManager;
 export import InsanityFramework.ECS.Scene;
+import InsanityFramework.ECS.SceneGlobals;
 import InsanityFramework.AnyRef;
 
 namespace InsanityFramework
@@ -152,6 +153,8 @@ namespace InsanityFramework
 			requires IsSceneLoader<Ty, Args...>
 		void LoadSubscene(Args&&... args)
 		{
+			if (scenes.empty())
+				throw std::exception("Can't load subscenes without a main scene");
 			pendingSubscenesLoad.push_back(SceneLoadPayload{ std::type_identity<Ty>{}, std::forward<Args>(args)... });
 		}
 
@@ -166,6 +169,7 @@ namespace InsanityFramework
 				callbacks->OnSceneRequestLoad(*this, *newScene.scene);
 				callbacks->OnSceneRequestProgress(*this, *newScene.scene);
 
+				activeScene = newScene.scene.get();
 				newScene.loader = pendingSceneLoad->Load(newScene.scene.get());
 
 				callbacks->OnSceneRequestStopProgress(*this, *newScene.scene);
@@ -184,7 +188,9 @@ namespace InsanityFramework
 					callbacks->OnSceneRequestLoad(*this, *newScene.scene);
 					callbacks->OnSceneRequestProgress(*this, *newScene.scene);
 
+					activeScene = newScene.scene.get();
 					newScene.loader = payload.Load(newScene.scene.get());
+					activeScene = GetScene();
 
 					callbacks->OnSceneRequestStopProgress(*this, *newScene.scene);
 					callbacks->OnSceneLoadComplete(*this, *newScene.scene);
@@ -215,6 +221,7 @@ namespace InsanityFramework
 			while(!scenes.empty())
 			{
 				auto oldScene = std::move(scenes.back());
+				activeScene = oldScene.scene.get();
 				scenes.pop_back();
 
 
@@ -223,6 +230,8 @@ namespace InsanityFramework
 				callbacks->OnSceneRequestStopProgress(*this, *oldScene.scene);
 				callbacks->OnSceneUnloadComplete(*this, *oldScene.scene);
 			}
+
+			activeScene = nullptr;
 		}
 	};
 

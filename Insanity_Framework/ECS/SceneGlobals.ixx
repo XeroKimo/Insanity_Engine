@@ -3,5 +3,5 @@ export import InsanityFramework.ECS.Scene;
 
 namespace InsanityFramework
 {
-	export Scene* activeScene;
+	export thread_local Scene* activeScene;
 };
