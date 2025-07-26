@@ -101,7 +101,7 @@ namespace InsanityFramework
 
 	public:
 		inline static SceneCallbacks* callbacks = &defaultSceneCallbacks;
-
+		static Scene* GetActiveScene();
 	public:
 		Scene(Key) :
 			allocator{ this }
@@ -136,9 +136,9 @@ namespace InsanityFramework
 		//Creates an object that is not registered with the scene
 		//Must be paired with DeleteObject
 		template<std::derived_from<Object> Ty, class... Args>
-		SceneUniqueObject<Ty> NewObject(Args&&... args)
+		static SceneUniqueObject<Ty> NewObject(Args&&... args)
 		{
-			SceneUniqueObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
+			SceneUniqueObject<Ty> object = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
 
 			callbacks->OnObjectCreated(object.get());
 
@@ -148,76 +148,78 @@ namespace InsanityFramework
 		//Creates a game object registered with the scene
 		//Must be paired with DeleteGameObject
 		template<std::derived_from<GameObject> Ty, class... Args>
-		UniqueGameObject<Ty> NewGameObject(Args&&... args)
+		static UniqueGameObject<Ty> NewGameObject(Args&&... args)
 		{
-			UniqueGameObject<Ty> object = allocator.New<Ty>(std::forward<Args>(args)...);
-			if(lifetimeLockCounter == 0)
-				gameObjects[typeid(Ty)].push_back(object.get());
+			UniqueGameObject<Ty> object = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
+			if(GetActiveScene()->lifetimeLockCounter == 0)
+				GetActiveScene()->gameObjects[typeid(Ty)].push_back(object.get());
 			else
-				queuedConstruction.push_back(object.get());
+				GetActiveScene()->queuedConstruction.push_back(object.get());
 
 			callbacks->OnObjectCreated(object.get());
 
 			return object;
 		}
 
-		void DeleteObject(Object* object)
+		static void DeleteObject(Object* object)
 		{
+			Scene* owner = Scene::Get(object);
 			//Don't delete an object owned by another scene.
-			assert(ObjectAllocator::Get(object) == &allocator);
+			assert(ObjectAllocator::Get(object) == &owner->allocator);
 
 			//Don't call DeleteObject on managed game objects, call DeleteGameObject instead
-			assert(!(gameObjects.contains(typeid(*object)) &&
-				std::ranges::find(gameObjects[typeid(*object)], object) != gameObjects[typeid(*object)].end()));
+			assert(!(owner->gameObjects.contains(typeid(*object)) &&
+				std::ranges::find(owner->gameObjects[typeid(*object)], object) != owner->gameObjects[typeid(*object)].end()));
 
 			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
 			//the scene itself
-			assert(!(sceneSystems.contains(typeid(*object)) && sceneSystems[typeid(*object)].get() == object));
+			assert(!(owner->sceneSystems.contains(typeid(*object)) && owner->sceneSystems[typeid(*object)].get() == object));
 
 			callbacks->OnObjectDestroyed(object);
 
-			allocator.Delete(object);
+			owner->allocator.Delete(object);
 		}
 
-		void DeleteGameObject(GameObject* object)
+		static void DeleteGameObject(GameObject* object)
 		{
+			Scene* owner = Scene::Get(object);
 			//Don't delete an object owned by another scene.
-			assert(ObjectAllocator::Get(object) == &allocator);
+			assert(ObjectAllocator::Get(object) == &owner->allocator);
 
-			if(lifetimeLockCounter == 0)
+			if(owner->lifetimeLockCounter == 0)
 			{
-				ImmediateDeleteGameObject(object);
+				owner->ImmediateDeleteGameObject(object);
 			}
 			else
 			{
-				queuedDestruction.push_back(object);
+				owner->queuedDestruction.push_back(object);
 			}
 		}
 
 		template<std::derived_from<SceneSystem> Ty, class... Args>
-		Ty& AddSystem(Args&&... args)
+		static Ty& AddSystem(Args&&... args)
 		{
-			auto it = sceneSystems.find(typeid(Ty));
-			if(it != sceneSystems.end())
+			auto it = GetActiveScene()->sceneSystems.find(typeid(Ty));
+			if(it != GetActiveScene()->sceneSystems.end())
 			{
 				throw std::exception("System already added");
 			}
-			auto system = allocator.New<Ty>(std::forward<Args>(args)...);
-			sceneSystems.insert({ typeid(Ty), system });
+			auto system = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
+			GetActiveScene()->sceneSystems.insert({ typeid(Ty), system });
 			return *system;
 		}
 
 		template<std::derived_from<SceneSystem> Ty>
-		Ty& GetSystem()
+		static Ty& GetSystem()
 		{
-			return dynamic_cast<Ty&>(*sceneSystems.at(typeid(Ty)));
+			return dynamic_cast<Ty&>(*GetActiveScene()->sceneSystems.at(typeid(Ty)));
 		}
 
 		template<std::derived_from<SceneSystem> Ty>
-		Ty* TryGetSystem()
+		static Ty* TryGetSystem()
 		{
-			auto it = sceneSystems.find(typeid(Ty));
-			if(it == sceneSystems.end())
+			auto it = GetActiveScene()->sceneSystems.find(typeid(Ty));
+			if(it == GetActiveScene()->sceneSystems.end())
 			{
 				return nullptr;
 			}
@@ -225,23 +227,23 @@ namespace InsanityFramework
 			return dynamic_cast<Ty*>(it->second);
 		}
 
-		template<std::derived_from<SceneSystem> Ty>
-		const Ty& GetSystem() const
-		{
-			return dynamic_cast<const Ty&>(*sceneSystems.at(typeid(Ty)));
-		}
+		//template<std::derived_from<SceneSystem> Ty>
+		//static const Ty& GetSystem() const
+		//{
+		//	return dynamic_cast<const Ty&>(*GetActiveScene()->sceneSystems.at(typeid(Ty)));
+		//}
 
-		template<std::derived_from<SceneSystem> Ty>
-		const Ty* TryGetSystem() const
-		{
-			auto it = sceneSystems.find(typeid(Ty));
-			if(it == sceneSystems.end())
-			{
-				return nullptr;
-			}
+		//template<std::derived_from<SceneSystem> Ty>
+		//static const Ty* TryGetSystem() const
+		//{
+		//	auto it = GetActiveScene()->sceneSystems.find(typeid(Ty));
+		//	if(it == GetActiveScene()->sceneSystems.end())
+		//	{
+		//		return nullptr;
+		//	}
 
-			return dynamic_cast<const Ty*>(it->second);
-		}
+		//	return dynamic_cast<const Ty*>(it->second);
+		//}
 
 
 		template<std::derived_from<GameObject> Ty, std::invocable<Ty&> Func>

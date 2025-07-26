@@ -25,7 +25,9 @@
     <ClCompile Include="build.cpp" />
     <ClCompile Include="ECS\ExperimentalObjectAPI.ixx" />
     <ClCompile Include="ECS\Object.ixx" />
+    <ClCompile Include="ECS\Scene.cpp" />
     <ClCompile Include="ECS\Scene.ixx" />
+    <ClCompile Include="ECS\SceneGlobals.ixx" />
     <ClCompile Include="ECS\SceneManager.ixx" />
     <ClCompile Include="ECS\TransformationNode.ixx" />
     <ClCompile Include="Memory.ixx" />
