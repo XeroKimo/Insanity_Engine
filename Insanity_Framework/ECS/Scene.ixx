@@ -10,6 +10,7 @@ module;
 #include <algorithm>
 #include <span>
 #include <functional>
+#include <list>
 
 export module InsanityFramework.ECS.Scene;
 import InsanityFramework.Memory;
@@ -70,22 +71,24 @@ namespace InsanityFramework
 		using Object::Object;
 	};
 
-	struct SceneCallbacks
+	export struct SceneCallbacks
 	{
 		virtual void OnObjectCreated(Object* object) {}
 		virtual void OnObjectDestroyed(Object* object) {}
 	};
 	export SceneCallbacks defaultSceneCallbacks;
 
+	export class SceneGroup;
+
 	class Scene
 	{
 		friend SceneAllocator;
-
 	public:
 		struct Key
 		{
 			friend SceneAllocator;
 
+			friend class SceneGroup;
 		private:
 			Key() = default;
 		};
@@ -104,7 +107,7 @@ namespace InsanityFramework
 		static Scene* GetActiveScene();
 	public:
 		Scene(Key) :
-			allocator{ this }
+			allocator{ /*this*/ }
 		{
 
 		}
@@ -131,6 +134,11 @@ namespace InsanityFramework
 			{
 				allocator.Delete(object.release());
 			}
+		}
+
+		bool Contains(Object* object) const
+		{
+			return allocator.Contains(object);
 		}
 
 		//Creates an object that is not registered with the scene
@@ -163,9 +171,9 @@ namespace InsanityFramework
 
 		static void DeleteObject(Object* object)
 		{
-			Scene* owner = Scene::Get(object);
+			Scene* owner = GetOwner(object);
 			//Don't delete an object owned by another scene.
-			assert(ObjectAllocator::Get(object) == &owner->allocator);
+			//assert(ObjectAllocator::Get(object) == &owner->allocator);
 
 			//Don't call DeleteObject on managed game objects, call DeleteGameObject instead
 			assert(!(owner->gameObjects.contains(typeid(*object)) &&
@@ -182,9 +190,9 @@ namespace InsanityFramework
 
 		static void DeleteGameObject(GameObject* object)
 		{
-			Scene* owner = Scene::Get(object);
+			Scene* owner = GetOwner(object);
 			//Don't delete an object owned by another scene.
-			assert(ObjectAllocator::Get(object) == &owner->allocator);
+			//assert(ObjectAllocator::Get(object) == &owner->allocator);
 
 			if(owner->lifetimeLockCounter == 0)
 			{
@@ -344,10 +352,10 @@ namespace InsanityFramework
 			queuedDestruction.clear();
 		}
 
-		static Scene* Get(Object* context)
-		{
-			return ObjectAllocator::Get(context)->GetUserData().As<Scene>();
-		}
+		//static Scene* Get(Object* context)
+		//{
+		//	return ObjectAllocator::Get(context)->GetUserData().As<Scene>();
+		//}
 
 	private:
 		void ImmediateDeleteGameObject(GameObject* object)
@@ -357,174 +365,91 @@ namespace InsanityFramework
 			allocator.Delete(object);
 		}
 
-	private:
-		void* operator new(std::size_t size, SceneAllocator& allocator);
-
-		void operator delete(void* ptr, SceneAllocator& allocator);
-
-		void operator delete(void* ptr);
+		static Scene* GetOwner(Object* object);
 	};
 
-	export class SceneAllocator
+	struct SceneHandleDeleter
 	{
-		friend Scene;
+		void operator()(Scene* scene);
+	};
+	export using UniqueSceneHandle = std::unique_ptr<Scene, SceneHandleDeleter>;
 
-		class Page : public IntrusiveForwardListNode<Page>
-		{
-		public:
-			static constexpr size_t minimumBlocksPerPage = 16;
+	export class SceneGroup
+	{
+		inline static std::list<SceneGroup> groups;
 
-			static constexpr size_t PageSize()
-			{
-				return AlignNextPow2(sizeof(Page) + PoolAllocator<sizeof(Scene)>::alignedBucketSize * minimumBlocksPerPage);
-			}
-
-			static Page* GetPageFrom(void* ptr)
-			{
-				return std::launder(static_cast<Page*>(AlignFloorPow2(ptr, PageSize())));
-			}
-		private:
-			SceneAllocator* owningAllocator;
-			PoolAllocator<sizeof(Scene)> allocator;
-
-		public:
-			Page(SceneAllocator* owner) :
-				owningAllocator{ owner },
-				allocator{ { this + 1, PageSize() - sizeof(Page) } }
-			{
-
-			}		
-			
-			void* Allocate()
-			{
-				return allocator.Allocate(sizeof(Scene));
-			}
-
-			void Free(void* ptr)
-			{
-				allocator.Free(ptr);
-			}
-
-			SceneAllocator* GetOwner() const { return owningAllocator; }
-
-		public:
-			void* operator new(size_t size)
-			{
-				return ::operator new(PageSize(), std::align_val_t{ PageSize() });
-			}
-
-			void operator delete(void* ptr)
-			{
-				::operator delete(ptr, std::align_val_t{ PageSize() });
-			}
-		};
+		std::vector<std::unique_ptr<Scene>> scenes;
 
 	private:
-		AnyPtr userData = nullptr;
-		Page* firstPage = new Page(this);
+		SceneGroup() = default;
 
 	public:
-		SceneAllocator() = default;
-		SceneAllocator(AnyPtr userData) :
-			userData{ userData }
+		static SceneGroup* New()
 		{
+			groups.push_front({});
 
+			return &groups.front();
 		}
 
-		~SceneAllocator()
+		static SceneGroup* GetGroup(Scene* scene)
 		{
-			while(firstPage)
+			for (SceneGroup& group : groups)
 			{
-				delete std::exchange(firstPage, firstPage->RemoveSelfAndGetNext());
+				if (group.Contains(scene))
+					return &group;
 			}
+			return nullptr;
 		}
 
-		Scene* New()
+		static std::pair<Scene*, SceneGroup*> GetScene(Object* object)
 		{
-			return new(*this) Scene{ Scene::Key{} };
-		}
-
-		static void Delete(Scene* scene)
-		{
-			delete scene;
-		}
-
-		void SetUserData(AnyPtr ptr)
-		{
-			userData = ptr;
-		}
-
-		AnyPtr GetUserData() const
-		{
-			return userData;
-		}
-
-		static SceneAllocator* Get(Scene* ptr)
-		{
-			return Page::GetPageFrom(ptr)->GetOwner();
-		}
-
-	private:
-		void* Allocate()
-		{
-			Page* currentPage = firstPage;
-			void* address = currentPage->Allocate();
-
-			while(!address)
+			assert((false && "Not implemented"));
+			for (SceneGroup& group : groups)
 			{
-				Page* oldPage = currentPage;
-				currentPage = currentPage->Next();
-
-				if(!currentPage)
+				for (const auto& scene : group.scenes)
 				{
-					currentPage = new Page{ this };
-					oldPage->Append(currentPage);
+					if (scene->Contains(object))
+						return { scene.get(), &group };
 				}
-
-				address = currentPage->Allocate();
 			}
-
-			return address;
+			return {};
 		}
 
-		static void Free(void* ptr)
+	public:
+		UniqueSceneHandle NewScene()
 		{
-			Page::GetPageFrom(ptr)->Free(ptr);
+			scenes.push_back(std::make_unique<Scene>(Scene::Key{}));
+			return { scenes.back().get(), {} };
+		}
+
+		void DeleteScene(Scene* scene)
+		{
+			std::erase_if(scenes, [=](const auto& s) { return s.get() == scene; });
+		}
+
+		bool Contains(Scene* scene) const
+		{
+			return std::find_if(scenes.begin(), scenes.end(), [=](const auto& s) { return s.get() == scene; }) != scenes.end();
 		}
 	};
 
 
 
-	void* Scene::operator new(std::size_t size, SceneAllocator& allocator)
-	{
-		return allocator.Allocate();
-	}
-	void Scene::operator delete(void* ptr, SceneAllocator& allocator)
-	{
-		allocator.Free(ptr);
-	}
-	void Scene::operator delete(void* ptr)
-	{
-		SceneAllocator::Free(ptr);
-	}
+	//export struct SceneDeleter
+	//{
+	//	void operator()(Scene* scene)
+	//	{
+	//		SceneAllocator::Delete(scene);
+	//	}
+	//};
 
-
-
-	export struct SceneDeleter
-	{
-		void operator()(Scene* scene)
-		{
-			SceneAllocator::Delete(scene);
-		}
-	};
-
-	export using SceneUniquePtr = std::unique_ptr<Scene, SceneDeleter>;
+	//export using SceneUniquePtr = std::unique_ptr<Scene, SceneDeleter>;
 
 	struct GameObjectDeleter
 	{
 		void operator()(GameObject* ptr)
 		{
-			Scene::Get(ptr)->DeleteGameObject(ptr);
+			Scene::DeleteGameObject(ptr);
 		}
 	};
 
@@ -615,7 +540,7 @@ namespace InsanityFramework
 	{
 		void operator()(Object* ptr)
 		{
-			Scene::Get(ptr)->DeleteObject(ptr);
+			Scene::DeleteObject(ptr);
 		}
 	};
 
@@ -636,4 +561,9 @@ namespace InsanityFramework
 			scene.UnlockLifetimes();
 		}
 	};
+
+	void SceneHandleDeleter::operator()(Scene* scene)
+	{
+		SceneGroup::GetGroup(scene)->DeleteScene(scene);
+	}
 }

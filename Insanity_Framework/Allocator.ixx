@@ -30,6 +30,9 @@ namespace InsanityFramework
 		template<class Ty>
 		Ty* RawAs() const noexcept { return static_cast<Ty*>(Raw()); }
 
+		void* Begin() const noexcept { return buffer; }
+		void* End() const noexcept { return buffer + size; }
+
 		std::size_t Size() const { return size; }
 
 		BufferView SplitFromStart(std::size_t offset)
@@ -348,6 +351,11 @@ namespace InsanityFramework
 			BucketHeader* header = GetBucketFromPointer(ptr);
 			header->Append(freeList);
 			freeList = header;
+		}
+
+		bool Contains(void* ptr) const
+		{
+			return ptr >= buffer.Begin() && ptr < buffer.End();
 		}
 
 	private:

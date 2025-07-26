@@ -46,7 +46,7 @@ namespace InsanityFramework
 		static constexpr std::size_t pageSize = AlignNextPow2<size_t>(8'000'000);
 		class Page : public IntrusiveForwardListNode<Page>
 		{
-			ObjectAllocator* owningAllocator;
+			//ObjectAllocator* owningAllocator;
 			FreeListAllocator allocator;
 
 		public:
@@ -61,8 +61,8 @@ namespace InsanityFramework
 			}
 
 		public:
-			Page(ObjectAllocator* allocator) :
-				owningAllocator{ allocator },
+			Page(/*ObjectAllocator* allocator*/) :
+				//owningAllocator{ allocator },
 				allocator{ { this + 1, pageSize - sizeof(Page) } }
 			{
 			}
@@ -78,7 +78,7 @@ namespace InsanityFramework
 				allocator.Free(ptr);
 			}
 
-			ObjectAllocator* GetOwner() const { return owningAllocator; }
+			//ObjectAllocator* GetOwner() const { return owningAllocator; }
 
 		public:
 			static Page* GetPageFrom(void* ptr)
@@ -89,16 +89,16 @@ namespace InsanityFramework
 
 
 	private:
-		AnyPtr userData = nullptr;
-		Page* firstPage = new Page{ this };
+		//AnyPtr userData = nullptr;
+		Page* firstPage = new Page{ /*this*/ };
 
 	public:
 		ObjectAllocator() = default;
-		ObjectAllocator(AnyPtr userData) :
-			userData{ userData }
-		{
+		//ObjectAllocator(AnyPtr userData) :
+		//	userData{ userData }
+		//{
 
-		}
+		//}
 
 		~ObjectAllocator()
 		{
@@ -119,20 +119,32 @@ namespace InsanityFramework
 			delete ptr;
 		}
 
-		void SetUserData(AnyPtr ptr)
+		bool Contains(Object* ptr) const
 		{
-			userData = ptr;
+			Page* page = Page::GetPageFrom(ptr);
+			Page* temp = firstPage;
+			while (temp)
+			{
+				if (temp == page)
+					return true;
+				temp = temp->Next();
+			}
+			return false;
 		}
+		//void SetUserData(AnyPtr ptr)
+		//{
+		//	userData = ptr;
+		//}
 
-		AnyPtr GetUserData() const
-		{
-			return userData;
-		}
+		//AnyPtr GetUserData() const
+		//{
+		//	return userData;
+		//}
 
-		static ObjectAllocator* Get(Object* ptr)
-		{
-			return Page::GetPageFrom(ptr)->GetOwner();
-		}
+		//static ObjectAllocator* Get(Object* ptr)
+		//{
+		//	return Page::GetPageFrom(ptr)->GetOwner();
+		//}
 
 	private:
 		void* Allocate(std::size_t size)
@@ -146,7 +158,7 @@ namespace InsanityFramework
 
 				if(!currentPage)
 				{
-					currentPage = new Page{ this };
+					currentPage = new Page{/* this*/ };
 					oldPage->Append(currentPage);
 				}
 
@@ -183,7 +195,7 @@ namespace InsanityFramework
 	{
 		void operator()(Object* ptr)
 		{
-			ObjectAllocator::Get(ptr)->Delete(ptr);
+			//ObjectAllocator::Get(ptr)->Delete(ptr);
 		}
 	};
 

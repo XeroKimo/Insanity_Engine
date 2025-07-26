@@ -7,4 +7,9 @@ namespace InsanityFramework
 	{
 		return activeScene;
 	}
+
+	Scene* Scene::GetOwner(Object* object)
+	{
+		return SceneGroup::GetScene(object).first;
+	}
 }
