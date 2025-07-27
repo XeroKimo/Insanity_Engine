@@ -80,9 +80,241 @@ namespace InsanityFramework
 
 	export class SceneGroup;
 
+	template<class Ty>
+	class ExactObjectIterator
+	{
+		using iterator_concept = std::contiguous_iterator_tag;
+		using iterator_category = std::random_access_iterator_tag;
+		using value_type = Ty;
+		using difference_type = std::ptrdiff_t;
+		using pointer = Ty*;
+		using reference = Ty&;
+
+		std::vector<GameObject*>::const_iterator iterator{};
+		std::ptrdiff_t offset{};
+
+	public:
+		ExactObjectIterator() = default;
+		ExactObjectIterator(std::vector<GameObject*>::const_iterator iteartor, std::ptrdiff_t offset) :
+			iterator{ iteartor },
+			offset{ offset }
+		{
+
+		}
+
+	public:
+		pointer operator*() const noexcept {
+			return std::launder(static_cast<pointer>(IncrementPointer(*iterator, offset)));
+		}
+
+		pointer operator->() const noexcept {
+			return std::launder(static_cast<pointer>(IncrementPointer(*iterator, offset)));
+		}
+
+		ExactObjectIterator& operator++() noexcept {
+			++iterator;
+			return *this;
+		}
+
+		ExactObjectIterator operator++(int) noexcept {
+			ExactObjectIterator temp = *this;
+			++*this;
+			return temp;
+		}
+
+		ExactObjectIterator& operator--() noexcept {
+			--iterator;
+			return *this;
+		}
+
+		ExactObjectIterator operator--(int) noexcept {
+			ExactObjectIterator temp = *this;
+			--*this;
+			return temp;
+		}
+
+		ExactObjectIterator& operator+=(const difference_type offset) noexcept {
+			iterator += offset;
+			return *this;
+		}
+
+		ExactObjectIterator operator+(const difference_type offset) const noexcept {
+			ExactObjectIterator temp = *this;
+			temp += offset;
+			return temp;
+		}
+
+		friend ExactObjectIterator operator+(const difference_type offset, ExactObjectIterator iterator) noexcept {
+			iterator += offset;
+			return iterator;
+		}
+
+		ExactObjectIterator& operator-=(const difference_type offset) noexcept {
+			return *this += -offset;
+		}
+
+		ExactObjectIterator operator-(const difference_type offset) const noexcept {
+			ExactObjectIterator temp = *this;
+			temp -= offset;
+			return temp;
+		}
+
+		difference_type operator-(const ExactObjectIterator& right) const noexcept {
+			return static_cast<difference_type>(iterator - right.iterator);
+		}
+
+		reference operator[](const difference_type offset) const noexcept {
+			return *std::launder(static_cast<pointer>(IncrementPointer(iterator[offset], this->offset)));
+		}
+
+		bool operator==(const ExactObjectIterator& right) const noexcept {
+			return iterator == right.iterator;
+		}
+
+
+		constexpr std::strong_ordering operator<=>(const ExactObjectIterator& right) const noexcept {
+			return iterator <=> right.iterator;
+		}
+	};
+
+	template<class Ty>
+	class ExactObjectRange
+	{
+		const std::vector<GameObject*>* objects;
+		std::ptrdiff_t offset;
+
+	public:
+		ExactObjectRange(const Scene* scene);
+
+		ExactObjectIterator<Ty> begin() const
+		{
+			return objects ? ExactObjectIterator<Ty>{ objects->begin(), offset } : ExactObjectIterator<Ty>{};
+		}
+
+		ExactObjectIterator<Ty> end() const
+		{
+			return objects ? ExactObjectIterator<Ty>{ objects->end(), offset } : ExactObjectIterator<Ty>{};
+		}
+	};
+
+
+
+	template<class Ty>
+	class GlobalExactObjectSentinal
+	{
+		template<class Ty>
+		friend class GlobalExactObjectIterator;
+
+		using iterator_concept = std::forward_iterator_tag;
+		using value_type = Ty;
+		using difference_type = std::ptrdiff_t;
+		using pointer = Ty*;
+		using reference = Ty&;
+
+		std::span<const std::unique_ptr<Scene>>::iterator lastScene;
+
+	public:
+		GlobalExactObjectSentinal(const SceneGroup* group);
+	};
+
+	template<class Ty>
+	class GlobalExactObjectIterator
+	{
+		template<class Ty>
+		friend class GlobalExactObjectSentinal;
+
+		using iterator_concept = std::forward_iterator_tag;
+		using value_type = Ty;
+		using difference_type = std::ptrdiff_t;
+		using pointer = Ty*;
+		using reference = Ty&;
+
+		const SceneGroup* sceneGroup = nullptr;
+		std::span<const std::unique_ptr<Scene>>::iterator sceneItCurrent{};
+		std::span<const std::unique_ptr<Scene>>::iterator sceneItEnd{};
+		ExactObjectIterator<Ty> current;
+		ExactObjectIterator<Ty> end;
+
+
+	public:
+		GlobalExactObjectIterator() = default;
+		GlobalExactObjectIterator(const SceneGroup* sceneGroup);
+
+	public:
+		pointer operator*() const noexcept {
+			return *current;
+		}
+
+		pointer operator->() const noexcept {
+			return current.operator->();
+		}
+
+		GlobalExactObjectIterator& operator++() noexcept {
+			current++;
+			if (current == end)
+			{
+				sceneItCurrent++;
+				while (sceneItCurrent != sceneItEnd)
+				{
+					ExactObjectRange<Ty> range{ sceneItCurrent->get() };
+					current = range.begin();
+					end = range.end();
+
+					if (current != end)
+						break;
+
+					sceneItCurrent++;
+				}
+			}
+			return *this;
+		}
+
+		GlobalExactObjectIterator operator++(int) noexcept {
+			GlobalExactObjectIterator temp = *this;
+			++*this;
+			return temp;
+		}
+
+		bool operator==(const GlobalExactObjectSentinal<Ty>& right) const noexcept {
+			return sceneItCurrent == right.lastScene;
+		}
+	};
+
+	template<class Ty>
+	class GlobalExactObjectRange
+	{
+		const SceneGroup* group;
+
+	public:
+		GlobalExactObjectRange(const SceneGroup* group) :
+			group{ group }
+		{
+
+		}
+
+		GlobalExactObjectIterator<Ty> begin() const
+		{
+			return { group };
+		}
+
+		GlobalExactObjectSentinal<Ty> end() const
+		{
+			return { group };
+		}
+	};
+
 	class Scene
 	{
 		friend SceneAllocator;
+
+		template<class Ty>
+		friend class ExactObjectRange;
+
+		template<class Ty>
+		friend class GlobalExactObjectIterator;
+
+		template<class Ty>
+		friend class GlobalExactObjectSentinal;
 	public:
 		struct Key
 		{
@@ -236,24 +468,16 @@ namespace InsanityFramework
 		}
 
 
-		template<std::derived_from<GameObject> Ty, std::invocable<Ty&> Func>
-		void ForEachExactType(Func func) const
+		template<std::derived_from<GameObject> Ty>
+		static GlobalExactObjectRange<Ty> ForEachExactType() 
 		{
-			auto it = gameObjects.find(typeid(Ty));
-			if(it == gameObjects.end())
-				return;
+			return { SceneGroup::GetGroup(GetActiveScene()) };
+		}
 
-			//Can't directly use static cast in the event of virtual inheritance
-			//This is why we find the offset once and do pointer shenangiens to get it again
-			Ty* temp = dynamic_cast<Ty*>(it->second.front());
-			auto offset = OffsetOf(it->second.front(), temp);
-
-			assert(static_cast<void*>(temp) == IncrementPointer(it->second.front(), offset));
-
-			for(GameObject* object : it->second)
-			{
-				func(*static_cast<Ty*>(IncrementPointer(object, offset)));
-			}
+		template<std::derived_from<GameObject> Ty>
+		static ExactObjectRange<Ty> ForEachExactTypeInScene(Scene* scene) 
+		{
+			return { scene };
 		}
 
 		template<class Ty, std::invocable<Ty&> Func>
@@ -333,11 +557,6 @@ namespace InsanityFramework
 			}
 			queuedDestruction.clear();
 		}
-
-		//static Scene* Get(Object* context)
-		//{
-		//	return ObjectAllocator::Get(context)->GetUserData().As<Scene>();
-		//}
 
 	private:
 		void ImmediateDeleteGameObject(GameObject* object)
@@ -425,6 +644,8 @@ namespace InsanityFramework
 		{
 			return std::find_if(scenes.begin(), scenes.end(), [=](const auto& s) { return s.get() == scene; }) != scenes.end();
 		}
+
+		std::span<const std::unique_ptr<Scene>> GetScenes() const { return scenes; }
 	};
 
 	struct GameObjectDeleter
@@ -552,5 +773,37 @@ namespace InsanityFramework
 	void SceneGroupDeleter::operator()(SceneGroup* group)
 	{
 		SceneGroup::Delete(group);
+	}
+
+	template<class Ty>
+	ExactObjectRange<Ty>::ExactObjectRange(const Scene* scene) :
+		objects{ scene->gameObjects.contains(typeid(Ty)) ? &scene->gameObjects.at(typeid(Ty)) : nullptr },
+		offset{ objects && !objects->empty() ? OffsetOf(objects->front(), dynamic_cast<Ty*>(objects->front())) : 0  }
+	{
+	}
+
+	template<class Ty>
+	GlobalExactObjectSentinal<Ty>::GlobalExactObjectSentinal(const SceneGroup* group) :
+		lastScene{ group->GetScenes().end() }
+	{
+	}
+
+	template<class Ty>
+	GlobalExactObjectIterator<Ty>::GlobalExactObjectIterator(const SceneGroup* sceneGroup) :
+		sceneGroup{ sceneGroup },
+		sceneItCurrent{ sceneGroup->GetScenes().begin() },
+		sceneItEnd{ sceneGroup->GetScenes().end() }
+	{
+		while (sceneItCurrent != sceneItEnd)
+		{
+			ExactObjectRange<Ty> range{ sceneItCurrent->get() };
+			current = range.begin();
+			end = range.end();
+
+			if (current != end)
+				break;
+
+			sceneItCurrent++;
+		}
 	}
 }
