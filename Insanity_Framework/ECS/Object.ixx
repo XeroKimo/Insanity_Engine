@@ -46,7 +46,6 @@ namespace InsanityFramework
 		static constexpr std::size_t pageSize = AlignNextPow2<size_t>(8'000'000);
 		class Page : public IntrusiveForwardListNode<Page>
 		{
-			//ObjectAllocator* owningAllocator;
 			FreeListAllocator allocator;
 
 		public:
@@ -61,8 +60,7 @@ namespace InsanityFramework
 			}
 
 		public:
-			Page(/*ObjectAllocator* allocator*/) :
-				//owningAllocator{ allocator },
+			Page() :
 				allocator{ { this + 1, pageSize - sizeof(Page) } }
 			{
 			}
@@ -78,8 +76,6 @@ namespace InsanityFramework
 				allocator.Free(ptr);
 			}
 
-			//ObjectAllocator* GetOwner() const { return owningAllocator; }
-
 		public:
 			static Page* GetPageFrom(void* ptr)
 			{
@@ -89,16 +85,10 @@ namespace InsanityFramework
 
 
 	private:
-		//AnyPtr userData = nullptr;
 		Page* firstPage = new Page{ /*this*/ };
 
 	public:
 		ObjectAllocator() = default;
-		//ObjectAllocator(AnyPtr userData) :
-		//	userData{ userData }
-		//{
-
-		//}
 
 		~ObjectAllocator()
 		{
@@ -131,20 +121,6 @@ namespace InsanityFramework
 			}
 			return false;
 		}
-		//void SetUserData(AnyPtr ptr)
-		//{
-		//	userData = ptr;
-		//}
-
-		//AnyPtr GetUserData() const
-		//{
-		//	return userData;
-		//}
-
-		//static ObjectAllocator* Get(Object* ptr)
-		//{
-		//	return Page::GetPageFrom(ptr)->GetOwner();
-		//}
 
 	private:
 		void* Allocate(std::size_t size)
@@ -189,92 +165,14 @@ namespace InsanityFramework
 		ObjectAllocator::Free(ptr);
 	}
 
-
-
 	struct ObjectDeleter
 	{
 		void operator()(Object* ptr)
 		{
-			//ObjectAllocator::Get(ptr)->Delete(ptr);
+			ObjectAllocator::Delete(ptr);
 		}
 	};
 
 	export template<std::derived_from<InsanityFramework::Object> Ty, class DeleterTy = ObjectDeleter>
-	class UniqueObject
-	{
-		template<std::derived_from<InsanityFramework::Object> Ty, class DeleterTy>
-		friend class UniqueObject;
-
-	private:
-		std::unique_ptr<Ty, DeleterTy> ptr;
-
-	public:
-		UniqueObject() = default;
-		UniqueObject(std::nullptr_t) : ptr{ nullptr } {}
-		UniqueObject(Ty* ptr) : ptr{ ptr }
-		{
-
-		}
-		UniqueObject(const UniqueObject&) = delete;
-		UniqueObject(UniqueObject&& other) noexcept :
-			ptr{ std::move(other).ptr }
-		{
-
-		}
-
-		template<class OtherTy>
-			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueObject(UniqueObject<OtherTy, DeleterTy>&& other) noexcept :
-			ptr{ std::move(other).ptr }
-		{
-
-		}
-
-		UniqueObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
-		UniqueObject& operator=(const UniqueObject&) = delete;
-		UniqueObject& operator=(UniqueObject&& other) noexcept
-		{
-			UniqueObject temp{ std::move(other) };
-			swap(temp);
-			return *this;
-		}
-
-		template<class OtherTy>
-			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueObject& operator=(UniqueObject<OtherTy, DeleterTy>&& other) noexcept
-		{
-			UniqueObject temp{ std::move(other).ptr };
-			swap(temp);
-			return *this;
-		}
-
-		~UniqueObject() = default;
-
-	public:
-		auto release()
-		{
-			return ptr.release();
-		}
-
-		void reset(Ty* newPtr) noexcept
-		{
-			ptr.reset(newPtr);
-		}
-
-		void swap(UniqueObject& other) noexcept
-		{
-			ptr.swap(other.ptr);
-		}
-
-		auto get() { return ptr.get(); }
-		auto get() const { return ptr.get(); }
-
-		auto operator->() { return ptr.operator->(); }
-		auto operator->() const { return ptr.operator->(); }
-
-		decltype(auto) operator*() { return (ptr.operator*()); }
-		decltype(auto) operator*() const { return (ptr.operator*()); }
-
-		operator bool() const noexcept { return static_cast<bool>(ptr); }
-	};
+	using UniqueObject = std::unique_ptr<Ty, DeleterTy>;
 }

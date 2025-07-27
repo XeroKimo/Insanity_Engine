@@ -146,7 +146,7 @@ namespace InsanityFramework
 		template<std::derived_from<Object> Ty, class... Args>
 		static SceneUniqueObject<Ty> NewObject(Args&&... args)
 		{
-			SceneUniqueObject<Ty> object = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
+			SceneUniqueObject<Ty> object{ GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...), {} };
 
 			callbacks->OnObjectCreated(object.get());
 
@@ -213,7 +213,7 @@ namespace InsanityFramework
 				throw std::exception("System already added");
 			}
 			auto system = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
-			GetActiveScene()->sceneSystems.insert({ typeid(Ty), system });
+			GetActiveScene()->sceneSystems.insert({ typeid(Ty),  UniqueObject<SceneSystem>{ system, {} } });
 			return *system;
 		}
 
@@ -234,24 +234,6 @@ namespace InsanityFramework
 
 			return dynamic_cast<Ty*>(it->second);
 		}
-
-		//template<std::derived_from<SceneSystem> Ty>
-		//static const Ty& GetSystem() const
-		//{
-		//	return dynamic_cast<const Ty&>(*GetActiveScene()->sceneSystems.at(typeid(Ty)));
-		//}
-
-		//template<std::derived_from<SceneSystem> Ty>
-		//static const Ty* TryGetSystem() const
-		//{
-		//	auto it = GetActiveScene()->sceneSystems.find(typeid(Ty));
-		//	if(it == GetActiveScene()->sceneSystems.end())
-		//	{
-		//		return nullptr;
-		//	}
-
-		//	return dynamic_cast<const Ty*>(it->second);
-		//}
 
 
 		template<std::derived_from<GameObject> Ty, std::invocable<Ty&> Func>
@@ -368,11 +350,19 @@ namespace InsanityFramework
 		static Scene* GetOwner(Object* object);
 	};
 
+	struct SceneGroupDeleter
+	{
+		void operator()(SceneGroup* group);
+	};
+
 	struct SceneHandleDeleter
 	{
 		void operator()(Scene* scene);
 	};
+
+	export class SceneGroup;
 	export using UniqueSceneHandle = std::unique_ptr<Scene, SceneHandleDeleter>;
+	export using UniqueSceneGroupHandle = std::unique_ptr<SceneGroup, SceneGroupDeleter>;
 
 	export class SceneGroup
 	{
@@ -384,11 +374,11 @@ namespace InsanityFramework
 		SceneGroup() = default;
 
 	public:
-		static SceneGroup* New()
+		static UniqueSceneGroupHandle New()
 		{
-			groups.push_front({});
+			groups.push_back({});
 
-			return &groups.front();
+			return { &groups.back(), {} };
 		}
 
 		static SceneGroup* GetGroup(Scene* scene)
@@ -401,9 +391,13 @@ namespace InsanityFramework
 			return nullptr;
 		}
 
+		static void Delete(SceneGroup* group)
+		{
+			std::erase_if(groups, [=](const auto& g) { return &g == group; });
+		}
+
 		static std::pair<Scene*, SceneGroup*> GetScene(Object* object)
 		{
-			assert((false && "Not implemented"));
 			for (SceneGroup& group : groups)
 			{
 				for (const auto& scene : group.scenes)
@@ -432,18 +426,6 @@ namespace InsanityFramework
 			return std::find_if(scenes.begin(), scenes.end(), [=](const auto& s) { return s.get() == scene; }) != scenes.end();
 		}
 	};
-
-
-
-	//export struct SceneDeleter
-	//{
-	//	void operator()(Scene* scene)
-	//	{
-	//		SceneAllocator::Delete(scene);
-	//	}
-	//};
-
-	//export using SceneUniquePtr = std::unique_ptr<Scene, SceneDeleter>;
 
 	struct GameObjectDeleter
 	{
@@ -565,5 +547,10 @@ namespace InsanityFramework
 	void SceneHandleDeleter::operator()(Scene* scene)
 	{
 		SceneGroup::GetGroup(scene)->DeleteScene(scene);
+	}
+
+	void SceneGroupDeleter::operator()(SceneGroup* group)
+	{
+		SceneGroup::Delete(group);
 	}
 }

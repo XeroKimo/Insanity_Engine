@@ -117,10 +117,10 @@ namespace InsanityFramework
 	public:
 		struct LoadedScenes
 		{
-			SceneUniquePtr scene = nullptr;
+			UniqueSceneHandle scene = nullptr;
 			SceneUniqueObject<SceneLoader> loader = nullptr;
 
-			LoadedScenes(SceneUniquePtr ptr) : scene{ std::move(ptr) } {}
+			LoadedScenes(UniqueSceneHandle ptr) : scene{ std::move(ptr) } {}
 			LoadedScenes(const LoadedScenes&) = delete;
 			LoadedScenes(LoadedScenes&&) noexcept = default;
 			LoadedScenes& operator=(const LoadedScenes&) = delete;
@@ -133,7 +133,7 @@ namespace InsanityFramework
 		};
 
 	private:
-		SceneAllocator sceneAllocator{ this };
+		UniqueSceneGroupHandle sceneGroup = SceneGroup::New();
 		std::vector<LoadedScenes> scenes;
 		std::optional<SceneLoadPayload> pendingSceneLoad;
 		std::vector<SceneLoadPayload> pendingSubscenesLoad;
@@ -164,7 +164,7 @@ namespace InsanityFramework
 			{
 				UnloadAllScenes();
 
-				LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
+				LoadedScenes newScene = { sceneGroup->NewScene() };
 
 				callbacks->OnSceneRequestLoad(*this, *newScene.scene);
 				callbacks->OnSceneRequestProgress(*this, *newScene.scene);
@@ -183,7 +183,7 @@ namespace InsanityFramework
 			{
 				for(auto& payload : pendingSubscenesLoad)
 				{
-					LoadedScenes newScene = { SceneUniquePtr{ sceneAllocator.New() } };
+					LoadedScenes newScene = { sceneGroup->NewScene() };
 
 					callbacks->OnSceneRequestLoad(*this, *newScene.scene);
 					callbacks->OnSceneRequestProgress(*this, *newScene.scene);
