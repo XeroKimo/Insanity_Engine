@@ -15,11 +15,8 @@ import InsanityFramework.AnyRef;
 
 namespace InsanityFramework
 {
-	export class SceneLoader : public Object
+	export class SceneLoader
 	{
-	public:
-		using Object::Object;
-
 	public:
 		virtual void Unload() = 0;
 	};
@@ -36,7 +33,7 @@ namespace InsanityFramework
 		struct Base
 		{
 			virtual ~Base() = default;
-			virtual SceneUniqueObject<SceneLoader> Load(Scene* scene) = 0;
+			virtual std::unique_ptr<SceneLoader> Load(Scene* scene) = 0;
 		};
 
 		template<class Ty, class... Args>
@@ -50,9 +47,9 @@ namespace InsanityFramework
 
 			}
 
-			SceneUniqueObject<SceneLoader> Load(Scene* scene) final
+			std::unique_ptr<SceneLoader> Load(Scene* scene) final
 			{
-				auto loader = scene->NewObject<Ty>();
+				auto loader = std::make_unique<Ty>();
 
 				if constexpr(sizeof...(Args) > 0)
 				{
@@ -81,7 +78,7 @@ namespace InsanityFramework
 
 		}
 
-		SceneUniqueObject<SceneLoader> Load(Scene* scene)
+		std::unique_ptr<SceneLoader> Load(Scene* scene)
 		{
 			return ptr->Load(scene);
 		}
@@ -118,7 +115,7 @@ namespace InsanityFramework
 		struct LoadedScenes
 		{
 			UniqueSceneHandle scene = nullptr;
-			SceneUniqueObject<SceneLoader> loader = nullptr;
+			std::unique_ptr<SceneLoader> loader = nullptr;
 
 			LoadedScenes(UniqueSceneHandle ptr) : scene{ std::move(ptr) } {}
 			LoadedScenes(const LoadedScenes&) = delete;

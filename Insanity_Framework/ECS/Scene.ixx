@@ -65,10 +65,10 @@ namespace InsanityFramework
 		bool IsRoot() const noexcept { return isRoot; }
 	};
 
-	export class SceneSystem : public Object
+	export class SceneSystem
 	{
-	protected:
-		using Object::Object;
+	public:
+		virtual ~SceneSystem() = default;
 	};
 
 	export struct SceneCallbacks
@@ -516,7 +516,7 @@ namespace InsanityFramework
 		ObjectAllocator allocator;
 
 		std::unordered_map<std::type_index, std::vector<GameObject*>> gameObjects;
-		std::unordered_map<std::type_index, UniqueObject<SceneSystem>> sceneSystems;
+		std::unordered_map<std::type_index, std::unique_ptr<SceneSystem>> sceneSystems;
 		std::vector<GameObject*> queuedConstruction;
 		std::vector<GameObject*> queuedDestruction;
 		std::uint32_t lifetimeLockCounter = 0;
@@ -551,7 +551,7 @@ namespace InsanityFramework
 
 			for(auto& [type, object] : sceneSystems)
 			{
-				allocator.Delete(object.release());
+				object = nullptr;
 			}
 		}
 
@@ -598,10 +598,6 @@ namespace InsanityFramework
 			assert(!(owner->gameObjects.contains(typeid(*object)) &&
 				std::ranges::find(owner->gameObjects[typeid(*object)], object) != owner->gameObjects[typeid(*object)].end()));
 
-			//Don't call DeleteObject on scene systems, they are expected to have the same lifetime as 
-			//the scene itself
-			assert(!(owner->sceneSystems.contains(typeid(*object)) && owner->sceneSystems[typeid(*object)].get() == object));
-
 			callbacks->OnObjectDestroyed(object);
 
 			owner->allocator.Delete(object);
@@ -631,9 +627,10 @@ namespace InsanityFramework
 			{
 				throw std::exception("System already added");
 			}
-			auto system = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
-			GetActiveScene()->sceneSystems.insert({ typeid(Ty),  UniqueObject<SceneSystem>{ system, {} } });
-			return *system;
+			auto system = std::make_unique<Ty>(std::forward<Args>(args)...);
+			auto output = system.get();
+			GetActiveScene()->sceneSystems.insert({ typeid(Ty),  std::move(system) });
+			return *output;
 		}
 
 		template<std::derived_from<SceneSystem> Ty>
@@ -656,53 +653,27 @@ namespace InsanityFramework
 
 
 		template<std::derived_from<GameObject> Ty>
-		static GlobalExactObjectRange<Ty> ForEachExactType() 
+		static GlobalExactObjectRange<Ty> GetObjectsExactType() 
 		{
 			return { SceneGroup::GetGroup(GetActiveScene()) };
 		}
 
 		template<std::derived_from<GameObject> Ty>
-		static ExactObjectRange<Ty> ForEachExactTypeInScene(Scene* scene) 
+		static ExactObjectRange<Ty> GetObjectsExactTypeInScene(Scene* scene) 
 		{
 			return { scene };
 		}
 
 		template<std::derived_from<GameObject> Ty>
-		static GlobalObjectRange<Ty> ForEach() 
+		static GlobalObjectRange<Ty> GetObjects() 
 		{
 			return { SceneGroup::GetGroup(GetActiveScene()) };
 		}
 
 		template<std::derived_from<GameObject> Ty>
-		static ObjectRange<Ty> ForEachInScene(Scene* scene) 
+		static ObjectRange<Ty> GetObjectsInScene(Scene* scene) 
 		{
 			return { scene };
-		}
-
-		template<std::derived_from<GameObject> Ty>
-		std::vector<Ty*> GetGameObjects() const
-		{
-			std::vector<Ty*> output;
-
-			ForEach<Ty>([&output](Ty& obj)
-			{
-				output.push_back(&obj);
-			});
-
-			return output;
-		}
-
-		template<std::derived_from<GameObject> Ty>
-		std::vector<Ty*> GetGameObjectsOfExactType() const
-		{
-			std::vector<Ty*> output;
-
-			ForEachExactType<Ty>([&output](Ty& obj)
-			{
-				output.push_back(&obj);
-			});
-
-			return output;
 		}
 
 		void LockLifetimes()
