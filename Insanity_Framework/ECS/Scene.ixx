@@ -15,28 +15,15 @@ module;
 export module InsanityFramework.ECS.Scene;
 import InsanityFramework.Memory;
 import InsanityFramework.Allocator;
-export import InsanityFramework.ECS.Object;
+export import :Object;
 export import InsanityFramework.TransformationNode;
 
 namespace InsanityFramework
 {
 	export class Scene;
-	export class SceneAllocator;
-	export class GameObject;
-
-	struct SceneObjectDeleter;
-
-	export template<std::derived_from<InsanityFramework::Object> Ty>
-	using SceneUniqueObject = UniqueObject<Ty, SceneObjectDeleter>;
-
-	export template<std::derived_from<InsanityFramework::GameObject> Ty>
-	class UniqueGameObject;
 
 	export class GameObject : public Object, public TransformNode
 	{
-		template<std::derived_from<InsanityFramework::GameObject> Ty>
-		friend class UniqueGameObject;
-
 	public:
 		using Object::Object;
 
@@ -57,12 +44,6 @@ namespace InsanityFramework
 			TransformNode{ initializer }
 		{
 		}
-
-	private:
-		bool isRoot = true;
-
-	public:
-		bool IsRoot() const noexcept { return isRoot; }
 	};
 
 	export class SceneSystem
@@ -90,12 +71,12 @@ namespace InsanityFramework
 		using pointer = Ty*;
 		using reference = Ty&;
 
-		std::vector<GameObject*>::const_iterator iterator{};
+		std::vector<Object*>::const_iterator iterator{};
 		std::ptrdiff_t offset{};
 
 	public:
 		ExactObjectIterator() = default;
-		ExactObjectIterator(std::vector<GameObject*>::const_iterator iteartor, std::ptrdiff_t offset) :
+		ExactObjectIterator(std::vector<Object*>::const_iterator iteartor, std::ptrdiff_t offset) :
 			iterator{ iteartor },
 			offset{ offset }
 		{
@@ -180,7 +161,7 @@ namespace InsanityFramework
 	template<class Ty>
 	class ExactObjectRange
 	{
-		const std::vector<GameObject*>* objects;
+		const std::vector<Object*>* objects;
 		std::ptrdiff_t offset;
 
 	public:
@@ -219,10 +200,10 @@ namespace InsanityFramework
 		using pointer = Ty*;
 		using reference = Ty&;
 
-		std::unordered_map<std::type_index, std::vector<GameObject*>>::const_iterator currentMapIt{};
-		std::unordered_map<std::type_index, std::vector<GameObject*>>::const_iterator endMapIt{};
-		std::vector<GameObject*>::const_iterator currentIt{};
-		std::vector<GameObject*>::const_iterator endIt{};
+		std::unordered_map<std::type_index, std::vector<Object*>>::const_iterator currentMapIt{};
+		std::unordered_map<std::type_index, std::vector<Object*>>::const_iterator endMapIt{};
+		std::vector<Object*>::const_iterator currentIt{};
+		std::vector<Object*>::const_iterator endIt{};
 		std::ptrdiff_t offset{};
 
 	public:
@@ -492,8 +473,6 @@ namespace InsanityFramework
 
 	class Scene
 	{
-		friend SceneAllocator;
-
 		template<class Ty>
 		friend class ExactObjectRange;
 
@@ -505,8 +484,6 @@ namespace InsanityFramework
 	public:
 		struct Key
 		{
-			friend SceneAllocator;
-
 			friend class SceneGroup;
 		private:
 			Key() = default;
@@ -515,10 +492,10 @@ namespace InsanityFramework
 	private:
 		ObjectAllocator allocator;
 
-		std::unordered_map<std::type_index, std::vector<GameObject*>> gameObjects;
+		std::unordered_map<std::type_index, std::vector<Object*>> gameObjects;
 		std::unordered_map<std::type_index, std::unique_ptr<SceneSystem>> sceneSystems;
-		std::vector<GameObject*> queuedConstruction;
-		std::vector<GameObject*> queuedDestruction;
+		std::vector<Object*> queuedConstruction;
+		std::vector<Object*> queuedDestruction;
 		std::uint32_t lifetimeLockCounter = 0;
 
 	public:
@@ -534,19 +511,20 @@ namespace InsanityFramework
 		~Scene()
 		{
 			assert(lifetimeLockCounter == 0);
-			std::vector<GameObject*> rootObjects;
+			std::vector<Object*> rootObjects;
 			for(auto& [type, objects] : gameObjects)
 			{
-				for(GameObject* object : objects)
+				for(Object* object : objects)
 				{
 					if(object->IsRoot())
 						rootObjects.push_back(object);
 				}
 			}
 
-			for(GameObject* object : rootObjects)
+			for(Object* object : rootObjects)
 			{
-				allocator.Delete(object);
+				DeleteObject(object);
+				//allocator.Delete(object);
 			}
 
 			for(auto& [type, object] : sceneSystems)
@@ -560,24 +538,11 @@ namespace InsanityFramework
 			return allocator.Contains(object);
 		}
 
-		//Creates an object that is not registered with the scene
-		//Must be paired with DeleteObject
-		template<std::derived_from<Object> Ty, class... Args>
-		static SceneUniqueObject<Ty> NewObject(Args&&... args)
-		{
-			SceneUniqueObject<Ty> object{ GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...), {} };
-
-			callbacks->OnObjectCreated(object.get());
-
-			return object;
-		}
-
 		//Creates a game object registered with the scene
-		//Must be paired with DeleteGameObject
 		template<std::derived_from<GameObject> Ty, class... Args>
-		static UniqueGameObject<Ty> NewGameObject(Args&&... args)
+		static UniqueObject<Ty> NewObject(Args&&... args)
 		{
-			UniqueGameObject<Ty> object = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
+			UniqueObject<Ty> object = GetActiveScene()->allocator.New<Ty>(std::forward<Args>(args)...);
 			if(GetActiveScene()->lifetimeLockCounter == 0)
 				GetActiveScene()->gameObjects[typeid(Ty)].push_back(object.get());
 			else
@@ -591,27 +556,10 @@ namespace InsanityFramework
 		static void DeleteObject(Object* object)
 		{
 			Scene* owner = GetOwner(object);
-			//Don't delete an object owned by another scene.
-			//assert(ObjectAllocator::Get(object) == &owner->allocator);
-
-			//Don't call DeleteObject on managed game objects, call DeleteGameObject instead
-			assert(!(owner->gameObjects.contains(typeid(*object)) &&
-				std::ranges::find(owner->gameObjects[typeid(*object)], object) != owner->gameObjects[typeid(*object)].end()));
-
-			callbacks->OnObjectDestroyed(object);
-
-			owner->allocator.Delete(object);
-		}
-
-		static void DeleteGameObject(GameObject* object)
-		{
-			Scene* owner = GetOwner(object);
-			//Don't delete an object owned by another scene.
-			//assert(ObjectAllocator::Get(object) == &owner->allocator);
 
 			if(owner->lifetimeLockCounter == 0)
 			{
-				owner->ImmediateDeleteGameObject(object);
+				owner->ImmediateDeleteObject(object);
 			}
 			else
 			{
@@ -694,21 +642,21 @@ namespace InsanityFramework
 		{
 			assert(lifetimeLockCounter == 0);
 
-			for(GameObject* object : queuedConstruction)
+			for(Object* object : queuedConstruction)
 			{
 				gameObjects[typeid(*object)].push_back(object);
 			}
 			queuedConstruction.clear();
 
-			for(GameObject* object : queuedDestruction)
+			for(Object* object : queuedDestruction)
 			{
-				ImmediateDeleteGameObject(object);
+				ImmediateDeleteObject(object);
 			}
 			queuedDestruction.clear();
 		}
 
 	private:
-		void ImmediateDeleteGameObject(GameObject* object)
+		void ImmediateDeleteObject(Object* object)
 		{
 			callbacks->OnObjectDestroyed(object);
 			std::erase(gameObjects[typeid(*object)], object);
@@ -795,105 +743,6 @@ namespace InsanityFramework
 		}
 
 		std::span<const std::unique_ptr<Scene>> GetScenes() const { return scenes; }
-	};
-
-	struct GameObjectDeleter
-	{
-		void operator()(GameObject* ptr)
-		{
-			Scene::DeleteGameObject(ptr);
-		}
-	};
-
-	export template<std::derived_from<InsanityFramework::GameObject> Ty>
-	class UniqueGameObject
-	{
-		template<std::derived_from<InsanityFramework::GameObject> Ty>
-		friend class UniqueGameObject;
-
-	private:
-		std::unique_ptr<Ty, GameObjectDeleter> ptr;
-
-	public:
-		UniqueGameObject() = default;
-		UniqueGameObject(std::nullptr_t) : ptr{ nullptr } {}
-		UniqueGameObject(Ty* ptr) : ptr{ ptr }
-		{
-			if(ptr)
-				ptr->isRoot = false;
-		}
-		UniqueGameObject(const UniqueGameObject&) = delete;
-		UniqueGameObject(UniqueGameObject&& other) noexcept :
-			ptr{ std::move(other).ptr }
-		{
-
-		}
-
-		template<class OtherTy>
-			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueGameObject(UniqueGameObject<OtherTy>&& other) noexcept :
-			ptr{ std::move(other).ptr }
-		{
-
-		}
-
-		UniqueGameObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
-		UniqueGameObject& operator=(const UniqueGameObject&) = delete;
-		UniqueGameObject& operator=(UniqueGameObject&& other) noexcept
-		{
-			UniqueGameObject temp{ std::move(other) };
-			swap(temp);
-			return *this;
-		}
-
-		template<class OtherTy>
-			requires std::convertible_to<OtherTy*, Ty*>
-		UniqueGameObject& operator=(UniqueGameObject<OtherTy>&& other) noexcept
-		{
-			UniqueGameObject temp{ std::move(other).ptr };
-			swap(temp);
-			return *this;
-		}
-
-		~UniqueGameObject() = default;
-
-	public:
-		auto release()
-		{
-			ptr->isRoot = true;
-			return ptr.release();
-		}
-
-		void reset(Ty* newPtr) noexcept
-		{
-			ptr.reset(newPtr);
-			if(newPtr)
-				newPtr->isRoot = false;
-		}
-
-		void swap(UniqueGameObject& other) noexcept
-		{
-			ptr.swap(other.ptr);
-		}
-
-		auto get() { return ptr.get(); }
-		auto get() const { return ptr.get(); }
-
-		auto operator->() { return ptr.operator->(); }
-		auto operator->() const { return ptr.operator->(); }
-
-		decltype(auto) operator*() { return (ptr.operator*()); }
-		decltype(auto) operator*() const { return (ptr.operator*()); }
-
-		operator bool() const noexcept { return static_cast<bool>(ptr); }
-	};
-
-	struct SceneObjectDeleter
-	{
-		void operator()(Object* ptr)
-		{
-			Scene::DeleteObject(ptr);
-		}
 	};
 
 	export class SceneLifetimeScopeLock

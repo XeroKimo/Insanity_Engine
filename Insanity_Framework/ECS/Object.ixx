@@ -5,7 +5,7 @@ module;
 #include <concepts>
 #include <cassert>
 
-export module InsanityFramework.ECS.Object;
+export module InsanityFramework.ECS.Scene:Object;
 import InsanityFramework.Memory;
 import InsanityFramework.Allocator;
 import InsanityFramework.AnyRef;
@@ -15,10 +15,15 @@ namespace InsanityFramework
 	export class Object;
 	export class ObjectAllocator;
 
+	export template<std::derived_from<InsanityFramework::Object> Ty>
+	class UniqueObject;
+
 	export class Object
 	{
 		friend ObjectAllocator;
 
+		template<std::derived_from<InsanityFramework::Object> Ty>
+		friend class UniqueObject;
 	public:
 		struct Key
 		{
@@ -37,6 +42,12 @@ namespace InsanityFramework
 		void operator delete(void* ptr, ObjectAllocator& allocator);
 
 		void operator delete(void* ptr);
+
+	private:
+		bool isRoot = true;
+
+	public:
+		bool IsRoot() const noexcept { return isRoot; }
 	};
 
 	export class ObjectAllocator
@@ -167,12 +178,89 @@ namespace InsanityFramework
 
 	struct ObjectDeleter
 	{
-		void operator()(Object* ptr)
-		{
-			ObjectAllocator::Delete(ptr);
-		}
+		void operator()(Object* ptr);
 	};
 
-	export template<std::derived_from<InsanityFramework::Object> Ty, class DeleterTy = ObjectDeleter>
-	using UniqueObject = std::unique_ptr<Ty, DeleterTy>;
+	export template<std::derived_from<InsanityFramework::Object> Ty>
+	class UniqueObject
+	{
+		template<std::derived_from<InsanityFramework::Object> Ty>
+		friend class UniqueObject;
+
+	private:
+		std::unique_ptr<Ty, ObjectDeleter> ptr;
+
+	public:
+		UniqueObject() = default;
+		UniqueObject(std::nullptr_t) : ptr{ nullptr } {}
+		UniqueObject(Ty* ptr) : ptr{ ptr }
+		{
+			if (ptr)
+				ptr->isRoot = false;
+		}
+		UniqueObject(const UniqueObject&) = delete;
+		UniqueObject(UniqueObject&& other) noexcept :
+			ptr{ std::move(other).ptr }
+		{
+
+		}
+
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueObject(UniqueObject<OtherTy>&& other) noexcept :
+			ptr{ std::move(other).ptr }
+		{
+
+		}
+
+		UniqueObject& operator=(std::nullptr_t) { ptr = nullptr; return *this; }
+		UniqueObject& operator=(const UniqueObject&) = delete;
+		UniqueObject& operator=(UniqueObject&& other) noexcept
+		{
+			UniqueObject temp{ std::move(other) };
+			swap(temp);
+			return *this;
+		}
+
+		template<class OtherTy>
+			requires std::convertible_to<OtherTy*, Ty*>
+		UniqueObject& operator=(UniqueObject<OtherTy>&& other) noexcept
+		{
+			UniqueObject temp{ std::move(other).ptr };
+			swap(temp);
+			return *this;
+		}
+
+		~UniqueObject() = default;
+
+	public:
+		auto release()
+		{
+			ptr->isRoot = true;
+			return ptr.release();
+		}
+
+		void reset(Ty* newPtr) noexcept
+		{
+			ptr.reset(newPtr);
+			if (newPtr)
+				newPtr->isRoot = false;
+		}
+
+		void swap(UniqueObject& other) noexcept
+		{
+			ptr.swap(other.ptr);
+		}
+
+		auto get() { return ptr.get(); }
+		auto get() const { return ptr.get(); }
+
+		auto operator->() { return ptr.operator->(); }
+		auto operator->() const { return ptr.operator->(); }
+
+		decltype(auto) operator*() { return (ptr.operator*()); }
+		decltype(auto) operator*() const { return (ptr.operator*()); }
+
+		operator bool() const noexcept { return static_cast<bool>(ptr); }
+	};
 }

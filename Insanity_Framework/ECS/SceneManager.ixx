@@ -18,6 +18,9 @@ namespace InsanityFramework
 	export class SceneLoader
 	{
 	public:
+		virtual ~SceneLoader() = default;
+
+	public:
 		virtual void Unload() = 0;
 	};
 
