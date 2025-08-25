@@ -14,6 +14,14 @@
 		{
 			"name": "ms-gsl",
 			"platform": "windows"
+		},
+		{
+			"name": "imgui",
+			"features": [
+				"docking-experimental", 
+				"dx11-binding", 
+				"sdl2-binding"
+			]
 		}
 	]
 }
