@@ -14,6 +14,8 @@ module;
 #include <functional>
 #include <ranges>
 #include <optional>
+#include <memory>
+#include <format>
 
 export module InsanityEditor.ImGUI;
 import xk.Math;
@@ -21,13 +23,58 @@ export import TypedD3D11;
 
 namespace InsanityEditor
 {
+	struct ImGuiContextDeleter
+	{
+		void operator()(ImGuiContext* c) { ImGui::DestroyContext(c); }
+	};
+
+	export class Identifier
+	{
+		std::string id;
+
+	public:
+		//Display Name will double as the Identifier
+		Identifier(std::string_view displayName) :
+			id{ displayName }
+		{
+
+		}
+
+		//Display Name will be what's visible but is part of the main identifier
+		//Duplicate Id is a hidden value to allow multiple windows of the same display name
+		Identifier(std::string_view displayName, std::uint32_t duplicateId) :
+			id{ std::format("{}#{}", displayName, duplicateId) }
+		{
+
+		}
+
+		//Display Name will be what's visible
+		//Hidden Id is the real id of the window
+		Identifier(std::string_view displayName, std::string_view hiddenId) :
+			id{ std::format("{}##{}", displayName, hiddenId) }
+		{
+
+		}
+
+		//Hidden Id is the real id of the window
+		Identifier(std::string_view displayName, std::string_view hiddenId, std::uint32_t duplicateId) :
+			id{ std::format("{}##{}#{}", displayName, hiddenId, duplicateId) }
+		{
+
+		}
+
+		const std::string& Get() const { return id; }
+	};
+
+	export using UniqueImGuiContext = std::unique_ptr<ImGuiContext, ImGuiContextDeleter>;
+
 	export struct ImGuiLifetime
 	{
-		ImGuiContext* context;
+		UniqueImGuiContext context;
 		ImGuiLifetime(SDL_Window* window, ID3D11Device* device, ID3D11DeviceContext* deviceContext)
 		{
 			IMGUI_CHECKVERSION();
-			context = ImGui::CreateContext();
+			context = UniqueImGuiContext{ ImGui::CreateContext() };
 			ImGuiIO& io = ImGui::GetIO();
 			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -52,7 +99,6 @@ namespace InsanityEditor
 		{
 			ImGui_ImplDX11_Shutdown();
 			ImGui_ImplSDL2_Shutdown();
-			ImGui::DestroyContext(context);
 		}
 	};
 
@@ -91,19 +137,19 @@ namespace InsanityEditor
 	};
 
 	export template<class Func>
-	void NewWindow(std::string_view name, ImGuiWindowFlags flags, Func func)
+	void NewWindow(Identifier name, ImGuiWindowFlags flags, Func func)
 	{
-		ImGui::Begin(name.data(), nullptr, flags);
+		ImGui::Begin(name.Get().data(), nullptr, flags);
 		WindowGuard _;
 		func();
 	}
 
 	export template<class Func>
-	void NewWindow(std::string_view name, bool& isOpen, ImGuiWindowFlags flags, Func func)
+	void NewWindow(Identifier name, bool& isOpen, ImGuiWindowFlags flags, Func func)
 	{
 		if (isOpen)
 		{
-			ImGui::Begin(name.data(), &isOpen, flags);
+			ImGui::Begin(name.Get().data(), &isOpen, flags);
 			WindowGuard _;
 			func();
 		}
@@ -274,5 +320,11 @@ namespace InsanityEditor
 		return OptionalChange{ data } = ImGui::DragScalarN(label.data(), ToDataType<decltype(*std::ranges::begin(data))>(), std::ranges::data(data), std::ranges::size(data), 1.f, nullptr, nullptr, nullptr, flags)
 			? std::make_optional(std::move(data))
 			: std::nullopt;
+	}
+
+	//Gets the position of the mouse relative to the current window
+	export xk::Math::Vector<float, 2> GetLocalMousePosition()
+	{
+		return { ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetWindowSize().y - ImGui::GetMousePos().y + ImGui::GetWindowPos().y };
 	}
 }

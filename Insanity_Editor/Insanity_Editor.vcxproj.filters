@@ -21,5 +21,8 @@
     <ClCompile Include="SceneView.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="EditorContext.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

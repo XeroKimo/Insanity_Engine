@@ -36,6 +36,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EditorContext.ixx" />
     <ClCompile Include="ImGUI.ixx" />
     <ClCompile Include="SceneView.ixx" />
   </ItemGroup>

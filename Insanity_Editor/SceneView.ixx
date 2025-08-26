@@ -2,12 +2,14 @@ module;
 #include <d3d11.h>
 #include <imgui.h>
 #include <functional>
+#include <iostream>
 export module InsanityEditor.SceneView;
 
 import InsanityFramework.RendererDX11;
 import InsanityEditor.ImGUI;
 import TypedD3D11;
 import xk.Math;
+import InsanityEditor.EditorContext;
 
 namespace InsanityEditor
 {
@@ -16,6 +18,7 @@ namespace InsanityEditor
 	public:
 		xk::Math::Vector<float, 3> cameraPos;
 		float viewSize = 5;
+		xk::Math::Vector<float, 2> worldMousePosition;
 
 	private:
 		TypedD3D::Wrapper<ID3D11RenderTargetView> renderTarget;
@@ -24,11 +27,10 @@ namespace InsanityEditor
 		bool showControls = true;
 
 	public:
-		void Render(TypedD3D::Wrapper<ID3D11Device> device, std::function<void(InsanityFramework::Camera, TypedD3D::Wrapper<ID3D11RenderTargetView>)> renderSceneFunction)
+		void Render(std::function<void(InsanityFramework::Camera, TypedD3D::Wrapper<ID3D11RenderTargetView>)> renderSceneFunction)
 		{
-			NewWindow("Scene", ImGuiWindowFlags_MenuBar, [&]
+			NewWindow({ "Scene" }, ImGuiWindowFlags_MenuBar, [&]
 			{
-				ResizeTextures(device);
 
 				ImGui::BeginMenuBar();
 				if (ImGui::BeginMenu("Controls"))
@@ -47,19 +49,33 @@ namespace InsanityEditor
 					ImGui::Text("Camera");
 					cameraPos = EditableField("Position", cameraPos, ImGuiInputTextFlags_EnterReturnsTrue).NewValueOrOld();
 					viewSize = EditableField("View Size", viewSize, ImGuiInputTextFlags_EnterReturnsTrue).NewValueOrOld();
+					EditableField("Current Work Size", xk::Math::Vector{ currentWorkSize.x, currentWorkSize.y });
+
 					ImGui::EndChild();
 					ImGui::SameLine();
 				}
 
 				ImGui::BeginChild("Scene view");
 
+				ResizeTextures(EditorContext::GetActiveContext().device);
 				viewSize -= ImGui::GetIO().MouseWheel;
 				viewSize = (std::max)(0.05f, viewSize);
+
+				InsanityFramework::Camera camera{ cameraPos, 0, xk::Math::OrthographicProjectionAspectRatioLH({ currentWorkSize.x, currentWorkSize.y }, viewSize, 0.001f, 100.f) };
+				worldMousePosition = xk::Math::HadamardDivision<float, float, 2>(GetLocalMousePosition(), { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y });
+				worldMousePosition *= 2;
+				worldMousePosition -= xk::Math::Vector<float, 2>{ 1, 1 };
+
+				auto inversed = xk::Math::Inverse(xk::Math::OrthographicProjectionAspectRatioLH({ currentWorkSize.x, currentWorkSize.y }, viewSize, 0.001f, 100.f)) * xk::Math::Vector<float, 4>{ worldMousePosition.X(), worldMousePosition.Y(), 0, 0 };
+				worldMousePosition.X() = inversed.At(0, 0);
+				worldMousePosition.Y() = inversed.At(1, 0);
+				worldMousePosition += xk::Math::Vector{ cameraPos.X(), cameraPos.Y() };
+
 				if (ImGui::IsWindowFocused() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
 				{					
 					cameraPos += xk::Math::Vector<float, 3>{ -ImGui::GetIO().MouseDelta.x, ImGui::GetIO().MouseDelta.y, 0.f } * (viewSize / currentWorkSize.y);
 				}
-				renderSceneFunction(InsanityFramework::Camera{ cameraPos, 0, xk::Math::OrthographicProjectionAspectRatioLH({ currentWorkSize.x, currentWorkSize.y }, viewSize, 0.001f, 100.f) }, renderTarget);
+				renderSceneFunction(camera, renderTarget);
 				ImGui::Image(reinterpret_cast<ImTextureID>(renderTargetAsShaderResource.Get()), currentWorkSize);
 				ImGui::EndChild();
 			});
