@@ -17,6 +17,8 @@ module;
 #include <memory>
 #include <format>
 
+#include <ImGuizmo.h>
+
 export module InsanityEditor.ImGUI;
 import xk.Math;
 export import TypedD3D11;
@@ -87,6 +89,7 @@ namespace InsanityEditor
 				throw std::exception("Failed to init ImGUI");
 			if (!ImGui_ImplDX11_Init(device, deviceContext))
 				throw std::exception("Failed to init ImGUI");
+			ImGuizmo::SetImGuiContext(context.get());
 		}
 
 		ImGuiLifetime(const ImGuiLifetime&) = delete;
@@ -122,6 +125,7 @@ namespace InsanityEditor
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
+		//ImGuizmo::BeginFrame();
 		RenderGuard _{ context, target };
 
 		ImGui::DockSpaceOverViewport();

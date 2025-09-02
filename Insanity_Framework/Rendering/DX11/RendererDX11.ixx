@@ -68,6 +68,8 @@ namespace InsanityFramework
 
 	export struct Camera
 	{
+		xk::Math::Matrix<float, 4, 4> viewTransform;
+		xk::Math::Matrix<float, 4, 4> perspectiveTransform;
 		xk::Math::Matrix<float, 4, 4> viewPerspectiveTransform;
 
 		Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective);

@@ -35,6 +35,21 @@ namespace InsanityFramework
 		{
 			return lh.position == rh.position && lh.rotation == rh.rotation && lh.scale == rh.scale;
 		}
+
+		xk::Math::Matrix<float, 4, 4> ToMatrix() const noexcept
+		{
+			return xk::Math::ScaleMatrix(scale) * xk::Math::TransformMatrix(position);
+		}
+
+		static Transform FromMatrix(const xk::Math::Matrix<float, 4, 4>& matrix)
+		{
+			return
+			{
+				{ matrix.At(0, 3), matrix.At(1, 3), matrix.At(2, 3) },
+				{},
+				{ matrix.At(0, 0), matrix.At(1, 1), matrix.At(2, 2) }
+			};
+		}
 	};
 
 	export class TransformNode;

@@ -147,21 +147,26 @@ namespace InsanityFramework
 	}
 
 	Camera::Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective) :
-		viewPerspectiveTransform
-	{
-		perspective * xk::Math::Matrix<float, 4, 4> {
-			1, 0, 0, -position.X(),
-			0, 1, 0, -position.Y(),
-			0, 0, 1, -position.Z(),
-			0, 0, 0, 1
-		} *xk::Math::Matrix<float, 4, 4>
+		viewTransform
 		{
-			std::cos(-xk::Math::Radian<float>(angle)._value), -std::sin(-xk::Math::Radian<float>(angle)._value), 0, 0,
-			std::sin(-xk::Math::Radian<float>(angle)._value), std::cos(-xk::Math::Radian<float>(angle)._value), 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1
+			xk::Math::Matrix<float, 4, 4> {
+				1, 0, 0, -position.X(),
+				0, 1, 0, -position.Y(),
+				0, 0, 1, -position.Z(),
+				0, 0, 0, 1
+			} * xk::Math::Matrix<float, 4, 4>
+			{
+				std::cos(-xk::Math::Radian<float>(angle)._value), -std::sin(-xk::Math::Radian<float>(angle)._value), 0, 0,
+				std::sin(-xk::Math::Radian<float>(angle)._value), std::cos(-xk::Math::Radian<float>(angle)._value), 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			}
+		},
+		perspectiveTransform{ perspective },
+		viewPerspectiveTransform
+		{
+			perspectiveTransform * viewTransform
 		}
-	}
 	{
 	}
 

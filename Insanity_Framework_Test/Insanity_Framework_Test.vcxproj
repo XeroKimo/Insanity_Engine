@@ -172,6 +172,9 @@
     <ProjectReference Include="..\Insanity_Framework\Insanity_Framework.vcxproj">
       <Project>{a98531dd-e584-4213-b092-735e7d8cf8e8}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\xkMath\xkMath\xkMath.vcxproj">
+      <Project>{68f6959a-8c53-4752-9cde-f5fcaea62413}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

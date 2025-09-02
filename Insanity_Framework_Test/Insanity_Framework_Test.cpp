@@ -2,7 +2,8 @@
 #include "CppUnitTest.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-import InsanityFramework.ECS;
+import InsanityFramework.ECS.Scene;
+import xk.Math;
 
 using namespace InsanityFramework;
 using namespace xk::Math;

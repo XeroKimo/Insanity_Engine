@@ -3,10 +3,13 @@ module;
 #include <imgui.h>
 #include <functional>
 #include <iostream>
+#include <imguizmo.h>
 export module InsanityEditor.SceneView;
 
 import InsanityFramework.RendererDX11;
 import InsanityEditor.ImGUI;
+import InsanityFramework.TransformationNode;
+import InsanityFramework.ECS.Scene;
 import TypedD3D11;
 import xk.Math;
 import InsanityEditor.EditorContext;
@@ -20,6 +23,8 @@ namespace InsanityEditor
 		float viewSize = 5;
 		xk::Math::Vector<float, 2> worldMousePosition;
 
+		InsanityFramework::TransformNode* node = nullptr;
+		bool wasDragging = false;
 	private:
 		TypedD3D::Wrapper<ID3D11RenderTargetView> renderTarget;
 		TypedD3D::Wrapper<ID3D11ShaderResourceView> renderTargetAsShaderResource;
@@ -33,11 +38,12 @@ namespace InsanityEditor
 			{
 
 				ImGui::BeginMenuBar();
-				if (ImGui::BeginMenu("Controls"))
+				ImGui::PushStyleColor(ImGuiCol_Button, showControls ? ImVec4{ 0.f, 0.88f, 0.f, 1.f } : ImVec4{ 0.88f, 0.f, 0.f, 1.f });
+				if (ImGui::Button("Controls"))
 				{
-					ImGui::MenuItem("Show Control Menu", nullptr, &showControls);
-					ImGui::EndMenu();
+					showControls = !showControls;
 				}
+				ImGui::PopStyleColor();
 				ImGui::EndMenuBar();
 
 
@@ -49,7 +55,6 @@ namespace InsanityEditor
 					ImGui::Text("Camera");
 					cameraPos = EditableField("Position", cameraPos, ImGuiInputTextFlags_EnterReturnsTrue).NewValueOrOld();
 					viewSize = EditableField("View Size", viewSize, ImGuiInputTextFlags_EnterReturnsTrue).NewValueOrOld();
-					EditableField("Current Work Size", xk::Math::Vector{ currentWorkSize.x, currentWorkSize.y });
 
 					ImGui::EndChild();
 					ImGui::SameLine();
@@ -70,13 +75,55 @@ namespace InsanityEditor
 				worldMousePosition.X() = inversed.At(0, 0);
 				worldMousePosition.Y() = inversed.At(1, 0);
 				worldMousePosition += xk::Math::Vector{ cameraPos.X(), cameraPos.Y() };
+				bool isMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
 
-				if (ImGui::IsWindowFocused() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+				if (ImGui::IsWindowFocused())
 				{					
-					cameraPos += xk::Math::Vector<float, 3>{ -ImGui::GetIO().MouseDelta.x, ImGui::GetIO().MouseDelta.y, 0.f } * (viewSize / currentWorkSize.y);
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+					{
+						bool selected = false;
+						for (InsanityFramework::TransformNode* transform : InsanityFramework::Scene::GetObjects<InsanityFramework::TransformNode>())
+						{
+							if (xk::Math::MagnitudeSquared(xk::Math::Vector<float, 2>(transform->WorldTransform().Position().Get().X(), transform->WorldTransform().Position().Get().Y()) - worldMousePosition) <= 1.f)
+							{
+								std::cout << typeid(*transform).name() << "\n";
+								node = transform;
+								selected = true;
+							}
+						}
+						if (!selected)
+							node = nullptr;
+					}
+					if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGuizmo::IsUsing())
+					{
+						auto delta = xk::Math::Vector<float, 3>{ -ImGui::GetIO().MouseDelta.x, ImGui::GetIO().MouseDelta.y, 0.f } *(viewSize / currentWorkSize.y);
+						cameraPos += delta;
+						wasDragging = wasDragging || xk::Math::MagnitudeSquared(delta) != 0;
+					}
+					else
+					{
+						wasDragging = false;
+					}
 				}
 				renderSceneFunction(camera, renderTarget);
 				ImGui::Image(reinterpret_cast<ImTextureID>(renderTargetAsShaderResource.Get()), currentWorkSize);
+
+				ImGuizmo::SetOrthographic(true);
+				ImGuizmo::SetDrawlist();
+				float windowWidth = (float)ImGui::GetWindowWidth();
+				float windowHeight = (float)ImGui::GetWindowHeight();
+				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
+				static auto test = xk::Math::Matrix<float, 4, 4>::Identity();
+				//ImGuizmo::DrawCubes(camera.viewTransform._values.data(), camera.perspectiveTransform._values.data(), test._values.data(), 1);
+				ImGuizmo::DrawGrid(camera.viewTransform._values.data(), camera.perspectiveTransform._values.data(), xk::Math::Quaternion<float>{{ 1.f, 0.f, 0.f}, xk::Math::Degree{ 90.f }}.ToRotationMatrix()._values.data(), 100);
+
+				ImGuizmo::Enable(node);
+				if (node)
+				{
+					auto transform = node->WorldTransform().Get().ToMatrix();
+					ImGuizmo::Manipulate(camera.viewTransform._values.data(), camera.perspectiveTransform._values.data(), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, transform._values.data());
+					node->WorldTransform().Set(InsanityFramework::Transform::FromMatrix(transform));
+				}
 				ImGui::EndChild();
 			});
 		}

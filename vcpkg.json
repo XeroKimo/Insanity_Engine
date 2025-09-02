@@ -1,27 +1,29 @@
 {
-	"name": "insanity-engine",
-	"version": "0.1",
-	"dependencies": [
-		{
-			"name": "sdl2",
-			"platform": "windows"
-		},
-		"sdl2-image",
-		{
-			"name": "glm",
-			"platform": "windows"
-		},
-		{
-			"name": "ms-gsl",
-			"platform": "windows"
-		},
-		{
-			"name": "imgui",
-			"features": [
-				"docking-experimental", 
-				"dx11-binding", 
-				"sdl2-binding"
-			]
-		}
-	]
+  "name": "insanity-engine",
+  "version": "0.1",
+  "dependencies": [
+    {
+      "name": "sdl2",
+      "platform": "windows"
+    },
+    "sdl2-image",
+    {
+      "name": "glm",
+      "platform": "windows"
+    },
+    {
+      "name": "ms-gsl",
+      "platform": "windows"
+    },
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "dx11-binding",
+        "sdl2-binding"
+      ]
+    },
+    "imguizmo"
+  ],
+  "builtin-baseline": "9558037875497b9db8cf38fcd7db68ec661bffe7"
 }

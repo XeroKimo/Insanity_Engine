@@ -612,13 +612,13 @@ namespace InsanityFramework
 			return { scene };
 		}
 
-		template<std::derived_from<GameObject> Ty>
+		template<class Ty>
 		static GlobalObjectRange<Ty> GetObjects() 
 		{
 			return { SceneGroup::GetGroup(GetActiveScene()) };
 		}
 
-		template<std::derived_from<GameObject> Ty>
+		template<class Ty>
 		static ObjectRange<Ty> GetObjectsInScene(Scene* scene) 
 		{
 			return { scene };
