@@ -3,6 +3,7 @@
 #include <functional>
 #include <unordered_map>
 module InsanityEngine.Timer;
+import InsanityEngine.Container.StableVector;
 
 namespace InsanityEngine
 {

@@ -23,8 +23,20 @@
     <ClCompile Include="ECS.ixx" />
     <ClCompile Include="ECSInternal.cpp" />
     <ClCompile Include="ECSInternal.ixx" />
+    <ClCompile Include="Engine.ixx" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Renderer.ixx" />
+    <ClCompile Include="StableVector.ixx" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Timer.ixx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)TypedD3D\TypedD3D\TypedD3D12.vcxproj">
+      <Project>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)xkMath\xkMath\xkMath.vcxproj">
+      <Project>{68f6959a-8c53-4752-9cde-f5fcaea62413}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -67,15 +79,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\InsanityEngine.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
