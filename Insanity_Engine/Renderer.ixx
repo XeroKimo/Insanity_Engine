@@ -3,7 +3,7 @@ module;
 #include <d3d11_4.h>
 #include <utility>
 
-export module InsanityEngine.Renderer;
+export module InsanityEngine:Renderer;
 import xk.Math;
 import TypedD3D11;
 import InsanityEngine.Container.StableVector;
@@ -19,42 +19,30 @@ namespace InsanityEngine::Renderer
 		Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective);
 	};
 
-
-
-	export class Lifetime
+	struct SpritePipeline
 	{
-		friend Lifetime Initialize(bool enableDebug);
+		TypedD3D11::Wrapper<ID3D11Buffer> cameraBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> vertexBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> instanceBuffer;
+		TypedD3D11::Wrapper<ID3D11RasterizerState> rasterizerState;
 
-	private:
-		bool engaged = false;
-
-	private:
-		Lifetime() = default;
-		Lifetime(bool engaged) : engaged{ engaged } {}
-
-	public:
-		Lifetime(const Lifetime&) = delete;
-		Lifetime(Lifetime&& other) noexcept :
-			engaged{ std::exchange(other.engaged, false) }
-		{
-
-		}
-		~Lifetime();
-		Lifetime& operator=(const Lifetime&) = delete;
-		Lifetime& operator=(Lifetime&& other) noexcept
-		{
-			Lifetime temp{ std::move(other) };
-			std::swap(engaged, temp.engaged);
-			return *this;
-		}
+		TypedD3D11::Wrapper<ID3D11InputLayout> layout;
+		TypedD3D11::Wrapper<ID3D11VertexShader> vertexShader;
+		TypedD3D11::Wrapper<ID3D11PixelShader> pixelShader;
+		TypedD3D11::Wrapper<ID3D11ShaderResourceView> defaultTexture;
+		TypedD3D11::Wrapper<ID3D11DepthStencilState> depthState;
+		TypedD3D11::Wrapper<ID3D11SamplerState> pointSampler;
+		TypedD3D11::Wrapper<ID3D11BlendState> blendState;
 
 	public:
-		//Invoking this means you must manually call shutdown
-		void Disengage() noexcept { engaged = false; }
+		static constexpr UINT VSPerFrameCBufferSlot = 0;
+		static constexpr UINT VSPerCameraCBufferSlot = 1;
+		static constexpr UINT VSPerMaterialCBufferSlot = 2;
+		static constexpr UINT VSPerObjectCBufferSlot = 3;
+
+	public:
+		SpritePipeline();
 	};
-
-	export Lifetime Initialize(bool enableDebug);
-	export void Shutdown();
 
 	export void DrawScene(TypedD3D::Wrapper<ID3D11RenderTargetView> target, const Camera& camera);
 

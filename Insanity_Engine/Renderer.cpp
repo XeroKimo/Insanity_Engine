@@ -6,35 +6,13 @@
 #include <filesystem>
 #include <wrl/client.h>
 
-module InsanityEngine.Renderer;
+module InsanityEngine;
 import TypedD3D11;
 import xk.Math;
 import InsanityEngine.Container.StableVector;
 
 namespace InsanityEngine::Renderer
 {
-	struct SpritePipeline
-	{
-		TypedD3D11::Wrapper<ID3D11Buffer> cameraBuffer;
-		TypedD3D11::Wrapper<ID3D11Buffer> vertexBuffer;
-		TypedD3D11::Wrapper<ID3D11Buffer> instanceBuffer;
-		TypedD3D11::Wrapper<ID3D11RasterizerState> rasterizerState;
-
-		TypedD3D11::Wrapper<ID3D11InputLayout> layout;
-		TypedD3D11::Wrapper<ID3D11VertexShader> vertexShader;
-		TypedD3D11::Wrapper<ID3D11PixelShader> pixelShader;
-		TypedD3D11::Wrapper<ID3D11ShaderResourceView> defaultTexture;
-		TypedD3D11::Wrapper<ID3D11DepthStencilState> depthState;
-		TypedD3D11::Wrapper<ID3D11SamplerState> pointSampler;
-		TypedD3D11::Wrapper<ID3D11BlendState> blendState;
-
-	public:
-		static constexpr UINT VSPerFrameCBufferSlot = 0;
-		static constexpr UINT VSPerCameraCBufferSlot = 1;
-		static constexpr UINT VSPerMaterialCBufferSlot = 2;
-		static constexpr UINT VSPerObjectCBufferSlot = 3;
-	};
-
 	struct Sprite
 	{
 		StableVector<xk::Math::Matrix<float, 4, 4>> transforms;
@@ -48,14 +26,8 @@ namespace InsanityEngine::Renderer
 		xk::Math::Vector<float, 3> pos;
 		xk::Math::Vector<float, 2> uv;
 	};
-	static TypedD3D::Wrapper<ID3D11Device> device;
-	static TypedD3D::Wrapper<ID3D11DeviceContext> deviceContext;
-	static Microsoft::WRL::ComPtr<ID3D11Debug> debugDevice;
-	static SpritePipeline spritePipeline;
+
 	static Sprite sprites;
-
-	std::filesystem::path relativeEngineAssetPath = std::filesystem::path{ "../Insanity_Engine/Insanity_Framework/" };
-
 
 	Camera::Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective) :
 		viewPerspectiveTransform{ perspective * xk::Math::TransformMatrix(-position) * xk::Math::RotationZMatrix(angle) }
@@ -63,28 +35,18 @@ namespace InsanityEngine::Renderer
 
 	}
 
-	Lifetime::~Lifetime()
-	{
-		if (engaged)
-			Shutdown();
-	}
-
-	Lifetime Initialize(bool enableDebug)
-	{
-		std::tie(device, deviceContext) = TypedD3D11::CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, enableDebug ? D3D11_CREATE_DEVICE_DEBUG : 0, D3D_FEATURE_LEVEL_11_1, D3D11_SDK_VERSION);
-		if (enableDebug)
-			debugDevice = TypedD3D::Cast<ID3D11Debug>(device.AsComPtr());
-		
+	SpritePipeline::SpritePipeline()
+	{	
 		auto CompileShader = [](std::filesystem::path path, LPCSTR target)
 		{
 			Microsoft::WRL::ComPtr<ID3DBlob> blob;
-			TypedD3D::ThrowIfFailed(D3DCompileFromFile((relativeEngineAssetPath / path).c_str(), nullptr, nullptr, "main", target, 0, 0, &blob, nullptr));
+			TypedD3D::ThrowIfFailed(D3DCompileFromFile((InsanityEngine::config.relativeEngineAssetPath / path).c_str(), nullptr, nullptr, "main", target, 0, 0, &blob, nullptr));
 			return blob;
 		};
 
 		{
 			auto blob = CompileShader("Assets/Engine/SpriteVS.hlsl", "vs_5_0");
-			spritePipeline.vertexShader = GetDevice()->CreateVertexShader(*blob.Get(), nullptr);
+			InsanityEngine::spritePipeline.vertexShader = GetDevice()->CreateVertexShader(*blob.Get(), nullptr);
 			std::array inputElement
 			{
 				D3D11_INPUT_ELEMENT_DESC{
@@ -143,9 +105,9 @@ namespace InsanityEngine::Renderer
 				},
 			};
 
-			spritePipeline.layout = GetDevice()->CreateInputLayout(inputElement, *blob.Get());
+			InsanityEngine::spritePipeline.layout = GetDevice()->CreateInputLayout(inputElement, *blob.Get());
 		}
-		spritePipeline.pixelShader = GetDevice()->CreatePixelShader(*CompileShader("Assets/Engine/SpritePS.hlsl", "ps_5_0").Get(), nullptr);
+		InsanityEngine::spritePipeline.pixelShader = GetDevice()->CreatePixelShader(*CompileShader("Assets/Engine/SpritePS.hlsl", "ps_5_0").Get(), nullptr);
 
 		{
 			constexpr Vertex bl{ { -0.5f, -0.5f}, { 0, 1 - 0 } };
@@ -172,7 +134,7 @@ namespace InsanityEngine::Renderer
 
 			D3D11_SUBRESOURCE_DATA data{};
 			data.pSysMem = vertexData.data();
-			spritePipeline.vertexBuffer = GetDevice()->CreateBuffer(bufferDesc, &data);
+			InsanityEngine::spritePipeline.vertexBuffer = GetDevice()->CreateBuffer(bufferDesc, &data);
 		}
 		{
 			static constexpr UINT instanceBufferElementMaxCount = 256;
@@ -186,7 +148,7 @@ namespace InsanityEngine::Renderer
 				.StructureByteStride = 0
 			};
 
-			spritePipeline.instanceBuffer = GetDevice()->CreateBuffer(bufferDesc, nullptr);
+			InsanityEngine::spritePipeline.instanceBuffer = GetDevice()->CreateBuffer(bufferDesc, nullptr);
 		}
 
 		{
@@ -203,7 +165,7 @@ namespace InsanityEngine::Renderer
 				.MultisampleEnable = false,
 				.AntialiasedLineEnable = true
 			};
-			spritePipeline.rasterizerState = GetDevice()->CreateRasterizerState(desc);
+			InsanityEngine::spritePipeline.rasterizerState = GetDevice()->CreateRasterizerState(desc);
 		}
 
 		{
@@ -216,7 +178,7 @@ namespace InsanityEngine::Renderer
 				.MiscFlags = 0,
 				.StructureByteStride = 0
 			};
-			spritePipeline.cameraBuffer = GetDevice()->CreateBuffer(bufferDesc);
+			InsanityEngine::spritePipeline.cameraBuffer = GetDevice()->CreateBuffer(bufferDesc);
 		}
 
 		{
@@ -240,7 +202,7 @@ namespace InsanityEngine::Renderer
 			data.SysMemPitch = 4;
 			auto tempBuffer = GetDevice()->CreateTexture2D(bufferDesc, &data);
 
-			spritePipeline.defaultTexture = GetDevice()->CreateShaderResourceView(tempBuffer);
+			InsanityEngine::spritePipeline.defaultTexture = GetDevice()->CreateShaderResourceView(tempBuffer);
 		}
 		{
 			D3D11_DEPTH_STENCIL_DESC desc
@@ -254,7 +216,7 @@ namespace InsanityEngine::Renderer
 				.FrontFace = {},
 				.BackFace = {}
 			};
-			spritePipeline.depthState = GetDevice()->CreateDepthStencilState(desc);
+			InsanityEngine::spritePipeline.depthState = GetDevice()->CreateDepthStencilState(desc);
 		}
 		{
 			D3D11_BLEND_DESC desc
@@ -273,7 +235,7 @@ namespace InsanityEngine::Renderer
 						.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
 					}}
 			};
-			spritePipeline.blendState = GetDevice()->CreateBlendState(desc);
+			InsanityEngine::spritePipeline.blendState = GetDevice()->CreateBlendState(desc);
 		}
 		{
 			D3D11_SAMPLER_DESC desc
@@ -289,25 +251,8 @@ namespace InsanityEngine::Renderer
 				.MinLOD = std::numeric_limits<float>::lowest(),
 				.MaxLOD = (std::numeric_limits<float>::max)()
 			};
-			spritePipeline.pointSampler = GetDevice()->CreateSamplerState(desc);
+			InsanityEngine::spritePipeline.pointSampler = GetDevice()->CreateSamplerState(desc);
 		}
-
-		return { true };
-	}
-
-	void Shutdown()
-	{
-		auto tempDevice = std::move(device);
-		auto tempDeviceContext = std::move(deviceContext);
-		auto tempDebugDevice = std::move(debugDevice);
-
-		{
-			auto tempSpritePipeline = std::move(spritePipeline);
-			auto tempSprites = std::move(sprites);
-		}
-
-		if(tempDebugDevice)
-			tempDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_FLAGS::D3D11_RLDO_SUMMARY | D3D11_RLDO_FLAGS::D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
 	}
 
 	template<class Func>
@@ -329,12 +274,12 @@ namespace InsanityEngine::Renderer
 		viewports.MaxDepth = 1;
 		viewports.Width = static_cast<FLOAT>(desc.Width);
 		viewports.Height = static_cast<FLOAT>(desc.Height);
-		deviceContext->RSSetViewports(viewports);
-		UpdateConstantBuffer(spritePipeline.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		GetDeviceContext()->RSSetViewports(viewports);
+		UpdateConstantBuffer(InsanityEngine::spritePipeline.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
 		{
 			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
 		});
-		deviceContext->VSSetConstantBuffers(SpritePipeline::VSPerCameraCBufferSlot, spritePipeline.cameraBuffer);
+		GetDeviceContext()->VSSetConstantBuffers(SpritePipeline::VSPerCameraCBufferSlot, InsanityEngine::spritePipeline.cameraBuffer);
 
 		DrawSprites();
 	}
@@ -352,44 +297,44 @@ namespace InsanityEngine::Renderer
 				}
 			}
 		}
-		GetDeviceContext()->IASetInputLayout(spritePipeline.layout);
-		GetDeviceContext()->VSSetShader(spritePipeline.vertexShader, {});
-		GetDeviceContext()->PSSetShader(spritePipeline.pixelShader, {});
-		GetDeviceContext()->PSSetSamplers(0, spritePipeline.pointSampler);
-		GetDeviceContext()->OMSetBlendState(spritePipeline.blendState, std::nullopt, D3D11_DEFAULT_SAMPLE_MASK);
-		GetDeviceContext()->OMSetDepthStencilState(spritePipeline.depthState, D3D11_DEFAULT_SAMPLE_MASK);
+		GetDeviceContext()->IASetInputLayout(InsanityEngine::spritePipeline.layout);
+		GetDeviceContext()->VSSetShader(InsanityEngine::spritePipeline.vertexShader, {});
+		GetDeviceContext()->PSSetShader(InsanityEngine::spritePipeline.pixelShader, {});
+		GetDeviceContext()->PSSetSamplers(0, InsanityEngine::spritePipeline.pointSampler);
+		GetDeviceContext()->OMSetBlendState(InsanityEngine::spritePipeline.blendState, std::nullopt, D3D11_DEFAULT_SAMPLE_MASK);
+		GetDeviceContext()->OMSetDepthStencilState(InsanityEngine::spritePipeline.depthState, D3D11_DEFAULT_SAMPLE_MASK);
 		GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		for (std::size_t i = 0; i < sprites.transforms.Size(); i++)
 		{
-			UpdateConstantBuffer(spritePipeline.instanceBuffer, [=](D3D11_MAPPED_SUBRESOURCE data)
+			UpdateConstantBuffer(InsanityEngine::spritePipeline.instanceBuffer, [=](D3D11_MAPPED_SUBRESOURCE data)
 			{
 				std::memcpy(data.pData, &sprites.transforms.At(i), sizeof(xk::Math::Matrix<float, 4, 4>));
 			});
-			TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ spritePipeline.vertexBuffer, spritePipeline.instanceBuffer };
+			TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ InsanityEngine::spritePipeline.vertexBuffer, InsanityEngine::spritePipeline.instanceBuffer };
 			std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
 			std::array<UINT, 2> offsets{ 0, 0 };
-			deviceContext->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
-			deviceContext->PSSetShaderResources(0, sprites.texture.At(i));
-			deviceContext->DrawInstanced(6, 1, 0, 0);
+			GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
+			GetDeviceContext()->PSSetShaderResources(0, sprites.texture.At(i));
+			GetDeviceContext()->DrawInstanced(6, 1, 0, 0);
 		}
 	}
 
 	TypedD3D::Wrapper<ID3D11Device> GetDevice()
 	{
-		return device;
+		return InsanityEngine::device.first;
 	}
 
 	TypedD3D::Wrapper<ID3D11DeviceContext> GetDeviceContext()
 	{
-		return deviceContext;
+		return InsanityEngine::device.second;
 	}
 
 	constexpr float priorityBias = 500;
 
 	UniqueSpriteHandle NewSprite(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture)
 	{
-		GenerationHandle handle = sprites.texture.PushBack(texture ? texture : spritePipeline.defaultTexture);
+		GenerationHandle handle = sprites.texture.PushBack(texture ? texture : InsanityEngine::spritePipeline.defaultTexture);
 		sprites.transforms.PushBack({});
 
 		sprites.transforms.Back().At(2, 3) = priorityBias;
@@ -415,7 +360,7 @@ namespace InsanityEngine::Renderer
 	}
 	void SpriteHandle::SetTexture(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture)
 	{
-		*sprites.texture.HandleAt(handle) = texture ? texture : spritePipeline.defaultTexture;
+		*sprites.texture.HandleAt(handle) = texture ? texture : InsanityEngine::spritePipeline.defaultTexture;
 	}
 	void SpriteHandle::SetPriority(int priority)
 	{
