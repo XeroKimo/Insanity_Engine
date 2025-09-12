@@ -72,6 +72,7 @@ namespace InsanityEngine
 	export TypedD3D11::Wrapper<ID3D11RenderTargetView> backBuffer = InsanityEngine::Renderer::GetDevice()->CreateRenderTargetView(swapChain->GetBuffer<ID3D11Resource>(0));
 
 	export Renderer::SpritePipeline spritePipeline;
+	export Renderer::DebugPipeline debugPipeline;
 
 	DebugDevice::DebugDevice() :
 		debugDevice{ TypedD3D::Cast<ID3D11Debug>(device.first.AsComPtr()) }

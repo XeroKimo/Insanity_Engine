@@ -5,6 +5,8 @@
 #include <tuple>
 #include <filesystem>
 #include <wrl/client.h>
+#include <unordered_map>
+#include <vector>
 
 module InsanityEngine;
 import TypedD3D11;
@@ -19,7 +21,8 @@ namespace InsanityEngine::Renderer
 		StableVector<TypedD3D11::Wrapper<ID3D11ShaderResourceView>> texture;
 	};
 
-	void DrawSprites();
+	void DrawSprites(const Camera& camera);
+	void DrawDebug(const Camera& camera);
 
 	struct Vertex
 	{
@@ -275,16 +278,13 @@ namespace InsanityEngine::Renderer
 		viewports.Width = static_cast<FLOAT>(desc.Width);
 		viewports.Height = static_cast<FLOAT>(desc.Height);
 		GetDeviceContext()->RSSetViewports(viewports);
-		UpdateConstantBuffer(InsanityEngine::spritePipeline.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
-		{
-			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
-		});
-		GetDeviceContext()->VSSetConstantBuffers(SpritePipeline::VSPerCameraCBufferSlot, InsanityEngine::spritePipeline.cameraBuffer);
 
-		DrawSprites();
+		DrawSprites(camera);
+		DrawDebug(camera);
+		Debug::ClearBuffer();
 	}
 
-	void DrawSprites()
+	void DrawSprites(const Camera& camera)
 	{
 		for (std::size_t i = 0; i < sprites.transforms.Size() - 1; i++)
 		{
@@ -297,6 +297,13 @@ namespace InsanityEngine::Renderer
 				}
 			}
 		}
+
+		UpdateConstantBuffer(InsanityEngine::spritePipeline.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
+		});
+
+		GetDeviceContext()->VSSetConstantBuffers(SpritePipeline::VSPerCameraCBufferSlot, InsanityEngine::spritePipeline.cameraBuffer);
 		GetDeviceContext()->IASetInputLayout(InsanityEngine::spritePipeline.layout);
 		GetDeviceContext()->VSSetShader(InsanityEngine::spritePipeline.vertexShader, {});
 		GetDeviceContext()->PSSetShader(InsanityEngine::spritePipeline.pixelShader, {});
@@ -305,18 +312,56 @@ namespace InsanityEngine::Renderer
 		GetDeviceContext()->OMSetDepthStencilState(InsanityEngine::spritePipeline.depthState, D3D11_DEFAULT_SAMPLE_MASK);
 		GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+		TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ InsanityEngine::spritePipeline.vertexBuffer, InsanityEngine::spritePipeline.instanceBuffer };
+		std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
+		std::array<UINT, 2> offsets{ 0, 0 };
+		GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
+
 		for (std::size_t i = 0; i < sprites.transforms.Size(); i++)
 		{
 			UpdateConstantBuffer(InsanityEngine::spritePipeline.instanceBuffer, [=](D3D11_MAPPED_SUBRESOURCE data)
 			{
 				std::memcpy(data.pData, &sprites.transforms.At(i), sizeof(xk::Math::Matrix<float, 4, 4>));
 			});
-			TypedD3D::Array<TypedD3D::Wrapper<ID3D11Buffer>, 2> buffers{ InsanityEngine::spritePipeline.vertexBuffer, InsanityEngine::spritePipeline.instanceBuffer };
-			std::array<UINT, 2> strides{ sizeof(Vertex), sizeof(xk::Math::Aliases::Matrix4x4) };
-			std::array<UINT, 2> offsets{ 0, 0 };
-			GetDeviceContext()->IASetVertexBuffers(0, { TypedD3D::Span{buffers}, std::span{strides}, std::span{offsets} });
 			GetDeviceContext()->PSSetShaderResources(0, sprites.texture.At(i));
 			GetDeviceContext()->DrawInstanced(6, 1, 0, 0);
+		}
+	}
+
+	void DrawDebug(const Camera& camera)
+	{
+		UpdateConstantBuffer(InsanityEngine::debugPipeline.cameraBuffer, [&camera](D3D11_MAPPED_SUBRESOURCE data)
+		{
+			std::memcpy(data.pData, &camera.viewPerspectiveTransform, sizeof(camera.viewPerspectiveTransform));
+		});
+
+		GetDeviceContext()->VSSetConstantBuffers(DebugPipeline::VSPerCameraCBufferSlot, InsanityEngine::debugPipeline.cameraBuffer);
+		GetDeviceContext()->IASetInputLayout(InsanityEngine::debugPipeline.layout);
+		GetDeviceContext()->VSSetShader(InsanityEngine::debugPipeline.vertexShader, {});
+		GetDeviceContext()->PSSetShader(InsanityEngine::debugPipeline.pixelShader, {});
+		GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		GetDeviceContext()->IASetVertexBuffers(0, InsanityEngine::debugPipeline.vertexBuffer, sizeof(xk::Math::Vector<float, 3>), 0);
+		
+		//for(auto it = Debug::batches.begin(); it != Debug::batches.end(); ++it)
+		for (const auto& [color, points] : Debug::batches)
+		{
+			UpdateConstantBuffer(InsanityEngine::debugPipeline.batchBuffer, [color](D3D11_MAPPED_SUBRESOURCE data)
+			{
+				std::memcpy(data.pData, &color, sizeof(color));
+			});
+
+			GetDeviceContext()->PSSetConstantBuffers(0, InsanityEngine::debugPipeline.batchBuffer);
+			for (size_t i = 0; i < points.size();)
+			{
+				size_t amountToDraw = (std::min)(points.size() - i, DebugPipeline::maxPointsPerBatch);
+				UpdateConstantBuffer(InsanityEngine::debugPipeline.vertexBuffer, [&](D3D11_MAPPED_SUBRESOURCE data)
+				{
+					std::memcpy(data.pData, &points[i], sizeof(xk::Math::Vector<float, 3>) * amountToDraw);
+				});
+				i += amountToDraw;
+				GetDeviceContext()->Draw(static_cast<UINT>(amountToDraw), 0);
+			}
 		}
 	}
 
@@ -370,5 +415,72 @@ namespace InsanityEngine::Renderer
 	TypedD3D11::Wrapper<ID3D11ShaderResourceView> SpriteHandle::GetTexture() const
 	{
 		return *sprites.texture.HandleAt(handle);
+	}
+
+	DebugPipeline::DebugPipeline()
+	{
+		Microsoft::WRL::ComPtr<ID3DBlob> vertexBlob;
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((InsanityEngine::config.relativeEngineAssetPath / "Assets/Engine/DebugVS.hlsl").c_str(), nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexBlob, nullptr));
+		vertexShader = GetDevice()->CreateVertexShader(*vertexBlob.Get(), nullptr);
+		std::array inputElement
+		{
+			D3D11_INPUT_ELEMENT_DESC{
+				.SemanticName = "POSITION",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32B32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = 0,
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0,
+			}
+		};
+
+		layout = GetDevice()->CreateInputLayout(inputElement, *vertexBlob.Get());
+
+		Microsoft::WRL::ComPtr<ID3DBlob> pixelBlob;
+		TypedD3D::ThrowIfFailed(D3DCompileFromFile((InsanityEngine::config.relativeEngineAssetPath / "Assets/Engine/DebugPS.hlsl").c_str(), nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelBlob, nullptr));
+		pixelShader = GetDevice()->CreatePixelShader(*pixelBlob.Get(), nullptr);
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(Vertex) * maxPointsPerBatch,
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_VERTEX_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+
+			vertexBuffer = GetDevice()->CreateBuffer(bufferDesc);
+		}
+
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(xk::Math::Aliases::Matrix4x4),
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+			cameraBuffer = GetDevice()->CreateBuffer(bufferDesc);
+		}
+
+
+		{
+			D3D11_BUFFER_DESC bufferDesc
+			{
+				.ByteWidth = sizeof(xk::Math::Vector<float, 4>),
+				.Usage = D3D11_USAGE_DYNAMIC,
+				.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+				.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+				.MiscFlags = 0,
+				.StructureByteStride = 0
+			};
+			batchBuffer = GetDevice()->CreateBuffer(bufferDesc);
+		}
 	}
 }

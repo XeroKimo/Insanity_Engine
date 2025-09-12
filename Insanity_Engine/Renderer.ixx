@@ -2,6 +2,12 @@ module;
 
 #include <d3d11_4.h>
 #include <utility>
+#include <vector>
+#include <unordered_map>
+#include <span>
+#include <numeric>
+#include <numbers>
+#include <algorithm>
 
 export module InsanityEngine:Renderer;
 import xk.Math;
@@ -127,4 +133,112 @@ namespace InsanityEngine::Renderer
 	};
 
 	export UniqueSpriteHandle NewSprite(TypedD3D11::Wrapper<ID3D11ShaderResourceView> texture);
+
+	struct DebugPipeline
+	{
+		TypedD3D11::Wrapper<ID3D11Buffer> cameraBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> vertexBuffer;
+		TypedD3D11::Wrapper<ID3D11Buffer> batchBuffer;
+		TypedD3D11::Wrapper<ID3D11InputLayout> layout;
+		TypedD3D11::Wrapper<ID3D11VertexShader> vertexShader;
+		TypedD3D11::Wrapper<ID3D11PixelShader> pixelShader;
+
+		static constexpr UINT PSPerBatchCBufferSlot = 0;
+		static constexpr UINT VSPerCameraCBufferSlot = 1;
+
+		inline static constexpr size_t maxPointsPerBatch = 1024;
+	public:
+		DebugPipeline();
+	};
+
+	namespace Debug
+	{
+		Vector<float, 4> currentColor;
+		std::unordered_map<Vector<float, 4>, std::vector<Vector<float, 3>>> batches;
+		std::unordered_map<int, std::vector<Vector<float, 3>>> batchesTest;
+
+		constexpr auto bias = xk::Math::Vector{ 0.f, 0.f, 1.f };
+		auto& GetCurrentBatch()
+		{
+			if(auto it = batches.find(currentColor); it != batches.end())
+				return it->second;
+			return batches.insert({ currentColor, {} }).first->second;
+		}
+
+		export void DrawLine(xk::Math::Vector<float, 3> start, xk::Math::Vector<float, 3> end)
+		{
+			auto& batch = GetCurrentBatch();
+			batch.push_back(start + bias);
+			batch.push_back(end + bias);
+		}
+
+		//Pairs of points are expected
+		export void DrawLines(std::span<xk::Math::Vector<float, 3>> points)
+		{
+			auto& batch = GetCurrentBatch();
+			std::transform(points.begin(), points.end(), points.begin(), [](auto p) { return p + bias; });
+			batch.insert(batch.end(), points.begin(), points.end());
+		}
+
+		export template<size_t Count>
+			void DrawLines(std::array<xk::Math::Vector<float, 3>, Count> points)
+		{
+			DrawLine(std::span{ points });
+		}
+
+		export void DrawConnectedLines(std::span<xk::Math::Vector<float, 3>> points)
+		{
+			auto& batch = GetCurrentBatch();
+			batch.reserve(batch.size() + points.size() * 2);
+			std::transform(points.begin(), points.end(), points.begin(), [](auto p) { return p + bias; });
+
+			for(size_t i = 0; i < points.size() - 1; i++)
+			{
+				batch.push_back(points[i]);
+				batch.push_back(points[i + 1]);
+			}
+			batch.push_back(points.back());
+			batch.push_back(points.front());
+		}
+
+		export template<size_t Count>
+			void DrawConnectedLines(std::array<xk::Math::Vector<float, 3>, Count> points)
+		{
+			DrawConnectedLines(std::span{ points });
+		}
+
+		export void DrawSquare(xk::Math::Vector<float, 3> center, xk::Math::Vector<float, 3> halfSize)
+		{
+			const xk::Math::Vector<float, 3> bl = center - halfSize;
+			const xk::Math::Vector<float, 3> tr = center + halfSize;
+			const xk::Math::Vector<float, 3> tl{ bl.X(), tr.Y() };
+			const xk::Math::Vector<float, 3> br{ tr.X(), bl.Y() };
+			DrawConnectedLines(std::array{ bl, tl, tr, br });
+		}
+
+		export void DrawCircle(xk::Math::Vector<float, 3> center, float radius)
+		{
+			static constexpr size_t pointResolution = 64;
+			std::array<xk::Math::Vector<float, 3>, pointResolution> points;
+
+			float angleIncrements = static_cast<float>(std::numbers::pi_v<double> *2 / (pointResolution));
+			for(size_t i = 0; i < points.size(); i++)
+			{
+				points[i] = center + xk::Math::Vector<float, 3>{ std::cos(angleIncrements* i), std::sin(angleIncrements* i), 0 } *radius;
+				//points[(i + points.size() - 1) % points.size()] = points[i];
+			}
+
+			DrawConnectedLines(points);
+		}
+
+		export void SetColor(xk::Math::Vector<float, 4> rgba)
+		{
+			currentColor = rgba;
+		}
+
+		export void ClearBuffer()
+		{
+			batches.clear();
+		}
+	}
 }
