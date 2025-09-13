@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Controller.ixx" />
     <ClCompile Include="ECS.cpp" />
     <ClCompile Include="ECS.ixx" />
     <ClCompile Include="ECSInternal.cpp" />
