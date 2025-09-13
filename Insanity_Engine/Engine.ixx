@@ -7,6 +7,9 @@ module;
 #include <utility>
 #include <wrl/client.h>
 #include <SDL2/SDL.h>
+#include <type_traits>
+#include <concepts>
+#include <chrono>
 
 export module InsanityEngine;
 export import :Renderer;
@@ -234,4 +237,74 @@ namespace InsanityEngine
 
 		return false;
 	}
+
+    template<class Func, class R, class... Args>
+    concept InvocableR = std::is_invocable_r_v<R, Func, Args...>;
+    export enum class EventResult
+    {
+        Consume,
+        Passthrough,
+    };
+
+    template<std::invocable<std::chrono::nanoseconds> Func>
+    void Update(std::chrono::steady_clock::time_point& previousPoint, Func func)
+    {
+        auto now = std::chrono::steady_clock::now();
+        func(now - previousPoint);
+        previousPoint = now;
+    }
+
+    export class DefaultRenderFunction
+    {
+        Renderer::Camera& camera;
+    public:
+        DefaultRenderFunction(Renderer::Camera& camera) : camera{ camera }
+        {
+
+        }
+
+        void operator()(auto&)
+        {
+            InsanityEngine::Renderer::DrawScene(InsanityEngine::backBuffer, camera);
+        }
+    };
+
+    export template<class GameSystemsType, 
+        InvocableR<GameSystemsType> GameSystemFactoryFunc, 
+        std::invocable<GameSystemsType&> GameMainFunc,
+        InvocableR<EventResult, GameSystemsType&, SDL2pp::Event> GameInputFunc,
+        std::invocable<GameSystemsType&, std::chrono::nanoseconds> GameUpdateFunc,
+        std::invocable<GameSystemsType&> GameRenderFunc = DefaultRenderFunction>
+    int DefaultMain(GameSystemFactoryFunc initFunc, GameMainFunc mainFunc, GameInputFunc inputFunc, GameUpdateFunc updateFunc, GameRenderFunc renderFunc)
+    {
+        GameSystemsType gameSystems = initFunc();
+        mainFunc(gameSystems);
+        SDL2pp::Event event;
+        auto previous = std::chrono::steady_clock::now();
+        while(true)
+        {
+            if(SDL2pp::PollEvent(event))
+            {
+                if(event.type == SDL2pp::EventType::SDL_QUIT)
+                    return 0;
+
+                if(HandleEvent(event)) {}
+                else if(inputFunc(gameSystems, event) == EventResult::Consume) {}
+            }
+            else
+            {
+                Update(previous, [&](std::chrono::nanoseconds delta)
+                {
+                    updateFunc(gameSystems, delta);
+                });
+
+                Renderer::GetDeviceContext()->ClearRenderTargetView(backBuffer, { 0.f, 0.3f, 0.87f, 1.f });
+                renderFunc(gameSystems);
+                swapChain->Present(0, 0);
+                Controller::ClearBuffer();
+            }
+        }
+
+        return 0;
+    }
 };

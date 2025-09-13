@@ -20,8 +20,9 @@ namespace InsanityEngine::Renderer
 {
 	export struct Camera
 	{
-		xk::Math::Matrix<float, 4, 4> viewPerspectiveTransform;
+		xk::Math::Matrix<float, 4, 4> viewPerspectiveTransform = Matrix<float, 4, 4>::Identity();
 
+		Camera() = default;
 		Camera(xk::Math::Vector<float, 3> position, xk::Math::Degree<float> angle, xk::Math::Matrix<float, 4, 4> perspective);
 	};
 
