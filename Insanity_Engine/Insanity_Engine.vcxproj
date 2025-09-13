@@ -19,9 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)ExceptionHierarchy\ExceptionHierarchy\ExceptionHierarchy.vcxproj">
-      <Project>{bb10395f-ced5-4f0d-bc01-8740a181207d}</Project>
-    </ProjectReference>
+    <ClCompile Include="Controller.ixx" />
+    <ClCompile Include="ECS.cpp" />
+    <ClCompile Include="ECS.ixx" />
+    <ClCompile Include="ECSInternal.cpp" />
+    <ClCompile Include="ECSInternal.ixx" />
+    <ClCompile Include="Engine.ixx" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Renderer.ixx" />
+    <ClCompile Include="StableVector.ixx" />
+    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="Timer.ixx" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="$(InsanityEngineSubmoduleRoot)TypedD3D\TypedD3D\TypedD3D12.vcxproj">
       <Project>{4c07b140-d4bd-40d4-be41-18e6aa4d78ef}</Project>
     </ProjectReference>
@@ -31,20 +41,12 @@
     <ProjectReference Include="$(InsanityEngineSubmoduleRoot)xkSDL2Wrapper\SDLWrapper\SDLWrapper.vcxproj">
       <Project>{b8b03f35-4ef4-4964-8993-b1801007c8b3}</Project>
     </ProjectReference>
-    <ProjectReference Include="$(InsanityEngineRoot)Insanity_Framework\Insanity_Framework.vcxproj">
-      <Project>{a98531dd-e584-4213-b092-735e7d8cf8e8}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="EditorContext.ixx" />
-    <ClCompile Include="ImGUI.ixx" />
-    <ClCompile Include="SceneView.ixx" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{3c7d0640-093f-4a58-a935-822eac2b64f0}</ProjectGuid>
-    <RootNamespace>InsanityEditor</RootNamespace>
+    <ProjectGuid>{6a4094d3-96ac-4d3a-8004-8e438422ed75}</ProjectGuid>
+    <RootNamespace>InsanityEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,7 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -159,8 +161,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
