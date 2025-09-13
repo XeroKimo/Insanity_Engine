@@ -78,6 +78,7 @@ namespace InsanityEngine
 
 	export Renderer::SpritePipeline spritePipeline;
 	export Renderer::DebugPipeline debugPipeline;
+    export Renderer::Camera defaultCamera;
 
 	DebugDevice::DebugDevice() :
 		debugDevice{ TypedD3D::Cast<ID3D11Debug>(device.first.AsComPtr()) }
@@ -254,31 +255,49 @@ namespace InsanityEngine
         previousPoint = now;
     }
 
+    export class DefaultInputFunction
+    {
+    public:
+        EventResult operator()(auto&, const SDL2pp::Event&)
+        {
+            return EventResult::Passthrough;
+        }
+    };
+
+    export class DefaultUpdateFunction
+    {
+    public:
+        void operator()(auto&, std::chrono::nanoseconds deltaTime)
+        {
+
+        }
+    };
+
     export class DefaultRenderFunction
     {
         Renderer::Camera& camera;
     public:
-        DefaultRenderFunction(Renderer::Camera& camera) : camera{ camera }
+        DefaultRenderFunction(Renderer::Camera& camera = defaultCamera) : camera{ camera }
         {
 
         }
 
         void operator()(auto&)
         {
+            Renderer::GetDeviceContext()->ClearRenderTargetView(backBuffer, { 0.f, 0.3f, 0.87f, 1.f });
             InsanityEngine::Renderer::DrawScene(InsanityEngine::backBuffer, camera);
+            swapChain->Present(0, 0);
         }
     };
 
     export template<class GameSystemsType, 
-        InvocableR<GameSystemsType> GameSystemFactoryFunc, 
-        std::invocable<GameSystemsType&> GameMainFunc,
-        InvocableR<EventResult, GameSystemsType&, SDL2pp::Event> GameInputFunc,
-        std::invocable<GameSystemsType&, std::chrono::nanoseconds> GameUpdateFunc,
+        InvocableR<GameSystemsType> GameMainFunc,
+        InvocableR<EventResult, GameSystemsType&, SDL2pp::Event> GameInputFunc = DefaultInputFunction,
+        std::invocable<GameSystemsType&, std::chrono::nanoseconds> GameUpdateFunc = DefaultUpdateFunction,
         std::invocable<GameSystemsType&> GameRenderFunc = DefaultRenderFunction>
-    int DefaultMain(GameSystemFactoryFunc initFunc, GameMainFunc mainFunc, GameInputFunc inputFunc, GameUpdateFunc updateFunc, GameRenderFunc renderFunc)
+    int DefaultMain(GameMainFunc initFunc, GameInputFunc inputFunc = DefaultInputFunction{}, GameUpdateFunc updateFunc = DefaultUpdateFunction{}, GameRenderFunc renderFunc = DefaultRenderFunction{})
     {
         GameSystemsType gameSystems = initFunc();
-        mainFunc(gameSystems);
         SDL2pp::Event event;
         auto previous = std::chrono::steady_clock::now();
         while(true)
@@ -298,9 +317,7 @@ namespace InsanityEngine
                     updateFunc(gameSystems, delta);
                 });
 
-                Renderer::GetDeviceContext()->ClearRenderTargetView(backBuffer, { 0.f, 0.3f, 0.87f, 1.f });
                 renderFunc(gameSystems);
-                swapChain->Present(0, 0);
                 Controller::ClearBuffer();
             }
         }
