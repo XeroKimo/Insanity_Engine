@@ -286,14 +286,17 @@ namespace InsanityEngine::Renderer
 
 	void DrawSprites(const Camera& camera)
 	{
-		for (std::size_t i = 0; i < sprites.transforms.Size() - 1; i++)
+		if(!sprites.transforms.Empty())
 		{
-			for (std::size_t j = i + 1; j < sprites.transforms.Size(); j++)
+			for(std::size_t i = 0; i < sprites.transforms.Size() - 1; i++)
 			{
-				if (sprites.transforms.At(i).At(2, 3) < sprites.transforms.At(j).At(2, 3))
+				for(std::size_t j = i + 1; j < sprites.transforms.Size(); j++)
 				{
-					sprites.transforms.SwapElements(i, j);
-					sprites.texture.SwapElements(i, j);
+					if(sprites.transforms.At(i).At(2, 3) < sprites.transforms.At(j).At(2, 3))
+					{
+						sprites.transforms.SwapElements(i, j);
+						sprites.texture.SwapElements(i, j);
+					}
 				}
 			}
 		}

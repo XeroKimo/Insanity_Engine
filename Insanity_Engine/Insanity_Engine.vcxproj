@@ -20,10 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Controller.ixx" />
-    <ClCompile Include="ECS.cpp" />
-    <ClCompile Include="ECS.ixx" />
-    <ClCompile Include="ECSInternal.cpp" />
-    <ClCompile Include="ECSInternal.ixx" />
     <ClCompile Include="Engine.ixx" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Renderer.ixx" />

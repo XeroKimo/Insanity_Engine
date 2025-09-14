@@ -154,7 +154,7 @@ namespace InsanityEngine::Renderer
 
 	namespace Debug
 	{
-		Vector<float, 4> currentColor;
+		Vector<float, 4> currentColor{ 1, 1, 1, 1 };
 		std::unordered_map<Vector<float, 4>, std::vector<Vector<float, 3>>> batches;
 		std::unordered_map<int, std::vector<Vector<float, 3>>> batchesTest;
 
