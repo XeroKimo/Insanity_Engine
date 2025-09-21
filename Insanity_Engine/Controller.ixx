@@ -61,17 +61,15 @@ namespace InsanityEngine
 
         void Set(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             currentKeyState[index] |= flag;
         }
 
         void Reset(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             currentKeyState[index] &= ~flag;
         }
 
@@ -82,33 +80,29 @@ namespace InsanityEngine
 
         export bool Pressed(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             return currentKeyState[index] & flag && ~previousKeyState[index] & flag;
         }
 
         export bool Released(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             return ~currentKeyState[index] & flag && previousKeyState[index] & flag;
         }
 
         export bool Held(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             return currentKeyState[index] & previousKeyState[index] & flag;
         }
 
         export bool Relaxed(Key key)
         {
-            const int index = static_cast<std::uint8_t>(key) / 64;
-            const int offset = static_cast<std::uint64_t>(1) << (static_cast<std::uint8_t>(key) % 64);
-            const uint64_t flag = std::uint64_t(1) << offset;
+            const auto index = static_cast<std::uint8_t>(key) >> 6;
+            const uint64_t flag = std::uint64_t(1) << (static_cast<std::uint8_t>(key) ^ (index << 6));
             return ~currentKeyState[index] & ~previousKeyState[index] & flag;
         }
     };
