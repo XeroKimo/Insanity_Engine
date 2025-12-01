@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.1.31911.260
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExceptionHierarchy", "ExceptionHierarchy\ExceptionHierarchy\ExceptionHierarchy.vcxproj", "{BB10395F-CED5-4F0D-BC01-8740A181207D}"
 EndProject
@@ -18,6 +18,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Insanity_Editor", "Insanity_Editor\Insanity_Editor.vcxproj", "{3C7D0640-093F-4A58-A935-822EAC2B64F0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Insanity_Engine", "Insanity_Engine\Insanity_Engine.vcxproj", "{6A4094D3-96AC-4D3A-8004-8E438422ED75}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MoWin", "MoWin2\MoWin\MoWin.vcxproj", "{53C53871-C461-4271-9E64-BB0B4D9F1B4A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -91,6 +93,14 @@ Global
 		{6A4094D3-96AC-4D3A-8004-8E438422ED75}.Release|x64.Build.0 = Release|x64
 		{6A4094D3-96AC-4D3A-8004-8E438422ED75}.Release|x86.ActiveCfg = Release|Win32
 		{6A4094D3-96AC-4D3A-8004-8E438422ED75}.Release|x86.Build.0 = Release|Win32
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Debug|x64.ActiveCfg = Debug|x64
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Debug|x64.Build.0 = Debug|x64
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Debug|x86.ActiveCfg = Debug|Win32
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Debug|x86.Build.0 = Debug|Win32
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Release|x64.ActiveCfg = Release|x64
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Release|x64.Build.0 = Release|x64
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Release|x86.ActiveCfg = Release|Win32
+		{53C53871-C461-4271-9E64-BB0B4D9F1B4A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
