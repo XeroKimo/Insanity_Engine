@@ -188,7 +188,7 @@ namespace InsanityEngine
 			currentIndex.generation++;
 			if (currentIndex.generation == 0)
 				currentIndex.generation = 1;
-			freeIndices.push_back(std::distance(&*indexMapper.begin(), &currentIndex));
+			freeIndices.push_back(static_cast<std::uint32_t>(std::distance(&*indexMapper.begin(), &currentIndex)));
 		}
 
 		GenerationIndex& MapValueToIndex(const Ty& value)

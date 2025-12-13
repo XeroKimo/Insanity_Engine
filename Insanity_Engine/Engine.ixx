@@ -15,6 +15,7 @@ export import MoWin;
 import xk.Math;
 import std;
 
+using namespace TypedD3D12;
 namespace InsanityEngine
 {
 	export using namespace xk::Math;
@@ -40,11 +41,11 @@ namespace InsanityEngine
 
 		AppData* appData = nullptr;
 
-		TypedD3D::Direct<TypedD3D12::CommandQueue> commandQueue;
+		TypedD3D::Direct<TypedD3D12::Extensions::CommandQueue> commandQueue;
 		TypedD3D::Wrapper<IDXGISwapChain3> swapChain;
 		std::vector<FrameData> frameData;
 
-		DX12Backend(MoWin::AnyWindowView window, TypedD3D::WrapperView<ID3D12Device10> device, TypedD3D::WrapperView<IDXGIFactory2> factory, TypedD3D12::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>& rtvAllocator, UINT bufferCount = 2);
+		DX12Backend(MoWin::AnyWindowView window, TypedD3D::WrapperView<ID3D12Device10> device, TypedD3D::WrapperView<IDXGIFactory2> factory, TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>& rtvAllocator, UINT bufferCount = 2);
 
 		LRESULT operator()(MoWin::AnyEvent e);
 
@@ -104,11 +105,10 @@ namespace InsanityEngine
 			}
 		} device;
 
-		TypedD3D12::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>> rtvHeap;
-		TypedD3D12::FreeListAllocator<TypedD3D::DSV<ID3D12DescriptorHeap>> dsvHeap;
-		TypedD3D12::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::Sampler<ID3D12DescriptorHeap>>> samplerHeap;
-		TypedD3D12::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::CBV_SRV_UAV<ID3D12DescriptorHeap>>> bufferHeap;
-
+		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>> rtvHeap;
+		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::DSV<ID3D12DescriptorHeap>> dsvHeap;
+		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::Sampler<ID3D12DescriptorHeap>>> samplerHeap;
+		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::CBV_SRV_UAV<ID3D12DescriptorHeap>>> bufferHeap;
 		MoWin::Window<DX12Backend> mainWindow;
 		bool running = true;
 
@@ -130,10 +130,9 @@ namespace InsanityEngine
 
 		AppData(std::span<std::string_view> args, const AppInitData& initData) :
 			rtvHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) },
-			dsvHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV) },
+			dsvHeap{device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV)},
 			samplerHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE>(D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) },
 			bufferHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE>(D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) },
-
 			mainWindow{
 				initData.window.name,
 				initData.window.style == WindowStyle::Bordered ? MoWin::WindowStyle::Overlapped_Window ^ MoWin::WindowStyle::Size_Box ^ MoWin::WindowStyle::Maximize_Box : MoWin::WindowStyle::Pop_Up_Window,
@@ -150,15 +149,6 @@ namespace InsanityEngine
 				2u }
 		{
 			mainWindow.GetUserData().appData = this;
-			//RECT rect{};
-			//rect.right = initData.window.size.X();
-			//rect.bottom = initData.window.size.Y();
-			//if(initData.window.style == WindowStyle::Bordered)
-			//{
-			//	AdjustWindowRect(&rect, std::to_underlying(MoWin::WindowStyle::Overlapped_Window ^ MoWin::WindowStyle::Size_Box ^ MoWin::WindowStyle::Maximize_Box), false);
-			//	SetWindowPos(mainWindow.GetHandle(), nullptr, initData.window.position.X(), initData.window.position.Y(), rect.right - rect.left, rect.bottom - rect.top, 0);
-
-			//}
 			mainWindow.Show();
 		}
 	};
@@ -214,7 +204,7 @@ namespace InsanityEngine
 	}
 
 
-	DX12Backend::DX12Backend(MoWin::AnyWindowView window, TypedD3D::WrapperView<ID3D12Device10> device, TypedD3D::WrapperView<IDXGIFactory2> factory, TypedD3D12::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>& rtvAllocator, UINT bufferCount) :
+	DX12Backend::DX12Backend(MoWin::AnyWindowView window, TypedD3D::WrapperView<ID3D12Device10> device, TypedD3D::WrapperView<IDXGIFactory2> factory, TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>& rtvAllocator, UINT bufferCount) :
 		commandQueue{ device, 0 },
 		swapChain{ factory->CreateSwapChainForHwnd<IDXGISwapChain3>(
 			commandQueue.Get(),
