@@ -105,6 +105,7 @@ namespace InsanityEngine
 			}
 		} device;
 
+		TypedD3D::Direct<ID3D12GraphicsCommandList7> commandList;
 		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>> rtvHeap;
 		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::DSV<ID3D12DescriptorHeap>> dsvHeap;
 		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::Sampler<ID3D12DescriptorHeap>>> samplerHeap;
@@ -129,6 +130,7 @@ namespace InsanityEngine
 		} heart;
 
 		AppData(std::span<std::string_view> args, const AppInitData& initData) :
+			commandList{ device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT, ID3D12GraphicsCommandList7>(0, D3D12_COMMAND_LIST_FLAG_NONE) },
 			rtvHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) },
 			dsvHeap{device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV)},
 			samplerHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE>(D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) },
