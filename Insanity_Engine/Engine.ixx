@@ -4,9 +4,8 @@ module;
 #define NOMINMAX
 #include <d3d12.h>
 #include <Windows.h>
-
-#include <chrono>
 #include <dxgi1_6.h>
+#include <chrono>
 
 export module InsanityEngine;
 export import TypedD3D12;
