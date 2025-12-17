@@ -19,11 +19,11 @@
       "name": "imgui",
       "features": [
         "docking-experimental",
-        "dx11-binding",
-        "sdl2-binding"
+        "dx12-binding",
+        "win32-binding"
       ]
     },
     "imguizmo"
   ],
-  "builtin-baseline": "7213cf8135c329c37c7e2778e40774489a0583a8"
+  "builtin-baseline": "544a4c5c297e60e4ac4a5a1810df66748d908869"
 }

@@ -6,11 +6,17 @@ module;
 #include <Windows.h>
 #include <dxgi1_6.h>
 #include <chrono>
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx12.h>
 
 export module InsanityEngine;
 export import TypedD3D12;
 export import TypedDXGI;
 export import MoWin;
+import xk.ImGuipp;
+import xk.ImGuipp.Platform.Win32;
+import xk.ImGuipp.Backend.DX12;
 import xk.Math;
 import std;
 
@@ -110,6 +116,9 @@ namespace InsanityEngine
 		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::Sampler<ID3D12DescriptorHeap>>> samplerHeap;
 		TypedD3D12::Extensions::FreeListAllocator<TypedD3D::ShaderVisible<TypedD3D::CBV_SRV_UAV<ID3D12DescriptorHeap>>> bufferHeap;
 		MoWin::Window<DX12Backend> mainWindow;
+
+		xk::ImGuipp::UniqueContext imGuiContext;
+		xk::ImGuipp::ImplContext imGuiImpl;
 		bool running = true;
 
 		struct
@@ -147,7 +156,46 @@ namespace InsanityEngine
 				device.device,
 				TypedDXGI::CreateFactory2<IDXGIFactory2>(0), 
 				rtvHeap,
-				2u }
+				2u },
+			imGuiContext{ []
+			{
+				auto* context = ImGui::CreateContext();
+				ImGui::StyleColorsDark();
+				ImGuiIO& io = ImGui::GetIO();
+				io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+				io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+				io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+				io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+				return context;
+			}()},
+			imGuiImpl
+			{		
+			std::make_unique<xk::ImGuipp::PlatformWin32>(mainWindow.GetHandle()),
+			std::make_unique<xk::ImGuipp::BackendDX12>([&]
+			{
+				ImGui_ImplDX12_InitInfo info{};
+				info.Device = device.device.Get();
+				info.CommandQueue = mainWindow.GetUserData().commandQueue.Get().Get();
+				info.NumFramesInFlight = mainWindow.GetUserData().swapChain->GetDesc1().BufferCount;
+				info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+				info.DSVFormat = DXGI_FORMAT_UNKNOWN;
+				info.UserData = this;
+
+				info.SrvDescriptorHeap = bufferHeap.GetHeap().Get();
+				info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle)
+				{
+					AppData* appData = reinterpret_cast<AppData*>(info->UserData);
+					auto handle = appData->bufferHeap.Allocate();
+					*out_cpu_handle = appData->bufferHeap.GetCPUHandle(handle).Raw();
+					*out_gpu_handle = appData->bufferHeap.GetGPUHandle(handle).Raw();
+				};
+					info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
+				{
+					AppData* appData = reinterpret_cast<AppData*>(info->UserData);
+					appData->bufferHeap.Free(appData->bufferHeap.GetIndex(cpu_handle));
+				};
+				return info;
+			}()) }
 		{
 			mainWindow.GetUserData().appData = this;
 			mainWindow.Show();

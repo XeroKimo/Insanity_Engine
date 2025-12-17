@@ -40,6 +40,9 @@
     <ProjectReference Include="$(InsanityEngineSubmoduleRoot)MoWin2\MoWin\MoWin.vcxproj">
       <Project>{53c53871-c461-4271-9e64-bb0b4d9f1b4a}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(InsanityEngineSubmoduleRoot)xkDearImGUIpp\xkDearImGUIpp\xkDearImGUIpp.vcxproj">
+      <Project>{5a8efe4d-10c4-428e-a7ff-b862a1bdb7d3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
