@@ -1,18 +1,10 @@
 {
   "name": "insanity-engine",
   "version": "0.1",
+  "builtin-baseline": "7213cf8135c329c37c7e2778e40774489a0583a8",
   "dependencies": [
     {
-      "name": "sdl2",
-      "platform": "windows"
-    },
-    "sdl2-image",
-    {
       "name": "glm",
-      "platform": "windows"
-    },
-    {
-      "name": "ms-gsl",
       "platform": "windows"
     },
     {
@@ -23,7 +15,21 @@
         "win32-binding"
       ]
     },
-    "imguizmo"
-  ],
-  "builtin-baseline": "7213cf8135c329c37c7e2778e40774489a0583a8"
+    "imguizmo",
+    {
+      "name": "ms-gsl",
+      "platform": "windows"
+    },
+    {
+      "name": "sdl2",
+      "platform": "windows"
+    },
+    "sdl2-image",
+    {
+      "name": "spdlog",
+      "features": [
+        "wchar"
+      ]
+    }
+  ]
 }

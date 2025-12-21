@@ -9,6 +9,8 @@ module;
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx12.h>
+#include <spdlog/spdlog.h>
+
 
 export module InsanityEngine;
 export import TypedD3D12;
@@ -85,7 +87,12 @@ namespace InsanityEngine
 			TypedD3D::Wrapper<ID3D12DebugDevice> debugDevice;
 
 			Device() :
-				device{ TypedD3D12::CreateDevice<ID3D12Device10>(D3D_FEATURE_LEVEL_12_2) },
+				device{ []
+			{
+				spdlog::info("Initializing D3D12");
+				spdlog::info("Initializing Device");
+				return TypedD3D12::CreateDevice<ID3D12Device10>(D3D_FEATURE_LEVEL_12_2);
+			}()},
 				debugDevice{ TypedD3D::Cast<ID3D12DebugDevice>(device) }
 			{
 
@@ -138,27 +145,47 @@ namespace InsanityEngine
 		} heart;
 
 		AppData(std::span<std::string_view> args, const AppInitData& initData) :
-			commandList{ device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT, ID3D12GraphicsCommandList7>(0, D3D12_COMMAND_LIST_FLAG_NONE) },
-			rtvHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) },
-			dsvHeap{device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV)},
+			commandList{ [&]
+			{
+				spdlog::info("Initializing Command List");
+				return device->CreateCommandList1<D3D12_COMMAND_LIST_TYPE_DIRECT, ID3D12GraphicsCommandList7>(0, D3D12_COMMAND_LIST_FLAG_NONE);
+			}()
+			},
+			rtvHeap{
+				[&]
+				{
+					spdlog::info("Initializing Descriptor Heaps");
+					return TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) };
+				}()
+			},
+			dsvHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE>(128, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV)},
 			samplerHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE>(D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER) },
 			bufferHeap{ device->CreateDescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE>(D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2, 0u), device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) },
 			mainWindow{
-				initData.window.name,
-				initData.window.style == WindowStyle::Bordered ? MoWin::WindowStyle::Overlapped_Window ^ MoWin::WindowStyle::Size_Box ^ MoWin::WindowStyle::Maximize_Box : MoWin::WindowStyle::Pop_Up_Window,
-				{},
-				initData.window.position.X(),
-				initData.window.position.Y(),
-				MoWin::ClientSize{ initData.window.size.X(), initData.window.size.Y() },
-				{},
-				{},
-				{},
-				device.device,
-				TypedDXGI::CreateFactory2<IDXGIFactory2>(0), 
-				rtvHeap,
-				2u },
+				[&]
+				{
+					spdlog::info("D3D12 Initialized");
+					spdlog::info("Initializing Window");
+					return MoWin::Window<DX12Backend>{
+						initData.window.name,
+						initData.window.style == WindowStyle::Bordered ? MoWin::WindowStyle::Overlapped_Window ^ MoWin::WindowStyle::Size_Box ^ MoWin::WindowStyle::Maximize_Box : MoWin::WindowStyle::Pop_Up_Window,
+						{},
+						initData.window.position.X(),
+						initData.window.position.Y(),
+						MoWin::ClientSize{ initData.window.size.X(), initData.window.size.Y() },
+						{},
+						{},
+						{},
+						device.device,
+						TypedDXGI::CreateFactory2<IDXGIFactory2>(0),
+						rtvHeap,
+						2u };
+				}()
+			},
 			imGuiContext{ []
 			{
+				spdlog::info("Window Initialized");
+				spdlog::info("Initializing ImGui Context");
 				auto* context = ImGui::CreateContext();
 				ImGui::StyleColorsDark();
 				ImGuiIO& io = ImGui::GetIO();
@@ -173,6 +200,7 @@ namespace InsanityEngine
 			std::make_unique<xk::ImGuipp::PlatformWin32>(mainWindow.GetHandle()),
 			std::make_unique<xk::ImGuipp::BackendDX12>([&]
 			{
+				spdlog::info("Initializing ImGui Backend");
 				ImGui_ImplDX12_InitInfo info{};
 				info.Device = device.device.Get();
 				info.CommandQueue = mainWindow.GetUserData().commandQueue.Get().Get();
@@ -197,6 +225,8 @@ namespace InsanityEngine
 				return info;
 			}()) }
 		{
+			spdlog::info("ImGui Initialized");
+
 			mainWindow.GetUserData().appData = this;
 			mainWindow.Show();
 		}
@@ -226,9 +256,51 @@ namespace InsanityEngine
 #endif
 
 #undef RegisterClass
-		MoWin::RegisterClass<DX12Backend>();
-		AppData appData{ args, appInitData };
-		Ty userData{ appData, args };
+
+		if(MoWin::RegisterClass<DX12Backend>() == MoWin::WindowClassAtom{})
+		{
+			spdlog::error("Failed to register win class: 0x{0:08x}", GetLastError());
+			return -1;
+		}
+
+		AppData appData = [&]
+		{
+			try
+			{
+				return AppData{ args, appInitData };
+			}
+			catch(const std::exception& e)
+			{
+				spdlog::error("Failed to initialize engine: {}", e.what());
+				throw;
+			}
+			catch(...)
+			{
+				spdlog::error("Failed to initialize engine: Unknown Error");
+				throw;
+			}
+		}();
+		spdlog::info("Engine Initialized");
+
+		Ty userData = [&]
+		{
+			try
+			{
+				return Ty{ appData, args };
+			}
+			catch (const std::exception& e)
+			{
+				spdlog::error("Failed to initialize game: {}", e.what());
+				throw;
+			}
+			catch (...)
+			{
+				spdlog::error("Failed to initialize game: Unknown Error");
+				throw;
+			}
+		}();
+		spdlog::info("Game Initialized");
+
 		MSG msg;
 		while(appData.running)
 		{
@@ -255,20 +327,25 @@ namespace InsanityEngine
 
 	DX12Backend::DX12Backend(MoWin::AnyWindowView window, TypedD3D::WrapperView<ID3D12Device10> device, TypedD3D::WrapperView<IDXGIFactory2> factory, TypedD3D12::Extensions::FreeListAllocator<TypedD3D::RTV<ID3D12DescriptorHeap>>& rtvAllocator, UINT bufferCount) :
 		commandQueue{ device, 0 },
-		swapChain{ factory->CreateSwapChainForHwnd<IDXGISwapChain3>(
-			commandQueue.Get(),
-			window.GetHandle(),
-			DXGI_SWAP_CHAIN_DESC1
+		swapChain{ [&]
 			{
-				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-				.SampleDesc{ .Count = 1 },
-				.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
-				.BufferCount = bufferCount,
-				.Scaling = DXGI_SCALING_NONE,
-				.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD
-			},
-			nullptr,
-			nullptr) }
+				spdlog::info("Initializing Swap Chain");
+				return factory->CreateSwapChainForHwnd<IDXGISwapChain3>(
+					commandQueue.Get(),
+					window.GetHandle(),
+					DXGI_SWAP_CHAIN_DESC1
+					{
+						.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+						.SampleDesc{.Count = 1 },
+						.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT,
+						.BufferCount = bufferCount,
+						.Scaling = DXGI_SCALING_NONE,
+						.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD
+					},
+					nullptr,
+					nullptr);
+			}()
+		}
 	{
 		frameData.resize(bufferCount);
 
@@ -280,6 +357,9 @@ namespace InsanityEngine
 			device->CreateRenderTargetView(frameData[i].backBufferResource, nullptr, frameData[i].backBufferHandle);
 			frameData[i].commandAllocator = device->CreateCommandAllocator<D3D12_COMMAND_LIST_TYPE_DIRECT>();
 		}
+
+
+		spdlog::info("Swap Chain Initialized");
 	}
 
 	LRESULT DX12Backend::operator()(MoWin::AnyEvent e)
