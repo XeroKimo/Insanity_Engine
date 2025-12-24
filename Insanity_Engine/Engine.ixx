@@ -11,6 +11,7 @@ module;
 #include <imgui_impl_dx12.h>
 #include <spdlog/spdlog.h>
 
+#include <tracy/Tracy.hpp>
 
 export module InsanityEngine;
 export import TypedD3D12;
@@ -315,9 +316,19 @@ namespace InsanityEngine
 
 			appData.heart.Pulse([&](float deltaTime)
 			{
-				userData.Update(appData, deltaTime);
+				FrameMarkStart("Update");
+				{
+					ZoneScoped;
+					userData.Update(appData, deltaTime);
+				}
+				FrameMarkEnd("Update");
 
-				userData.Draw(appData);
+				FrameMarkStart("Draw");
+				{
+					ZoneScoped;
+					userData.Draw(appData);
+				}
+				FrameMarkEnd("Draw");
 			});
 		}
 
@@ -364,6 +375,7 @@ namespace InsanityEngine
 
 	LRESULT DX12Backend::operator()(MoWin::AnyEvent e)
 	{
+		ImGui_ImplWin32_WndProcHandler(e.window.GetHandle(), e.messsageType, e.wParam, e.lParam);
 		switch(e.messsageType)
 		{
 		case WM_DESTROY:
