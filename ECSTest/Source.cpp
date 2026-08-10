@@ -43,6 +43,7 @@ struct Handle
 	bool operator==(Ty* p) const { return p == reinterpret_cast<Ty*>(ptr); }
 	bool operator==(std::nullptr_t) const { return ptr == 0; }
 
+	Ty& operator*() const { return *reinterpret_cast<Ty*>(ptr); }
 	Ty* operator->() const { return reinterpret_cast<Ty*>(ptr); }
 	operator bool() const { return ptr != 0; }
 };
@@ -102,23 +103,25 @@ struct GameObject
 std::uintptr_t g_idGenerator;
 
 
-template<std::invocable<const GameObject&> Ty>
-void ForEachGameObject(const GameObject& root, Ty init, Ty function)
+template<std::invocable<const GameObject&> InitFunc, std::invocable<const GameObject&, int> ChildrenFunc>
+void ForEachGameObject(const GameObject& root, InitFunc init, ChildrenFunc function)
 {
-	std::queue<Handle<const GameObject>> unvisitedNodes;
+	std::queue<std::pair<Handle<const GameObject>, int>> unvisitedNodes;
 
 	init(root);
-	for (auto child = root.firstChild; child; child = child->next)
-		unvisitedNodes.push(child);
+	int i = 0;
+	for (auto child = root.firstChild; child; child = child->next, i++)
+		unvisitedNodes.push({ child, i });
 
 	while (!unvisitedNodes.empty())
 	{
 		auto parent = unvisitedNodes.front();
 		unvisitedNodes.pop();
-		function(*parent);
+		function(*parent.first, parent.second);
 
-		for (auto child = parent->firstChild; child; child = child->next)
-			unvisitedNodes.push(child);
+		i = 0;
+		for (auto child = parent.first->firstChild; child; child = child->next, i++)
+			unvisitedNodes.push({ child, i });
 	}
 }
 
@@ -128,40 +131,35 @@ nlohmann::json SerializeToPrefab(const GameObject& gameObject)
 	g_idGenerator = std::uintptr_t{ 1 } << std::uintptr_t{ 63 };
 	nlohmann::json json;
 
-	std::vector<Handle<const GameObject>> flattenTree;
-	auto parent = Handle{ &gameObject };
+	std::queue<nlohmann::json*> childArray;
 
-	auto id = g_idGenerator++;
-
-	json["ID"] = id;
-	json["Name"] = parent->name;
-	json["Children"] = nlohmann::json::array();
-
-	struct UnvisitedNode
+	ForEachGameObject(gameObject,
+		[&](const GameObject& root)
 	{
-		Handle<const GameObject> object;
-		nlohmann::json& childArray;
-	};
+		json["ID"] = g_idGenerator++;
+		json["Name"] = root.name;
+		json["Children"] = nlohmann::json::array();
 
-	std::queue<UnvisitedNode> unserializedChildren;
-
-	unserializedChildren.push({ &gameObject, json["Children"] });
-
-	while (!unserializedChildren.empty())
-	{
-		UnvisitedNode node = unserializedChildren.front();
-		unserializedChildren.pop();
-
-		for (auto child = node.object->firstChild; child; child = child->next)
+		for (auto child = root.firstChild; child; child = child->next)
 		{
-			node.childArray.push_back({});
-			node.childArray.back()["ID"] = g_idGenerator++;
-			node.childArray.back()["Name"] = child->name;
-			node.childArray.back()["Children"] = nlohmann::json::array();
-
-			unserializedChildren.push({ child, node.childArray.back()["Children"] });
+			json["Children"].push_back({});
+			childArray.push(&json["Children"]);
 		}
-	}
+	},
+	[&](const GameObject& child, int index)
+	{
+		auto& json = (*childArray.front())[index];
+		childArray.pop();
+		json["ID"] = g_idGenerator++;
+		json["Name"] = child.name;
+		json["Children"] = nlohmann::json::array();
+
+		for (auto child2 = child.firstChild; child2; child2 = child2->next)
+		{
+			json["Children"].push_back({});
+			childArray.push(&json["Children"]);
+		}
+	});
 
 	g_idGenerator = oldID;
 
@@ -219,6 +217,8 @@ struct PrefabData<GameObject>
 
 	std::string name;
 	std::vector<std::unique_ptr<PrefabData<GameObject>>> children;
+
+	virtual ~PrefabData() = default;
 };
 
 template<class Ty>
@@ -258,50 +258,89 @@ struct Prefab
 	const std::type_info& GetType() const { return *data->type; }
 };
 
-//Prefab<GameObject> SerializeToPrefabNew(const GameObject& gameObject)
-//{
-//	auto oldID = g_idGenerator;
-//	g_idGenerator = std::uintptr_t{ 1 } << std::uintptr_t{ 63 };
-//	nlohmann::json json;
-//
-//	auto parent = Handle{ &gameObject };
-//
-//	auto id = g_idGenerator++;
-//
-//	json["ID"] = id;
-//	json["Name"] = parent->name;
-//	json["Children"] = nlohmann::json::array();
-//
-//	struct UnvisitedNode
-//	{
-//		Handle<const GameObject> object;
-//		nlohmann::json& childArray;
-//	};
-//
-//	std::queue<Handle<const GameObject>> unserializedChildren;
-//
-//	unserializedChildren.push({ &gameObject, json["Children"] });
-//
-//	while (!unserializedChildren.empty())
-//	{
-//		UnvisitedNode node = unserializedChildren.front();
-//		unserializedChildren.pop();
-//
-//		for (auto child = node.object->firstChild; child; child = child->next)
-//		{
-//			node.childArray.push_back({});
-//			node.childArray.back()["ID"] = g_idGenerator++;
-//			node.childArray.back()["Name"] = child->name;
-//			node.childArray.back()["Children"] = nlohmann::json::array();
-//
-//			unserializedChildren.push({ child, node.childArray.back()["Children"] });
-//		}
-//	}
-//
-//	g_idGenerator = oldID;
-//
-//	return json;
-//}
+Prefab<GameObject> SerializeToPrefabNew(const GameObject& gameObject)
+{
+	auto oldID = g_idGenerator;
+	g_idGenerator = std::uintptr_t{ 1 } << std::uintptr_t{ 63 };
+
+	std::queue<PrefabData<GameObject>*> childArray;
+	std::unique_ptr<PrefabData<GameObject>> rootData;
+
+	ForEachGameObject(gameObject,
+		[&](const GameObject& root)
+	{
+		rootData = std::make_unique<PrefabData<GameObject>>();
+		rootData->id = g_idGenerator++;
+		rootData->type = &typeid(root);
+		rootData->name = root.name;
+
+		for (auto child = root.firstChild; child; child = child->next)
+		{
+			rootData->children.push_back(std::make_unique<PrefabData<GameObject>>());
+			childArray.push(rootData->children.back().get());
+		}
+	},
+		[&](const GameObject& child, int index)
+	{
+		auto childData = childArray.front();
+		childArray.pop();
+		childData->id = g_idGenerator++;
+		childData->type = &typeid(child);
+		childData->name = child.name;
+
+		for (auto child2 = child.firstChild; child2; child2 = child2->next)
+		{
+			childData->children.push_back(std::make_unique<PrefabData<GameObject>>());
+			childArray.push(childData->children.back().get());
+		}
+	});
+
+	g_idGenerator = oldID;
+	Prefab<GameObject> prefab;
+	prefab.data = std::move(rootData);
+	return prefab;
+}
+
+std::unique_ptr<GameObject> SpawnPrefab(Prefab<GameObject> prefab)
+{
+	std::unordered_map<std::uintptr_t, GameObject*> idToGameObject;
+
+	std::unique_ptr<GameObject> gameObject;
+
+	struct UnvisitedNode
+	{
+		GameObject* parent;
+		PrefabData<GameObject>* data;
+	};
+
+	std::queue<UnvisitedNode> unspawnedChildren;
+
+	gameObject = std::make_unique<GameObject>(); //<-- replace this with a factory function
+	idToGameObject[prefab.data->id] = gameObject.get();
+	gameObject->name = prefab.data->name;
+
+	for (auto& child : prefab.data->children)
+	{
+		unspawnedChildren.push({ gameObject.get(), child.get() });
+	}
+
+	while (!unspawnedChildren.empty())
+	{
+		auto children = unspawnedChildren.front();
+		unspawnedChildren.pop();
+
+		GameObject* childObject = new GameObject(); //<--- replace this with a factory function
+
+		idToGameObject[prefab.data->id] = childObject;
+		childObject->name = children.data->name;
+		childObject->SetParent(children.parent);
+		for (auto& child : children.data->children)
+		{
+			unspawnedChildren.push({ childObject, child.get() });
+		}
+	}
+	return gameObject;
+}
 
 int main()
 {
@@ -319,7 +358,7 @@ int main()
 	d.SetParent(&a);
 
 	nlohmann::json result = SerializeToPrefab(a);
-
+	auto prefab = SerializeToPrefabNew(a);
 	std::cout << "Hello world\n";
 
 	std::cout << result << "\n";
@@ -328,7 +367,11 @@ int main()
 	test << result;
 
 	auto copy = SpawnPrefab(result);
+	auto copy2 = SpawnPrefab(prefab);
 	nlohmann::json result2 = SerializeToPrefab(*copy);
 	std::cout << result2 << "\n";
+
+	nlohmann::json result3 = SerializeToPrefab(*copy2);
+	std::cout << result3 << "\n";
 	return 0;
 }
